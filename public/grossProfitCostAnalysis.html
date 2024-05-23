@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gross Profit Cost Analysis Iframe</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      *,
+      *:before,
+      *:after {
+        box-sizing: inherit;
+      }
+      .custom-iframe-container {
+        width: 100%;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Ensure iframe has specific dimensions or covers the full area as needed -->
+    <iframe
+      src="http://localhost:3000/grossProfitCostAnalysis?iframe=true"
+      style="width: 100%; height: 100vh; border: none"
+    ></iframe>
+  </body>
+</html>
