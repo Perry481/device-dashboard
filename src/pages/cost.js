@@ -2,7 +2,7 @@ import Head from "next/head";
 import Checkbox from "../components/checkbox"; // Ensure correct import path
 import React, { useState, useEffect, useRef } from "react";
 import * as echarts from "echarts";
-import { useSidebarContext } from "../contexts/SidebarContext"; // Adjust the path as necessary
+// import { useSidebarContext } from "../contexts/SidebarContext"; // Adjust the path as necessary
 
 export default function Cost({ isIframe }) {
   const [apidata, setApidata] = useState({}); // Initialize state to store fetched data
@@ -16,7 +16,7 @@ export default function Cost({ isIframe }) {
   const lineAndBarChartRef = useRef(null);
   const pieChartRef = useRef(null);
 
-  const { sidebarWidth } = useSidebarContext();
+  // const { sidebarWidth } = useSidebarContext();
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -379,28 +379,7 @@ export default function Cost({ isIframe }) {
         }
       });
 
-      const resizeChart = () => {
-        if (!isIframe) {
-          // When not in an iframe, adjust width based on sidebar
-          const screenWidth = window.innerWidth;
-          const adjustedSidebarWidth = screenWidth >= 993 ? sidebarWidth : 0;
-          const newWidth = screenWidth - adjustedSidebarWidth;
-          lineAndBarChartRef.current.style.width = `${newWidth}px`;
-          if (myChart) {
-            myChart.resize();
-          }
-        } else {
-          // When in an iframe, just resize the chart without adjusting the width
-          if (myChart) {
-            myChart.resize();
-          }
-        }
-      };
-
-      window.addEventListener("resize", resizeChart);
-
       return () => {
-        window.removeEventListener("resize", resizeChart);
         myChart.dispose();
       };
     }
@@ -517,7 +496,7 @@ export default function Cost({ isIframe }) {
       if (lineBarCleanup) lineBarCleanup();
       if (pieChartCleanup) pieChartCleanup();
     };
-  }, [customerData, sidebarWidth, selectedCustomer]);
+  }, [customerData, selectedCustomer]);
 
   return (
     <div className="container-fluid">

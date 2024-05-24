@@ -64,54 +64,6 @@ const SidebarMenu = ({ onPageChange, selectedPage }) => {
                 </a>
               </Link>
             </li>
-            <li className="nav-item">
-              <Link href="/costAnalysis" legacyBehavior>
-                <a
-                  className={`nav-link ${
-                    selectedPage === "CostAnalysis" ? "active" : ""
-                  }`}
-                >
-                  <i className="far fa-circle nav-icon" />
-                  <p>成本分析</p>
-                </a>
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link href="/customerCostAnalysis" legacyBehavior>
-                <a
-                  className={`nav-link ${
-                    selectedPage === "CustomerCostAnalysis" ? "active" : ""
-                  }`}
-                >
-                  <i className="far fa-circle nav-icon" />
-                  <p>客戶成本分析</p>
-                </a>
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link href="/grossProfitCostAnalysis" legacyBehavior>
-                <a
-                  className={`nav-link ${
-                    selectedPage === "GrossProfitCostAnalysis" ? "active" : ""
-                  }`}
-                >
-                  <i className="far fa-circle nav-icon" />
-                  <p>成本分析毛利比</p>
-                </a>
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link href="/paretoCostAnalysis" legacyBehavior>
-                <a
-                  className={`nav-link ${
-                    selectedPage === "ParetoCostAnalysis" ? "active" : ""
-                  }`}
-                >
-                  <i className="far fa-circle nav-icon" />
-                  <p>客戶成本柏拉圖分析</p>
-                </a>
-              </Link>
-            </li>
           </ul>
         </nav>
       </div>
