@@ -9,12 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "bootstrap": "^5.3.3",
+    "datatables.net-bs4": "^2.0.8",
+    "datatables.net-dt": "^2.0.8",
     "echarts": "^5.5.0",
     "next": "14.2.2",
     "react": "^18",
-    "react-dom": "^18"
+    "react-bootstrap": "^2.10.2",
+    "react-dom": "^18",
+    "styled-components": "^6.1.11"
   },
   "devDependencies": {
+    "babel-plugin-styled-components": "^2.1.4",
     "eslint": "^8",
     "eslint-config-next": "14.2.2"
   }
