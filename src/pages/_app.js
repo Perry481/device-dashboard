@@ -1,10 +1,10 @@
+// src/pages/_app.js
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import TopNavigation from "../components/TopNavigation";
 import Footer from "../components/Footer";
 import IframeLayout from "../components/IframeLayout";
 import { useRouter } from "next/router";
-import "../styles/globals.css"; // Make sure you have this if you use global styles
 
 const App = ({ Component, pageProps }) => {
   const [selectedPage, setSelectedPage] = useState("Index");
@@ -17,9 +17,23 @@ const App = ({ Component, pageProps }) => {
 
   useEffect(() => {
     const path = router.pathname.split("/")[1];
-    setSelectedPage(
-      path ? path.charAt(0).toUpperCase() + path.slice(1) : "Index"
-    );
+    switch (path) {
+      case "":
+        setSelectedPage("Index");
+        break;
+      case "RTMonitoring":
+        setSelectedPage("RTMonitoring");
+        break;
+      case "energyCostAnalysis":
+        setSelectedPage("energyCostAnalysis");
+        break;
+      case "energyPriceAnalysis":
+        setSelectedPage("energyPriceAnalysis");
+        break;
+      default:
+        setSelectedPage("Index");
+        break;
+    }
   }, [router.pathname]);
 
   if (isIframe) {

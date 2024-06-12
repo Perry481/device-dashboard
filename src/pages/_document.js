@@ -4,9 +4,6 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* Importing global styles */}
-        <link rel="stylesheet" href="/src/styles/globals.css" />
-
         {/* Other styles */}
         <link
           rel="stylesheet"

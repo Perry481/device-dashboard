@@ -34,12 +34,43 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
             </li>
             <li
               className={`nav-item ${
-                selectedPage === "Contact" ? "active" : ""
+                selectedPage === "RTMonitoring" ? "active" : ""
               }`}
             >
-              <Link href="/contact" legacyBehavior>
-                <a className="nav-link" onClick={() => onPageChange("Contact")}>
+              <Link href="/RTMonitoring" legacyBehavior>
+                <a
+                  className="nav-link"
+                  onClick={() => onPageChange("RTMonitoring")}
+                >
                   即時監控
+                </a>
+              </Link>
+            </li>
+            <li
+              className={`nav-item ${
+                selectedPage === "energyCostAnalysis" ? "active" : ""
+              }`}
+            >
+              <Link href="/energyCostAnalysis" legacyBehavior>
+                <a
+                  className="nav-link"
+                  onClick={() => onPageChange("energyCostAnalysis")}
+                >
+                  能耗監控
+                </a>
+              </Link>
+            </li>
+            <li
+              className={`nav-item ${
+                selectedPage === "energyPriceAnalysis" ? "active" : ""
+              }`}
+            >
+              <Link href="/energyPriceAnalysis" legacyBehavior>
+                <a
+                  className="nav-link"
+                  onClick={() => onPageChange("energyPriceAnalysis")}
+                >
+                  電費分析
                 </a>
               </Link>
             </li>

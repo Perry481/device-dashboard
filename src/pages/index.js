@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { nodeName } from "jquery";
 
 const HomePage = () => {
   const energyCostChartRef = useRef(null);
@@ -117,6 +118,24 @@ const HomePage = () => {
             itemStyle: {
               color: "#3ba272",
             },
+            markLine: {
+              silent: true,
+              symbol: "none",
+              data: [
+                {
+                  yAxis: standardLine,
+                  lineStyle: {
+                    color: "black",
+                    type: "dashed",
+                  },
+                  label: {
+                    formatter: "{c}",
+                    position: "end",
+                    color: "black",
+                  },
+                },
+              ],
+            },
           },
           {
             name: "Above Standard",
@@ -127,16 +146,6 @@ const HomePage = () => {
               color: "red",
             },
           },
-          {
-            data: new Array(31).fill(standardLine),
-            type: "line",
-            itemStyle: {
-              color: "black",
-            },
-            lineStyle: {
-              type: "dashed",
-            },
-          },
         ],
       };
       energyCostChart.setOption(energyCostOptions);
@@ -144,9 +153,112 @@ const HomePage = () => {
     }
   };
 
+  const updateTotalEnergyTrendChart = () => {
+    if (totalEnergyTrendChartRef.current) {
+      const totalEnergyTrendChart = echarts.init(
+        totalEnergyTrendChartRef.current
+      );
+      const energyData = [
+        18, 16, 10, 14, 17, 19, 16, 15, 13, 12, 11, 10, 14, 17, 19, 16, 15, 13,
+        12, 11, 10, 14, 17, 19, 16, 15, 13, 12, 11, 10, 14,
+      ];
+      const standardValue = 16;
+      const totalEnergyTrendOptions = {
+        title: {
+          text: "總有效功率趨勢",
+          left: "center",
+        },
+        xAxis: {
+          type: "category",
+          data: [
+            "5/1",
+            "5/2",
+            "5/3",
+            "5/4",
+            "5/5",
+            "5/6",
+            "5/7",
+            "5/8",
+            "5/9",
+            "5/10",
+            "5/11",
+            "5/12",
+            "5/13",
+            "5/14",
+            "5/15",
+            "5/16",
+            "5/17",
+            "5/18",
+            "5/19",
+            "5/20",
+            "5/21",
+            "5/22",
+            "5/23",
+            "5/24",
+            "5/25",
+            "5/26",
+            "5/27",
+            "5/28",
+            "5/29",
+            "5/30",
+            "5/31",
+          ],
+        },
+        yAxis: {
+          type: "value",
+        },
+        series: [
+          {
+            name: "Effective Power",
+            type: "line",
+            data: energyData,
+            areaStyle: {},
+            itemStyle: {
+              color: (params) =>
+                params.value > standardValue ? "red" : "#3ba272",
+            },
+            lineStyle: {
+              color: "#3ba272",
+            },
+            markLine: {
+              silent: true,
+              symbol: "none",
+              data: [
+                {
+                  yAxis: standardValue,
+                  lineStyle: {
+                    color: "black",
+                    type: "dashed",
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        visualMap: {
+          show: false,
+          pieces: [
+            {
+              gt: 0,
+              lte: standardValue,
+              color: "#3ba272",
+            },
+            {
+              gt: standardValue,
+              color: "red",
+            },
+          ],
+        },
+      };
+      totalEnergyTrendChart.setOption(totalEnergyTrendOptions);
+      return totalEnergyTrendChart;
+    }
+  };
+
   useEffect(() => {
     const pieChart = updatePieChart();
     const energyCostChart = updateEnergyCostChart();
+    const totalEnergyTrendChart = updateTotalEnergyTrendChart();
 
     const handleResize = () => {
       if (pieChart) {
@@ -154,6 +266,9 @@ const HomePage = () => {
       }
       if (energyCostChart) {
         energyCostChart.resize();
+      }
+      if (totalEnergyTrendChart) {
+        totalEnergyTrendChart.resize();
       }
     };
 
@@ -165,6 +280,9 @@ const HomePage = () => {
       }
       if (energyCostChart) {
         energyCostChart.dispose();
+      }
+      if (totalEnergyTrendChart) {
+        totalEnergyTrendChart.dispose();
       }
       window.removeEventListener("resize", handleResize);
     };
@@ -224,8 +342,8 @@ const HomePage = () => {
       </div>
 
       {/* Bottom 60% section */}
-      <div className="row flex-grow-1" style={{ height: "60%" }}>
-        <div className="col-12">
+      <div className="row flex-grow-1" style={{ minHeight: "60%" }}>
+        <div className="col-12 h-100">
           {/* Row for the two trend charts */}
           <div className="row h-100">
             <div className="col-lg-4 col-12 mb-4 d-flex">
@@ -234,7 +352,6 @@ const HomePage = () => {
                   <h5 className="card-title text-success">能耗趨勢</h5>
                   <div
                     ref={energyCostChartRef}
-                    className="chart-container"
                     style={{ width: "100%", height: "300px" }}
                   ></div>
                 </div>
@@ -246,8 +363,7 @@ const HomePage = () => {
                   <h5 className="card-title text-success">總有效功率趨勢</h5>
                   <div
                     ref={totalEnergyTrendChartRef}
-                    className="chart-container"
-                    style={{ width: "100%", height: "100%" }}
+                    style={{ width: "100%", height: "300px" }}
                   ></div>
                 </div>
               </div>
@@ -260,7 +376,6 @@ const HomePage = () => {
                   </h5>
                   <div
                     ref={totalEnergyNeedChartRef}
-                    className="chart-container"
                     style={{ width: "100%", height: "100%" }}
                   ></div>
                 </div>
