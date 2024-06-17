@@ -7,23 +7,38 @@ const Card = styled.div`
   border-radius: 4px;
   padding: 20px;
   margin: 20px 0;
-  margin-right: 20px;
+
   height: 400px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+
+  // Apply padding only for lg and above
+  @media (min-width: 992px) {
+    margin-right: 80px;
+  }
+
+  // Remove padding for md and below
+  @media (max-width: 991px) {
+    margin-right: 0;
+  }
 `;
 
 const CardHeader = styled.div`
   font-weight: bold;
   margin-bottom: 10px;
   text-align: center;
+  font-weight: bolder;
+  font-size: 20px;
 `;
 
 const CardBody = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 50px;
+  padding: 0 60px;
+  font-size: 18px;
 `;
 
 const DetailItem = styled.div`
@@ -36,8 +51,8 @@ const DetailItem = styled.div`
 
 const ColorBlock = styled.span`
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   margin-right: 8px;
   background-color: ${(props) => props.color};
 `;

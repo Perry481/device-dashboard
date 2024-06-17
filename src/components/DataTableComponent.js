@@ -1,4 +1,3 @@
-// src/components/DataTableComponent.js
 import React, { useEffect } from "react";
 import $ from "jquery";
 import "datatables.net-dt/css/dataTables.dataTables.css";
@@ -59,40 +58,78 @@ const DataTableComponent = ({
   prices,
 }) => {
   useEffect(() => {
+    // Disable DataTable error messages
+    $.fn.dataTable.ext.errMode = "none";
+
     if (!aggregatedData || Object.keys(aggregatedData).length === 0) {
+      console.log("No aggregated data available");
       return; // Exit early if there's no data
     }
 
-    const transformedDataSets = splitData(aggregatedData, 10); // Split data into chunks of 10 dates
+    console.log("Aggregated Data:", aggregatedData);
+
+    const transformedDataSets = splitData(aggregatedData, 7); // Split data into chunks of 7 dates
+
     transformedDataSets.forEach((transformedData, index) => {
       const tableId = `energyTable-${index}`;
-      $(`#${tableId}`).DataTable({
-        data: transformedData.map((row) => Object.values(row)), // Ensure data is an array of arrays
-        columns: [
-          { title: "" },
-          ...Object.keys(transformedData[0])
-            .slice(1)
-            .map((date) => ({ title: date })),
-        ],
+      const tableElement = $(`#${tableId}`);
+      if ($.fn.DataTable.isDataTable(tableElement)) {
+        tableElement.DataTable().destroy();
+      }
+
+      const columns = [
+        { title: "Type" },
+        ...Object.keys(transformedData[0])
+          .filter((key) => key !== "Type")
+          .map((date) => ({ title: date })),
+      ];
+
+      console.log(`Columns for ${tableId}:`, columns);
+      console.log(`Data for ${tableId}:`, transformedData);
+
+      // Generate <thead> and <tbody> HTML strings
+      const thead = `<thead><tr>${columns
+        .map((col) => `<th>${col.title}</th>`)
+        .join("")}</tr></thead>`;
+      const tbody = `<tbody>${transformedData
+        .map(
+          (row) =>
+            `<tr>${columns
+              .map((col) => `<td>${row[col.title] || row.Type}</td>`)
+              .join("")}</tr>`
+        )
+        .join("")}</tbody>`;
+
+      // Set the table HTML
+      tableElement.html(`${thead}${tbody}`);
+
+      // Initialize DataTable with search and paging disabled
+      const dataTableConfig = {
         destroy: true,
         responsive: true,
         searching: false,
         paging: false,
         info: false,
         ordering: false,
-      });
+      };
+      const dataTableInstance = tableElement.DataTable(dataTableConfig);
 
       const handleResize = () => {
-        $(`#${tableId}`).DataTable().columns.adjust();
+        if (dataTableInstance) {
+          dataTableInstance.columns.adjust();
+        }
       };
+
       window.addEventListener("resize", handleResize);
 
       return () => {
-        $(`#${tableId}`).DataTable().destroy();
+        if (dataTableInstance) {
+          dataTableInstance.destroy();
+        }
         window.removeEventListener("resize", handleResize);
       };
     });
-  }, [aggregatedData]);
+  }, [aggregatedData, energyConsumption, energyPrice, prices]);
 
   const splitData = (data, chunkSize) => {
     const dates = Object.keys(data);
@@ -110,30 +147,51 @@ const DataTableComponent = ({
     const transformed = peakStates.map((state) => {
       const row = { Type: state };
       dateChunk.forEach((date) => {
-        let value;
-        let unit = energyConsumption ? "kWh" : "元";
-        switch (state) {
-          case "尖峰":
-            value = data[date].peak;
-            break;
-          case "半尖峰":
-            value = data[date].semiPeak;
-            break;
-          case "離峰":
-            value = data[date].offPeak;
-            break;
-          case "總合":
-            value = (
-              parseFloat(data[date].peak) +
-              parseFloat(data[date].semiPeak) +
-              parseFloat(data[date].offPeak)
-            ).toFixed(2);
-            break;
-          default:
-            value = "";
-        }
+        let value = "0";
+        let unit = "kWh";
 
-        if (energyPrice && prices) {
+        if (energyConsumption) {
+          switch (state) {
+            case "尖峰":
+              value =
+                data[date] && data[date].peak !== undefined
+                  ? data[date].peak
+                  : "0";
+              break;
+            case "半尖峰":
+              value =
+                data[date] && data[date].semiPeak !== undefined
+                  ? data[date].semiPeak
+                  : "0";
+              break;
+            case "離峰":
+              value =
+                data[date] && data[date].offPeak !== undefined
+                  ? data[date].offPeak
+                  : "0";
+              break;
+            case "總合":
+              if (data[date]) {
+                value = (
+                  (data[date].peak !== undefined
+                    ? parseFloat(data[date].peak)
+                    : 0) +
+                  (data[date].semiPeak !== undefined
+                    ? parseFloat(data[date].semiPeak)
+                    : 0) +
+                  (data[date].offPeak !== undefined
+                    ? parseFloat(data[date].offPeak)
+                    : 0)
+                ).toFixed(2);
+              } else {
+                value = "0";
+              }
+              break;
+            default:
+              value = "0";
+          }
+        } else if (energyPrice && prices) {
+          // For energy price, multiply the value by the corresponding price
           const peakPrice =
             parseFloat(prices.peakPrices?.夏月.replace("NT$", "")) || 0;
           const semiPeakPrice =
@@ -143,43 +201,61 @@ const DataTableComponent = ({
 
           switch (state) {
             case "尖峰":
-              value = (parseFloat(data[date].peak) * peakPrice).toFixed(2);
+              value =
+                data[date] && data[date].peak !== undefined
+                  ? (parseFloat(data[date].peak) * peakPrice).toFixed(2)
+                  : "0";
               break;
             case "半尖峰":
-              value = (parseFloat(data[date].semiPeak) * semiPeakPrice).toFixed(
-                2
-              );
+              value =
+                data[date] && data[date].semiPeak !== undefined
+                  ? (parseFloat(data[date].semiPeak) * semiPeakPrice).toFixed(2)
+                  : "0";
               break;
             case "離峰":
-              value = (parseFloat(data[date].offPeak) * offPeakPrice).toFixed(
-                2
-              );
+              value =
+                data[date] && data[date].offPeak !== undefined
+                  ? (parseFloat(data[date].offPeak) * offPeakPrice).toFixed(2)
+                  : "0";
               break;
             case "總合":
-              value = (
-                parseFloat(data[date].peak) * peakPrice +
-                parseFloat(data[date].semiPeak) * semiPeakPrice +
-                parseFloat(data[date].offPeak) * offPeakPrice
-              ).toFixed(2);
+              if (data[date]) {
+                value = (
+                  (data[date].peak !== undefined
+                    ? parseFloat(data[date].peak) * peakPrice
+                    : 0) +
+                  (data[date].semiPeak !== undefined
+                    ? parseFloat(data[date].semiPeak) * semiPeakPrice
+                    : 0) +
+                  (data[date].offPeak !== undefined
+                    ? parseFloat(data[date].offPeak) * offPeakPrice
+                    : 0)
+                ).toFixed(2);
+              } else {
+                value = "0";
+              }
               break;
             default:
-              value = "";
+              value = "0";
           }
+          unit = "元";
         }
-
-        row[date] = `${value} ${unit}`;
+        row[date] = value !== undefined ? `${value} ${unit}` : "0";
       });
+      console.log(`Transformed row for ${state}:`, row);
       return row;
     });
 
     return transformed;
   };
 
-  const transformedDataSets = splitData(aggregatedData, 10);
-
   if (!aggregatedData || Object.keys(aggregatedData).length === 0) {
     return <p>No data available</p>;
   }
+
+  const transformedDataSets = splitData(aggregatedData, 7);
+
+  console.log("Transformed Data Sets:", transformedDataSets);
 
   return (
     <div style={{ width: "100%" }}>
