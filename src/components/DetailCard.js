@@ -13,12 +13,10 @@ const Card = styled.div`
   flex-direction: column;
   justify-content: center;
 
-  // Apply padding only for lg and above
   @media (min-width: 992px) {
     margin-right: 80px;
   }
 
-  // Remove padding for md and below
   @media (max-width: 991px) {
     margin-right: 0;
   }
@@ -77,21 +75,28 @@ const DetailCard = ({
   );
   const total = totalPeak + totalSemiPeak + totalOffPeak;
 
-  let peakPrice = 0;
-  let semiPeakPrice = 0;
-  let offPeakPrice = 0;
+  let totalCostPeak = 0;
+  let totalCostSemiPeak = 0;
+  let totalCostOffPeak = 0;
 
   if (prices) {
-    peakPrice = parseFloat(prices.peakPrices?.夏月.replace("NT$", "")) || 0;
-    semiPeakPrice =
-      parseFloat(prices.halfPeakPrices?.夏月.replace("NT$", "")) || 0;
-    offPeakPrice =
-      parseFloat(prices.offPeakPrices?.夏月.replace("NT$", "")) || 0;
+    Object.keys(aggregatedData).forEach((date) => {
+      const { peak, semiPeak, offPeak, isSummer } = aggregatedData[date];
+      const period = isSummer ? "夏月" : "非夏月";
+
+      const peakPrice =
+        parseFloat(prices.peakPrices?.[period]?.replace("NT$", "")) || 0;
+      const semiPeakPrice =
+        parseFloat(prices.halfPeakPrices?.[period]?.replace("NT$", "")) || 0;
+      const offPeakPrice =
+        parseFloat(prices.offPeakPrices?.[period]?.replace("NT$", "")) || 0;
+
+      totalCostPeak += parseFloat(peak) * peakPrice;
+      totalCostSemiPeak += parseFloat(semiPeak) * semiPeakPrice;
+      totalCostOffPeak += parseFloat(offPeak) * offPeakPrice;
+    });
   }
 
-  const totalCostPeak = totalPeak * peakPrice;
-  const totalCostSemiPeak = totalSemiPeak * semiPeakPrice;
-  const totalCostOffPeak = totalOffPeak * offPeakPrice;
   const totalCost = totalCostPeak + totalCostSemiPeak + totalCostOffPeak;
 
   return (

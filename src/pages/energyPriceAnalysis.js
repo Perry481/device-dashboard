@@ -7,6 +7,9 @@ import DetailCard from "../components/DetailCard";
 import PriceTable from "../components/PriceTable";
 import DateRangePicker from "../components/DateRangePicker";
 import styled from "styled-components";
+import { debounce } from "lodash";
+import isEqual from "lodash/isEqual";
+
 const SelectionAndSend = dynamic(
   () => import("../components/SelectionAndSend"),
   { ssr: false }
@@ -17,13 +20,9 @@ const RowContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-
-  // Apply padding only for lg and above
   @media (min-width: 992px) {
     padding: 0 80px;
   }
-
-  // Remove padding for md and below
   @media (max-width: 991px) {
     padding: 0;
   }
@@ -35,14 +34,13 @@ const HalfWidthContainer = styled.div`
 
 const formatDate = (date) => {
   const year = date.getFullYear();
-  const month = `0${date.getMonth() + 1}`.slice(-2); // Adding leading zero
-  const day = `0${date.getDate()}`.slice(-2); // Adding leading zero
+  const month = `0${date.getMonth() + 1}`.slice(-2);
+  const day = `0${date.getDate()}`.slice(-2);
   return `${year}/${month}/${day}`;
 };
 
 const aggregateFetchedData = (fetchedData) => {
   const aggregatedData = {};
-
   fetchedData.forEach((dataArray) => {
     dataArray.forEach((item) => {
       if (aggregatedData[item.Key]) {
@@ -52,7 +50,6 @@ const aggregateFetchedData = (fetchedData) => {
       }
     });
   });
-
   return Object.keys(aggregatedData).map((key) => ({
     Key: key,
     Value: aggregatedData[key],
@@ -61,74 +58,71 @@ const aggregateFetchedData = (fetchedData) => {
 
 const removeYearFromDate = (data) => {
   return data.map((item) => {
-    const dateWithoutYear = item.Key.split(" ")[0].slice(5); // Remove the year from the date
+    const dateWithoutYear = item.Key.split(" ")[0].slice(5);
     return {
       ...item,
-      Key: dateWithoutYear + " " + item.Key.split(" ")[1], // Reassemble the key without the year
+      Key: dateWithoutYear + " " + item.Key.split(" ")[1],
     };
   });
 };
 
 const getDayOfWeek = (dateStr) => {
   const daysOfWeek = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
-  const date = new Date(`2024/${dateStr}`); // Re-add a year for date parsing
+  const date = new Date(`2024/${dateStr}`);
   return daysOfWeek[date.getDay()];
 };
+const categorizeData = (data, timeRanges) => {
+  console.log("Data before categorization:", data);
 
-const categorizeData = (data) => {
+  if (!timeRanges) {
+    console.error("Time ranges not provided.");
+    return data.map((item) => ({
+      ...item,
+      peakState: "unknown",
+      isSummer: false,
+    }));
+  }
+
   return data.map((item) => {
     const currentYear = new Date().getFullYear();
     const dateStr = `${currentYear}/${item.Key.split(" ")[0]}`;
     const date = new Date(dateStr);
     const day = date.getDay();
     const hour = parseInt(item.Key.split(" ")[1]);
-    const month = date.getMonth() + 1; // getMonth() returns 0-11, so add 1 to get 1-12
-
+    const month = date.getMonth() + 1;
     const isSummer = month >= 6 && month <= 9;
-    let peakState = "";
 
-    if (day >= 1 && day <= 5) {
-      // Weekdays
-      if (isSummer) {
-        // Summer
-        if (hour >= 9 && hour < 24) {
-          peakState = "peak";
-        } else {
-          peakState = "offpeak";
-        }
-      } else {
-        // Non-summer
-        if ((hour >= 6 && hour < 11) || (hour >= 14 && hour < 24)) {
-          peakState = "peak";
-        } else {
-          peakState = "offpeak";
-        }
-      }
-    } else if (day === 6) {
-      // Saturday
-      if (isSummer) {
-        // Summer
-        if (hour >= 9 && hour < 24) {
-          peakState = "semi-peak";
-        } else {
-          peakState = "offpeak";
-        }
-      } else {
-        // Non-summer
-        if ((hour >= 6 && hour < 11) || (hour >= 14 && hour < 24)) {
-          peakState = "semi-peak";
-        } else {
-          peakState = "offpeak";
-        }
-      }
-    } else {
-      // Sunday and Holidays
-      peakState = "offpeak";
+    // console.log(`Processing item: ${item.Key}, isSummer: ${isSummer}`);
+
+    const period = isSummer ? "夏月" : "非夏月";
+    if (!timeRanges[period]) {
+      console.error(`Time ranges not defined for period: ${period}`);
+      return { ...item, peakState: "unknown", isSummer };
+    }
+
+    const dayType =
+      day >= 1 && day <= 5 ? "weekdays" : day === 6 ? "saturday" : "sunday";
+    if (!timeRanges[period][dayType]) {
+      console.error(
+        `Time ranges not defined for day type: ${dayType} in period: ${period}`
+      );
+      return { ...item, peakState: "unknown", isSummer };
+    }
+
+    let peakState = "offpeak";
+    const ranges = timeRanges[period][dayType];
+    if (ranges.peak.some((range) => hour >= range[0] && hour < range[1])) {
+      peakState = "peak";
+    } else if (
+      ranges.halfpeak.some((range) => hour >= range[0] && hour < range[1])
+    ) {
+      peakState = "halfpeak";
     }
 
     return {
       ...item,
       peakState,
+      isSummer,
       DayOfWeek: getDayOfWeek(item.Key.split(" ")[0]),
     };
   });
@@ -139,9 +133,9 @@ const groupDataByDate = (data) => {
     const date = item.Key.split(" ")[0];
     const time = item.Key.split(" ")[1];
     if (!acc[date]) {
-      acc[date] = [];
+      acc[date] = { items: [], isSummer: item.isSummer };
     }
-    acc[date].push({
+    acc[date].items.push({
       Time: time,
       Value: item.Value,
       DayOfWeek: item.DayOfWeek,
@@ -152,16 +146,12 @@ const groupDataByDate = (data) => {
 };
 
 const aggregateDataByPeakState = (groupedData) => {
+  // console.log(groupedData);
   const aggregatedData = {};
-
   Object.keys(groupedData).forEach((date) => {
-    aggregatedData[date] = {
-      peak: 0,
-      semiPeak: 0,
-      offPeak: 0,
-    };
-
-    groupedData[date].forEach((item) => {
+    const { items, isSummer } = groupedData[date];
+    aggregatedData[date] = { peak: 0, semiPeak: 0, offPeak: 0, isSummer };
+    items.forEach((item) => {
       if (item.PeakState === "peak") {
         aggregatedData[date].peak += item.Value;
       } else if (item.PeakState === "semi-peak") {
@@ -170,28 +160,23 @@ const aggregateDataByPeakState = (groupedData) => {
         aggregatedData[date].offPeak += item.Value;
       }
     });
-
-    // Format aggregated values to 2 decimal places
     aggregatedData[date].peak = aggregatedData[date].peak.toFixed(2);
     aggregatedData[date].semiPeak = aggregatedData[date].semiPeak.toFixed(2);
     aggregatedData[date].offPeak = aggregatedData[date].offPeak.toFixed(2);
   });
-
   return aggregatedData;
 };
 
 const EnergyPriceAnalysis = () => {
-  // Set default date range to past week
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-  const lastWeek = new Date(today);
-  lastWeek.setDate(today.getDate() - 7);
-
   const [groupedData, setGroupedData] = useState({});
   const [aggregatedData, setAggregatedData] = useState({});
   const [prices, setPrices] = useState(null);
+  const [timeRanges, setTimeRanges] = useState(null);
+  const [initialized, setInitialized] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
   const barChartRef = useRef(null);
   const pieChartRef = useRef(null);
   const [dateRange, setDateRange] = useState({
@@ -200,21 +185,25 @@ const EnergyPriceAnalysis = () => {
   });
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
+  const [lastBarChartData, setLastBarChartData] = useState(null);
+  const [lastPieChartData, setLastPieChartData] = useState(null);
 
-  const fetchPrices = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
-      const response = await fetch("/api/prices");
+      const response = await fetch("/api/settings");
       if (!response.ok) {
-        throw new Error("Failed to fetch prices");
+        throw new Error("Failed to fetch settings");
       }
-      const savedPrices = await response.json();
-      setPrices(savedPrices);
+      const savedSettings = await response.json();
+      setPrices(savedSettings);
+      setTimeRanges(savedSettings.timeRanges);
+      setInitialized(true);
     } catch (error) {
-      console.error("Error fetching prices:", error);
+      console.error("Error fetching settings:", error);
     }
-  };
+  }, []);
 
-  const fetchOptions = async () => {
+  const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch(
         "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
@@ -228,31 +217,24 @@ const EnergyPriceAnalysis = () => {
         label: item.name,
       }));
       setOptions(formattedOptions);
-
-      // Set default selection to the first option and fetch data
       if (formattedOptions.length > 0) {
         const defaultOption = formattedOptions[0].value;
         setSelectedOptions([defaultOption]);
-        handleDataFetch([defaultOption], {
-          startDate: firstDayOfMonth,
-          endDate: lastDayOfMonth,
-        });
       }
     } catch (error) {
       console.error("Error fetching options:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPrices();
+    fetchSettings();
     fetchOptions();
-  }, []);
+  }, [fetchOptions, fetchSettings]);
 
   const fetchData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
     const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
-
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -265,75 +247,139 @@ const EnergyPriceAnalysis = () => {
     }
   };
 
-  const handleDataFetch = async (selectedOptions, dateRange) => {
-    const { startDate, endDate } = dateRange;
-    const fetchPromises = selectedOptions.map((sn) =>
-      fetchData(sn, startDate, endDate)
-    );
+  const handleDataFetch = useCallback(
+    debounce(async (selectedOptions, dateRange, timeRanges) => {
+      if (!initialized) {
+        return;
+      }
+      // Show loading
+      const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
+      const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
+      if (barChartInstance) barChartInstance.showLoading();
+      if (pieChartInstance) pieChartInstance.showLoading();
 
-    try {
-      const results = await Promise.all(fetchPromises);
-      const aggregatedFetchedData = aggregateFetchedData(results);
-      processAndSetData(aggregatedFetchedData);
-      console.log("Fetched results:", results);
-    } catch (error) {
-      console.error("Error during data fetch:", error);
+      const { startDate, endDate } = dateRange;
+      const fetchPromises = selectedOptions.map((sn) =>
+        fetchData(sn, startDate, endDate)
+      );
+      try {
+        const results = await Promise.all(fetchPromises);
+        const aggregatedFetchedData = aggregateFetchedData(results);
+        processAndSetData(aggregatedFetchedData, timeRanges);
+      } catch (error) {
+        console.error("Error during data fetch:", error);
+      }
+    }),
+    [initialized]
+  );
+
+  const processAndSetData = (data, timeRanges) => {
+    console.log(data);
+    if (!timeRanges) {
+      console.error("Time ranges not initialized.");
+      return;
     }
-  };
-
-  const processAndSetData = (data) => {
     const dataWithoutYear = removeYearFromDate(data);
     const updatedData = dataWithoutYear.map((item) => ({
       ...item,
       DayOfWeek: getDayOfWeek(item.Key.split(" ")[0]),
     }));
-    const categorizedData = categorizeData(updatedData);
+
+    const categorizedData = categorizeData(updatedData, timeRanges);
     const groupedByDate = groupDataByDate(categorizedData);
+    console.log("Grouped Data by Date:", groupedByDate);
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
+    console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
+
     setGroupedData(groupedByDate);
     setAggregatedData(aggregatedByPeakState);
+    setDataReady(true);
+
+    // Hide loading
+    const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
+    const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
+    if (barChartInstance) barChartInstance.hideLoading();
+    if (pieChartInstance) pieChartInstance.hideLoading();
   };
 
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
-    console.log("Selected date range:", newDateRange);
   }, []);
 
   const handleSend = useCallback(
-    (newSelectedOptions) => {
+    (newSelectedOptions, currentRange = timeRanges) => {
       setSelectedOptions(newSelectedOptions);
-      console.log("Selected options:", newSelectedOptions);
-      handleDataFetch(newSelectedOptions, dateRange);
+      handleDataFetch(newSelectedOptions, dateRange, currentRange);
     },
-    [dateRange]
+    [selectedOptions, timeRanges, dateRange, handleDataFetch]
   );
 
+  const handleExitEditMode = useCallback(async () => {
+    await fetchSettings();
+    handleSend(selectedOptions, timeRanges);
+  }, [fetchSettings, handleSend, selectedOptions, timeRanges]);
+
   useEffect(() => {
+    if (initialized && selectedOptions.length > 0 && timeRanges) {
+      handleDataFetch(selectedOptions, dateRange, timeRanges);
+    }
+  }, [initialized, selectedOptions, timeRanges, handleDataFetch]);
+
+  const renderBarChart = () => {
     if (
+      dataReady &&
       barChartRef.current &&
       prices &&
       Object.keys(aggregatedData).length > 0
     ) {
       const dates = Object.keys(aggregatedData);
-      const peakPrice =
-        parseFloat(prices.peakPrices?.夏月.replace("NT$", "")) || 0;
-      const semiPeakPrice =
-        parseFloat(prices.halfPeakPrices?.夏月.replace("NT$", "")) || 0;
-      const offPeakPrice =
-        parseFloat(prices.offPeakPrices?.夏月.replace("NT$", "")) || 0;
+
+      const newBarChartData = {
+        dates,
+        peak: [],
+        semiPeak: [],
+        offPeak: [],
+      };
+
+      dates.forEach((date) => {
+        const { peak, semiPeak, offPeak, isSummer } = aggregatedData[date];
+        const period = isSummer ? "夏月" : "非夏月";
+
+        const peakPrice = parseFloat(
+          prices.peakPrices?.[period]?.replace("NT$", "")
+        );
+        const semiPeakPrice = parseFloat(
+          prices.halfPeakPrices?.[period]?.replace("NT$", "")
+        );
+        const offPeakPrice = parseFloat(
+          prices.offPeakPrices?.[period]?.replace("NT$", "")
+        );
+
+        newBarChartData.peak.push((parseFloat(peak) * peakPrice).toFixed(2));
+        newBarChartData.semiPeak.push(
+          (parseFloat(semiPeak) * semiPeakPrice).toFixed(2)
+        );
+        newBarChartData.offPeak.push(
+          (parseFloat(offPeak) * offPeakPrice).toFixed(2)
+        );
+      });
+
+      if (isEqual(newBarChartData, lastBarChartData)) {
+        console.log("Bar chart data is the same, skipping update.");
+        return;
+      }
+
+      if (echarts.getInstanceByDom(barChartRef.current)) {
+        echarts.getInstanceByDom(barChartRef.current).dispose();
+      }
 
       const barChart = echarts.init(barChartRef.current);
       const barChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
-        title: {
-          text: "尖離峰費用分析",
-          left: "center",
-        },
+        title: { text: "尖離峰費用分析", left: "center" },
         tooltip: {
           trigger: "axis",
-          axisPointer: {
-            type: "shadow",
-          },
+          axisPointer: { type: "shadow" },
           formatter: (params) => {
             const date = params[0].axisValue;
             let tooltipText = `${date}<br/>`;
@@ -346,138 +392,131 @@ const EnergyPriceAnalysis = () => {
             return tooltipText;
           },
         },
-        xAxis: {
-          type: "category",
-          data: dates,
-        },
-        yAxis: {
-          type: "value",
-          name: "NT$",
-        },
+        xAxis: { type: "category", data: dates },
+        yAxis: { type: "value", name: "NT$" },
         series: [
           {
             name: "尖峰",
             type: "bar",
             stack: "total",
-            data: dates.map((date) =>
-              (parseFloat(aggregatedData[date].peak) * peakPrice).toFixed(2)
-            ),
+            data: newBarChartData.peak,
           },
           {
             name: "半尖峰",
             type: "bar",
             stack: "total",
-            data: dates.map((date) =>
-              (
-                parseFloat(aggregatedData[date].semiPeak) * semiPeakPrice
-              ).toFixed(2)
-            ),
+            data: newBarChartData.semiPeak,
           },
           {
             name: "離峰",
             type: "bar",
             stack: "total",
-            data: dates.map((date) =>
-              (parseFloat(aggregatedData[date].offPeak) * offPeakPrice).toFixed(
-                2
-              )
-            ),
+            data: newBarChartData.offPeak,
           },
         ],
       };
       barChart.setOption(barChartOptions);
-
       const handleResize = () => {
         barChart.resize();
       };
       window.addEventListener("resize", handleResize);
-
+      setLastBarChartData(newBarChartData); // Update state after the chart is rendered
       return () => {
         barChart.dispose();
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [aggregatedData, prices]);
+  };
 
-  useEffect(() => {
+  const renderPieChart = () => {
     if (
+      dataReady &&
       pieChartRef.current &&
       prices &&
       Object.keys(aggregatedData).length > 0
     ) {
-      const peakPrice =
-        parseFloat(prices.peakPrices?.夏月.replace("NT$", "")) || 0;
-      const semiPeakPrice =
-        parseFloat(prices.halfPeakPrices?.夏月.replace("NT$", "")) || 0;
-      const offPeakPrice =
-        parseFloat(prices.offPeakPrices?.夏月.replace("NT$", "")) || 0;
+      let totalPeak = 0;
+      let totalSemiPeak = 0;
+      let totalOffPeak = 0;
 
-      const totalPeak = Object.values(aggregatedData).reduce(
-        (acc, curr) => acc + parseFloat(curr.peak) * peakPrice,
-        0
+      Object.values(aggregatedData).forEach(
+        ({ peak, semiPeak, offPeak, isSummer }) => {
+          const period = isSummer ? "夏月" : "非夏月";
+
+          const peakPrice = parseFloat(
+            prices.peakPrices?.[period]?.replace("NT$", "")
+          );
+          const semiPeakPrice = parseFloat(
+            prices.halfPeakPrices?.[period]?.replace("NT$", "")
+          );
+          const offPeakPrice = parseFloat(
+            prices.offPeakPrices?.[period]?.replace("NT$", "")
+          );
+
+          totalPeak += parseFloat(peak) * peakPrice;
+          totalSemiPeak += parseFloat(semiPeak) * semiPeakPrice;
+          totalOffPeak += parseFloat(offPeak) * offPeakPrice;
+        }
       );
-      const totalSemiPeak = Object.values(aggregatedData).reduce(
-        (acc, curr) => acc + parseFloat(curr.semiPeak) * semiPeakPrice,
-        0
-      );
-      const totalOffPeak = Object.values(aggregatedData).reduce(
-        (acc, curr) => acc + parseFloat(curr.offPeak) * offPeakPrice,
-        0
-      );
+
+      const newPieChartData = {
+        totalPeak: totalPeak.toFixed(2),
+        totalSemiPeak: totalSemiPeak.toFixed(2),
+        totalOffPeak: totalOffPeak.toFixed(2),
+      };
+
+      if (isEqual(newPieChartData, lastPieChartData)) {
+        console.log("Pie chart data is the same, skipping update.");
+        return;
+      }
+
+      if (echarts.getInstanceByDom(pieChartRef.current)) {
+        echarts.getInstanceByDom(pieChartRef.current).dispose();
+      }
 
       const pieChart = echarts.init(pieChartRef.current);
       const pieChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
-        title: {
-          text: "尖離峰費用分佈",
-          left: "center",
-        },
-        tooltip: {
-          trigger: "item",
-          formatter: "{a} <br/>{b}: NT${c} ({d}%)",
-        },
-
+        title: { text: "尖離峰費用分佈", left: "center" },
+        tooltip: { trigger: "item", formatter: "{a} <br/>{b}: NT${c} ({d}%)" },
         series: [
           {
             name: "費用分佈",
             type: "pie",
             radius: ["50%", "70%"],
             avoidLabelOverlap: false,
-            label: {
-              show: false,
-              position: "center",
-            },
+            label: { show: false, position: "center" },
             emphasis: {
-              label: {
-                show: true,
-                fontSize: "30",
-                fontWeight: "bold",
-              },
+              label: { show: true, fontSize: "30", fontWeight: "bold" },
             },
-            labelLine: {
-              show: false,
-            },
+            labelLine: { show: false },
             data: [
-              { value: totalPeak.toFixed(2), name: "尖峰" },
-              { value: totalSemiPeak.toFixed(2), name: "半尖峰" },
-              { value: totalOffPeak.toFixed(2), name: "離峰" },
+              { value: newPieChartData.totalPeak, name: "尖峰" },
+              { value: newPieChartData.totalSemiPeak, name: "半尖峰" },
+              { value: newPieChartData.totalOffPeak, name: "離峰" },
             ],
           },
         ],
       };
       pieChart.setOption(pieChartOptions);
-
       const handleResize = () => {
         pieChart.resize();
       };
       window.addEventListener("resize", handleResize);
-
+      setLastPieChartData(newPieChartData); // Update state after the chart is rendered
       return () => {
         pieChart.dispose();
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [aggregatedData, prices]);
+  };
+
+  useEffect(() => {
+    if (dataReady && prices && Object.keys(aggregatedData).length > 0) {
+      renderBarChart();
+      renderPieChart();
+    }
+  }, [dataReady, aggregatedData, prices]);
 
   return (
     <div className="container-fluid">
@@ -486,7 +525,11 @@ const EnergyPriceAnalysis = () => {
           <DateRangePicker onDateChange={handleDateChange} />
         </HalfWidthContainer>
         <HalfWidthContainer>
-          <SelectionAndSend options={options} onSend={handleSend} />
+          <SelectionAndSend
+            options={options}
+            onSend={handleSend}
+            defaultSelectedOptions={selectedOptions}
+          />
         </HalfWidthContainer>
       </RowContainer>
       <div className="row mb-4">
@@ -508,7 +551,10 @@ const EnergyPriceAnalysis = () => {
       </div>
       <div className="row mb-4">
         <div className="col-12">
-          <PriceTable onPricesUpdate={fetchPrices} />
+          <PriceTable
+            onPricesUpdate={fetchSettings}
+            triggerHandleSend={handleExitEditMode}
+          />
         </div>
       </div>
       <div className="row">

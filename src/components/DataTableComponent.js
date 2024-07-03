@@ -58,17 +58,16 @@ const DataTableComponent = ({
   prices,
 }) => {
   useEffect(() => {
-    // Disable DataTable error messages
     $.fn.dataTable.ext.errMode = "none";
 
     if (!aggregatedData || Object.keys(aggregatedData).length === 0) {
       console.log("No aggregated data available");
-      return; // Exit early if there's no data
+      return;
     }
 
     console.log("Aggregated Data:", aggregatedData);
 
-    const transformedDataSets = splitData(aggregatedData, 7); // Split data into chunks of 7 dates
+    const transformedDataSets = splitData(aggregatedData, 7);
 
     transformedDataSets.forEach((transformedData, index) => {
       const tableId = `energyTable-${index}`;
@@ -84,10 +83,6 @@ const DataTableComponent = ({
           .map((date) => ({ title: date })),
       ];
 
-      console.log(`Columns for ${tableId}:`, columns);
-      console.log(`Data for ${tableId}:`, transformedData);
-
-      // Generate <thead> and <tbody> HTML strings
       const thead = `<thead><tr>${columns
         .map((col) => `<th>${col.title}</th>`)
         .join("")}</tr></thead>`;
@@ -100,10 +95,8 @@ const DataTableComponent = ({
         )
         .join("")}</tbody>`;
 
-      // Set the table HTML
       tableElement.html(`${thead}${tbody}`);
 
-      // Initialize DataTable with search and paging disabled
       const dataTableConfig = {
         destroy: true,
         responsive: true,
@@ -191,13 +184,14 @@ const DataTableComponent = ({
               value = "0";
           }
         } else if (energyPrice && prices) {
-          // For energy price, multiply the value by the corresponding price
+          const period = data[date].isSummer ? "夏月" : "非夏月";
           const peakPrice =
-            parseFloat(prices.peakPrices?.夏月.replace("NT$", "")) || 0;
+            parseFloat(prices.peakPrices?.[period]?.replace("NT$", "")) || 0;
           const semiPeakPrice =
-            parseFloat(prices.halfPeakPrices?.夏月.replace("NT$", "")) || 0;
+            parseFloat(prices.halfPeakPrices?.[period]?.replace("NT$", "")) ||
+            0;
           const offPeakPrice =
-            parseFloat(prices.offPeakPrices?.夏月.replace("NT$", "")) || 0;
+            parseFloat(prices.offPeakPrices?.[period]?.replace("NT$", "")) || 0;
 
           switch (state) {
             case "尖峰":
@@ -238,11 +232,10 @@ const DataTableComponent = ({
             default:
               value = "0";
           }
-          unit = "元";
+          unit = "NT$";
         }
         row[date] = value !== undefined ? `${value} ${unit}` : "0";
       });
-      console.log(`Transformed row for ${state}:`, row);
       return row;
     });
 
@@ -254,8 +247,6 @@ const DataTableComponent = ({
   }
 
   const transformedDataSets = splitData(aggregatedData, 7);
-
-  console.log("Transformed Data Sets:", transformedDataSets);
 
   return (
     <div style={{ width: "100%" }}>

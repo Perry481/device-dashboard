@@ -1,4 +1,3 @@
-// components/PriceTable.js
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -58,39 +57,34 @@ const Title = styled.h2`
   align-items: center;
 `;
 
-const PriceTable = ({ onPricesUpdate }) => {
+const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
   const [isClient, setIsClient] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [offPeakPrices, setOffPeakPrices] = useState({
-    夏月: "NT$1.66",
-    非夏月: "NT$1.58",
-  });
-  const [peakPrices, setPeakPrices] = useState({
-    夏月: "NT$4.02",
-    非夏月: "NT$3.92",
-  });
-  const [halfPeakPrices, setHalfPeakPrices] = useState({
-    夏月: "NT$2.14",
-    非夏月: "NT$2.06",
-  });
+  const [offPeakPrices, setOffPeakPrices] = useState({});
+  const [peakPrices, setPeakPrices] = useState({});
+  const [halfPeakPrices, setHalfPeakPrices] = useState({});
+  const [timeRanges, setTimeRanges] = useState({});
+  const [tempTimeRanges, setTempTimeRanges] = useState({});
 
   useEffect(() => {
     setIsClient(true);
-    const fetchPrices = async () => {
+    const fetchSettings = async () => {
       try {
-        const response = await fetch("/api/prices");
+        const response = await fetch("/api/settings");
         if (!response.ok) {
-          throw new Error("Failed to fetch prices");
+          throw new Error("Failed to fetch settings");
         }
-        const savedPrices = await response.json();
-        setOffPeakPrices(savedPrices.offPeakPrices);
-        setPeakPrices(savedPrices.peakPrices);
-        setHalfPeakPrices(savedPrices.halfPeakPrices);
+        const savedSettings = await response.json();
+        setOffPeakPrices(savedSettings.offPeakPrices);
+        setPeakPrices(savedSettings.peakPrices);
+        setHalfPeakPrices(savedSettings.halfPeakPrices);
+        setTimeRanges(savedSettings.timeRanges);
+        setTempTimeRanges(savedSettings.timeRanges); // Initialize tempTimeRanges correctly
       } catch (error) {
-        console.error("Error fetching prices:", error);
+        console.error("Error fetching settings:", error);
       }
     };
-    fetchPrices();
+    fetchSettings();
   }, []);
 
   const handlePriceChange = (type, period, value) => {
@@ -100,111 +94,212 @@ const PriceTable = ({ onPricesUpdate }) => {
         [period]: value,
       }));
 
-    if (type === "off-peak") {
+    if (type === "offpeak") {
       updatePrices(setOffPeakPrices);
     } else if (type === "peak") {
       updatePrices(setPeakPrices);
-    } else if (type === "half-peak") {
+    } else if (type === "halfpeak") {
       updatePrices(setHalfPeakPrices);
     }
   };
 
+  const handleTimeRangeChange = (season, dayType, type, index, part, value) => {
+    const updatedRanges = JSON.parse(JSON.stringify(tempTimeRanges));
+    if (!updatedRanges[season]) {
+      updatedRanges[season] = {};
+    }
+    if (!updatedRanges[season][dayType]) {
+      updatedRanges[season][dayType] = {};
+    }
+    if (!updatedRanges[season][dayType][type]) {
+      updatedRanges[season][dayType][type] = [];
+    }
+    updatedRanges[season][dayType][type][index] = [
+      part === 0
+        ? Number(value)
+        : updatedRanges[season][dayType][type][index][0],
+      part === 1
+        ? Number(value)
+        : updatedRanges[season][dayType][type][index][1],
+    ];
+
+    setTempTimeRanges(updatedRanges);
+  };
+
   const handleEditMode = async () => {
     if (editMode) {
-      const updatedPrices = {
-        offPeakPrices,
-        peakPrices,
-        halfPeakPrices,
-      };
       try {
-        const response = await fetch("/api/prices", {
+        // Fetch current settings
+        const response = await fetch("/api/settings");
+        if (!response.ok) {
+          throw new Error("Failed to fetch current settings");
+        }
+        const currentSettings = await response.json();
+
+        // Merge updated settings into current settings
+        const updatedSettings = {
+          ...currentSettings,
+          offPeakPrices: offPeakPrices,
+          peakPrices: peakPrices,
+          halfPeakPrices: halfPeakPrices,
+          timeRanges: tempTimeRanges,
+        };
+
+        // Save merged settings
+        const saveResponse = await fetch("/api/settings", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(updatedPrices),
+          body: JSON.stringify(updatedSettings),
         });
-        if (!response.ok) {
-          throw new Error("Failed to save prices");
+        if (!saveResponse.ok) {
+          throw new Error("Failed to save settings");
         }
-        console.log("Prices saved successfully");
-        // Trigger a refresh of the parent component
-        onPricesUpdate(updatedPrices);
+        console.log("Settings saved successfully");
+
+        setTimeRanges(tempTimeRanges); // Update the main state with new values
+        triggerHandleSend(); // Trigger handleSend when exiting edit mode
       } catch (error) {
-        console.error("Error saving prices:", error);
+        console.error("Error saving settings:", error);
       }
+    } else {
+      setTempTimeRanges(timeRanges); // Initialize temp state with current values
     }
     setEditMode(!editMode);
   };
 
+  const renderTimeRange = (range, periodType, dayType, type, index) => (
+    <div key={`${periodType}-${dayType}-${type}-${index}`}>
+      <select
+        value={range[0]}
+        onChange={(e) =>
+          handleTimeRangeChange(
+            periodType,
+            dayType,
+            type,
+            index,
+            0,
+            e.target.value
+          )
+        }
+      >
+        {Array.from({ length: 25 }, (_, i) => (
+          <option key={i} value={i}>
+            {i}:00
+          </option>
+        ))}
+      </select>
+      {" - "}
+      <select
+        value={range[1]}
+        onChange={(e) =>
+          handleTimeRangeChange(
+            periodType,
+            dayType,
+            type,
+            index,
+            1,
+            e.target.value
+          )
+        }
+      >
+        {Array.from({ length: 25 }, (_, i) => (
+          <option key={i} value={i}>
+            {i}:00
+          </option>
+        ))}
+      </select>{" "}
+      {type === "peak" ? "尖峰" : type === "halfpeak" ? "半尖峰" : "離峰"}
+    </div>
+  );
+
   const data = [
     {
-      period: "06/01 - 09/30 夏月", // Summer
+      period: "06/01 - 09/30 夏月",
       times: [
         {
-          time: "09:00 - 24:00 尖峰",
+          time: tempTimeRanges["夏月"]?.weekdays?.peak || [[9, 24]],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["一", "二", "三", "四", "五"],
           type: "peak",
         },
         {
-          time: "00:00 - 09:00 離峰",
+          time: tempTimeRanges["夏月"]?.weekdays?.offpeak || [[0, 9]],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["一", "二", "三", "四", "五"],
-          type: "off-peak",
+          type: "offpeak",
         },
         {
-          time: "06:00 - 11:00, 14:00 - 24:00 半尖峰",
+          time: tempTimeRanges["夏月"]?.saturday?.halfpeak || [
+            [6, 11],
+            [14, 24],
+          ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["六"],
-          type: "half-peak",
+          type: "halfpeak",
         },
         {
-          time: "00:00 - 06:00, 11:00 - 14:00 離峰",
+          time: tempTimeRanges["夏月"]?.saturday?.offpeak || [
+            [0, 6],
+            [11, 14],
+          ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["六"],
-          type: "off-peak",
+          type: "offpeak",
         },
         {
-          time: "全日 離峰",
+          time: tempTimeRanges["夏月"]?.sunday?.offpeak || [[0, 24]],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["日"],
-          type: "off-peak",
+          type: "offpeak",
         },
       ],
     },
     {
-      period: "10/01 - 05/31 非夏月", // Non-Summer
+      period: "10/01 - 05/31 非夏月",
       times: [
         {
-          time: "06:00 - 11:00, 14:00 - 24:00 尖峰",
+          time: tempTimeRanges["非夏月"]?.weekdays?.peak || [
+            [6, 11],
+            [14, 24],
+          ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["一", "二", "三", "四", "五"],
           type: "peak",
         },
         {
-          time: "00:00 - 06:00, 11:00 - 14:00 離峰",
+          time: tempTimeRanges["非夏月"]?.weekdays?.offpeak || [
+            [0, 6],
+            [11, 14],
+          ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["一", "二", "三", "四", "五"],
-          type: "off-peak",
+          type: "offpeak",
         },
         {
-          time: "06:00 - 11:00, 14:00 - 24:00 半尖峰",
+          time: tempTimeRanges["非夏月"]?.saturday?.halfpeak || [
+            [6, 11],
+            [14, 24],
+          ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["六"],
-          type: "half-peak",
+          type: "halfpeak",
         },
         {
-          time: "00:00 - 06:00, 11:00 - 14:00 離峰",
+          time: tempTimeRanges["非夏月"]?.saturday?.offpeak || [
+            [0, 6],
+            [11, 14],
+          ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["六"],
-          type: "off-peak",
+          type: "offpeak",
         },
         {
-          time: "全日 離峰",
+          time: tempTimeRanges["非夏月"]?.sunday?.offpeak || [[0, 24]],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["日"],
-          type: "off-peak",
+          type: "offpeak",
         },
       ],
     },
@@ -212,8 +307,8 @@ const PriceTable = ({ onPricesUpdate }) => {
 
   const colors = {
     peak: "#ee6666",
-    "half-peak": "#fac858",
-    "off-peak": "#91CC75",
+    halfpeak: "#fac858",
+    offpeak: "#91CC75",
   };
 
   return isClient ? (
@@ -252,11 +347,17 @@ const PriceTable = ({ onPricesUpdate }) => {
                   ? "夏月"
                   : "非夏月";
                 const price =
-                  time.type === "off-peak"
+                  time.type === "offpeak"
                     ? offPeakPrices[periodType]
                     : time.type === "peak"
                     ? peakPrices[periodType]
                     : halfPeakPrices[periodType];
+                const dayType =
+                  time.days[0] === "六"
+                    ? "saturday"
+                    : time.days[0] === "日"
+                    ? "sunday"
+                    : "weekdays";
                 return (
                   <TableRow key={key}>
                     {timeIndex === 0 && (
@@ -264,7 +365,43 @@ const PriceTable = ({ onPricesUpdate }) => {
                         {`${period.period}`}
                       </TableCell>
                     )}
-                    <TableCell>{time.time}</TableCell>
+                    <TableCell>
+                      {editMode
+                        ? Array.isArray(time.time)
+                          ? time.time.map((range, index) => (
+                              <div key={index}>
+                                {renderTimeRange(
+                                  range,
+                                  periodType,
+                                  dayType,
+                                  time.type,
+                                  index
+                                )}{" "}
+                              </div>
+                            ))
+                          : `${time.time} ${
+                              time.type === "peak"
+                                ? "尖峰"
+                                : time.type === "halfpeak"
+                                ? "半尖峰"
+                                : "離峰"
+                            }`
+                        : `${
+                            Array.isArray(time.time)
+                              ? time.time
+                                  .map((r) => {
+                                    return `${r[0]}:00 - ${r[1]}:00`;
+                                  })
+                                  .join(", ")
+                              : time.time
+                          } ${
+                            time.type === "peak"
+                              ? "尖峰"
+                              : time.type === "halfpeak"
+                              ? "半尖峰"
+                              : "離峰"
+                          }`}
+                    </TableCell>
                     {time.fullWeekDays.map((day) => (
                       <HighlightedCell
                         key={`${key}-${day}`}

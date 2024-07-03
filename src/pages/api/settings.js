@@ -4,61 +4,65 @@ import path from "path";
 
 const filePath = path.resolve(process.cwd(), "settings.json");
 
-// Initialize settings with default values if the file doesn't exist
 const defaultSettings = {
   offPeakPrices: { 夏月: "NT$1.66", 非夏月: "NT$1.58" },
   peakPrices: { 夏月: "NT$4.02", 非夏月: "NT$3.92" },
   halfPeakPrices: { 夏月: "NT$2.14", 非夏月: "NT$2.06" },
-  sortingLogic: [
-    {
-      condition:
-        "(day >= 1 && day <= 5) && isSummer && (hour >= 9 && hour < 24)",
-      peakState: "peak",
+  timeRanges: {
+    夏月: {
+      weekdays: {
+        peak: [[9, 24]],
+        offpeak: [[0, 9]],
+        halfpeak: [],
+      },
+      saturday: {
+        peak: [],
+        offpeak: [[0, 24]],
+        halfpeak: [[9, 24]],
+      },
+      sunday: {
+        offpeak: [[0, 24]],
+        peak: [],
+        halfpeak: [],
+      },
     },
-    {
-      condition:
-        "(day >= 1 && day <= 5) && isSummer && (hour < 9 || hour >= 24)",
-      peakState: "offpeak",
+    非夏月: {
+      weekdays: {
+        peak: [
+          [6, 11],
+          [14, 24],
+        ],
+        offpeak: [
+          [0, 6],
+          [11, 14],
+        ],
+        halfpeak: [],
+      },
+      saturday: {
+        peak: [],
+        offpeak: [
+          [0, 6],
+          [11, 14],
+        ],
+        halfpeak: [
+          [6, 11],
+          [14, 24],
+        ],
+      },
+      sunday: {
+        offpeak: [[0, 24]],
+        peak: [],
+        halfpeak: [],
+      },
     },
-    {
-      condition:
-        "(day >= 1 && day <= 5) && !isSummer && ((hour >= 6 && hour < 11) || (hour >= 14 && hour < 24))",
-      peakState: "peak",
-    },
-    {
-      condition:
-        "(day >= 1 && day <= 5) && !isSummer && (hour < 6 || (hour >= 11 && hour < 14))",
-      peakState: "offpeak",
-    },
-    {
-      condition: "(day === 6) && isSummer && (hour >= 9 && hour < 24)",
-      peakState: "semi-peak",
-    },
-    {
-      condition: "(day === 6) && isSummer && (hour < 9 || hour >= 24)",
-      peakState: "offpeak",
-    },
-    {
-      condition:
-        "(day === 6) && !isSummer && ((hour >= 6 && hour < 11) || (hour >= 14 && hour < 24))",
-      peakState: "semi-peak",
-    },
-    {
-      condition:
-        "(day === 6) && !isSummer && (hour < 6 || (hour >= 11 && hour < 14))",
-      peakState: "offpeak",
-    },
-    {
-      condition: "(day === 0 || day === 7)",
-      peakState: "offpeak",
-    },
-  ],
+  },
 };
 
 async function readSettingsFromFile() {
   try {
     const data = await fs.readFile(filePath, "utf-8");
     const settings = JSON.parse(data);
+
     // Merge default settings with the read settings
     return { ...defaultSettings, ...settings };
   } catch (error) {
