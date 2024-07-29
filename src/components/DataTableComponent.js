@@ -4,53 +4,57 @@ import "datatables.net-dt/css/dataTables.dataTables.css";
 import "datatables.net-dt";
 import styled from "styled-components";
 
-// Styled components
-const Card = styled.div`
-  margin: 10px 0;
+// Styled componentsimport styled from "styled-components";
+
+const TableWrapper = styled.div`
   width: 100%;
-`;
-
-const CardHeader = styled.div`
-  background-color: #f2f2f2;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-`;
-
-const CardTitle = styled.h3`
-  margin: 0;
-  font-size: 1.2em;
-`;
-
-const CardBody = styled.div`
-  padding: 5px;
-  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px; // Ensure the table doesn't shrink too much
 
   th,
   td {
-    border: 1px solid #000;
+    border: 1px solid #ddd;
+    padding: 8px;
     text-align: center;
-    padding: 5px;
   }
 
-  thead th {
+  th {
     background-color: #f2f2f2;
     font-weight: bold;
   }
 
-  tbody tr:nth-child(even) {
+  tr:nth-child(even) {
     background-color: #f9f9f9;
-  }
-
-  tbody tr:hover {
-    background-color: #f1f1f1;
   }
 `;
 
+const Card = styled.div`
+  margin: 20px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const CardHeader = styled.div`
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-bottom: 1px solid #e9ecef;
+`;
+
+const CardTitle = styled.h3`
+  margin: 0;
+  color: #333;
+`;
+
+const CardBody = styled.div`
+  padding: 15px;
+`;
 const DataTableComponent = ({
   aggregatedData,
   energyConsumption,
@@ -58,70 +62,11 @@ const DataTableComponent = ({
   prices,
 }) => {
   useEffect(() => {
-    $.fn.dataTable.ext.errMode = "none";
-
     if (!aggregatedData || Object.keys(aggregatedData).length === 0) {
       console.log("No aggregated data available");
       return;
     }
-
     console.log("Aggregated Data:", aggregatedData);
-
-    const transformedDataSets = splitData(aggregatedData, 7);
-
-    transformedDataSets.forEach((transformedData, index) => {
-      const tableId = `energyTable-${index}`;
-      const tableElement = $(`#${tableId}`);
-      if ($.fn.DataTable.isDataTable(tableElement)) {
-        tableElement.DataTable().destroy();
-      }
-
-      const columns = [
-        { title: "Type" },
-        ...Object.keys(transformedData[0])
-          .filter((key) => key !== "Type")
-          .map((date) => ({ title: date })),
-      ];
-
-      const thead = `<thead><tr>${columns
-        .map((col) => `<th>${col.title}</th>`)
-        .join("")}</tr></thead>`;
-      const tbody = `<tbody>${transformedData
-        .map(
-          (row) =>
-            `<tr>${columns
-              .map((col) => `<td>${row[col.title] || row.Type}</td>`)
-              .join("")}</tr>`
-        )
-        .join("")}</tbody>`;
-
-      tableElement.html(`${thead}${tbody}`);
-
-      const dataTableConfig = {
-        destroy: true,
-        responsive: true,
-        searching: false,
-        paging: false,
-        info: false,
-        ordering: false,
-      };
-      const dataTableInstance = tableElement.DataTable(dataTableConfig);
-
-      const handleResize = () => {
-        if (dataTableInstance) {
-          dataTableInstance.columns.adjust();
-        }
-      };
-
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        if (dataTableInstance) {
-          dataTableInstance.destroy();
-        }
-        window.removeEventListener("resize", handleResize);
-      };
-    });
   }, [aggregatedData, energyConsumption, energyPrice, prices]);
 
   const splitData = (data, chunkSize) => {
@@ -249,23 +194,47 @@ const DataTableComponent = ({
   const transformedDataSets = splitData(aggregatedData, 7);
 
   return (
-    <div style={{ width: "100%" }}>
+    <div>
       <Card>
         <CardHeader>
           <CardTitle>{energyConsumption ? "能耗總表" : "電價總表"}</CardTitle>
         </CardHeader>
       </Card>
-      {transformedDataSets.map((_, index) => (
-        <Card key={index}>
-          <CardBody>
-            <StyledTable
-              id={`energyTable-${index}`}
-              className="display"
-              width="100%"
-            ></StyledTable>
-          </CardBody>
-        </Card>
-      ))}
+      {transformedDataSets.map((transformedData, index) => {
+        const columns = [
+          { title: "Type" },
+          ...Object.keys(transformedData[0])
+            .filter((key) => key !== "Type")
+            .map((date) => ({ title: date })),
+        ];
+
+        return (
+          <Card key={index}>
+            <CardBody>
+              <TableWrapper>
+                <StyledTable>
+                  <thead>
+                    <tr>
+                      {columns.map((col) => (
+                        <th key={col.title}>{col.title}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transformedData.map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {columns.map((col) => (
+                          <td key={col.title}>{row[col.title] || row.Type}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </StyledTable>
+              </TableWrapper>
+            </CardBody>
+          </Card>
+        );
+      })}
     </div>
   );
 };

@@ -20,18 +20,31 @@ const RowContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+
+  @media (max-width: 575px) {
+    flex-direction: column;
+  }
+
   @media (min-width: 992px) {
     padding: 0 80px;
   }
+
   @media (max-width: 991px) {
     padding: 0;
   }
 `;
-
 const HalfWidthContainer = styled.div`
   width: 48%;
-`;
 
+  @media (max-width: 575px) {
+    width: 100%;
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+`;
 const formatDate = (date) => {
   const year = date.getFullYear();
   const month = `0${date.getMonth() + 1}`.slice(-2);

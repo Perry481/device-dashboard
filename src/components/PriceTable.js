@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
 const Table = styled.table`
   width: 100%;
+  min-width: 600px; // Ensures table doesn't shrink below this width
   border-collapse: collapse;
   margin: 20px 0;
+  font-size: 14px;
 `;
 
 const TableHead = styled.thead`
@@ -43,18 +51,29 @@ const Button = styled.button`
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 16px;
 `;
 
 const ButtonWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin: 20px 0;
+  margin-top: 20px;
 `;
 
 const Title = styled.h2`
   margin: 0;
+  font-size: 24px;
+`;
+
+const HeaderContainer = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+`;
+
+const TimeSelect = styled.select`
+  padding: 8px;
+  font-size: 14px;
 `;
 
 const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
@@ -171,7 +190,7 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
 
   const renderTimeRange = (range, periodType, dayType, type, index) => (
     <div key={`${periodType}-${dayType}-${type}-${index}`}>
-      <select
+      <TimeSelect
         value={range[0]}
         onChange={(e) =>
           handleTimeRangeChange(
@@ -189,9 +208,9 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
             {i}:00
           </option>
         ))}
-      </select>
+      </TimeSelect>
       {" - "}
-      <select
+      <TimeSelect
         value={range[1]}
         onChange={(e) =>
           handleTimeRangeChange(
@@ -209,7 +228,7 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
             {i}:00
           </option>
         ))}
-      </select>{" "}
+      </TimeSelect>{" "}
       {type === "peak" ? "尖峰" : type === "halfpeak" ? "半尖峰" : "離峰"}
     </div>
   );
@@ -313,131 +332,127 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
 
   return isClient ? (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <HeaderContainer>
         <Title>電價一覽表</Title>
         <ButtonWrapper>
           <Button onClick={handleEditMode}>
             {editMode ? "保存電價" : "更改電價"}
           </Button>
         </ButtonWrapper>
-      </div>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableHeader>項目名稱</TableHeader>
-            <TableHeader>時段</TableHeader>
-            {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
-              <TableHeader key={day}>{day}</TableHeader>
-            ))}
-            <TableHeader>電價NT$/kWh</TableHeader>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {data.map((period, periodIndex) => (
-            <React.Fragment key={period.period}>
-              {period.times.map((time, timeIndex) => {
-                const key = `${period.period}-${time.time}-${timeIndex}`;
-                const periodType = period.period.includes("夏月")
-                  ? "夏月"
-                  : "非夏月";
-                const price =
-                  time.type === "offpeak"
-                    ? offPeakPrices[periodType]
-                    : time.type === "peak"
-                    ? peakPrices[periodType]
-                    : halfPeakPrices[periodType];
-                const dayType =
-                  time.days[0] === "六"
-                    ? "saturday"
-                    : time.days[0] === "日"
-                    ? "sunday"
-                    : "weekdays";
-                return (
-                  <TableRow key={key}>
-                    {timeIndex === 0 && (
-                      <TableCell rowSpan={period.times.length}>
-                        {`${period.period}`}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      {editMode
-                        ? Array.isArray(time.time)
-                          ? time.time.map((range, index) => (
-                              <div key={index}>
-                                {renderTimeRange(
-                                  range,
-                                  periodType,
-                                  dayType,
-                                  time.type,
-                                  index
-                                )}{" "}
-                              </div>
-                            ))
-                          : `${time.time} ${
+      </HeaderContainer>
+      <TableWrapper>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeader>項目名稱</TableHeader>
+              <TableHeader>時段</TableHeader>
+              {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+                <TableHeader key={day}>{day}</TableHeader>
+              ))}
+              <TableHeader>電價NT$/kWh</TableHeader>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map((period, periodIndex) => (
+              <React.Fragment key={period.period}>
+                {period.times.map((time, timeIndex) => {
+                  const key = `${period.period}-${time.time}-${timeIndex}`;
+                  const periodType = period.period.includes("夏月")
+                    ? "夏月"
+                    : "非夏月";
+                  const price =
+                    time.type === "offpeak"
+                      ? offPeakPrices[periodType]
+                      : time.type === "peak"
+                      ? peakPrices[periodType]
+                      : halfPeakPrices[periodType];
+                  const dayType =
+                    time.days[0] === "六"
+                      ? "saturday"
+                      : time.days[0] === "日"
+                      ? "sunday"
+                      : "weekdays";
+                  return (
+                    <TableRow key={key}>
+                      {timeIndex === 0 && (
+                        <TableCell rowSpan={period.times.length}>
+                          {`${period.period}`}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        {editMode
+                          ? Array.isArray(time.time)
+                            ? time.time.map((range, index) => (
+                                <div key={index}>
+                                  {renderTimeRange(
+                                    range,
+                                    periodType,
+                                    dayType,
+                                    time.type,
+                                    index
+                                  )}{" "}
+                                </div>
+                              ))
+                            : `${time.time} ${
+                                time.type === "peak"
+                                  ? "尖峰"
+                                  : time.type === "halfpeak"
+                                  ? "半尖峰"
+                                  : "離峰"
+                              }`
+                          : `${
+                              Array.isArray(time.time)
+                                ? time.time
+                                    .map((r) => {
+                                      return `${r[0]}:00 - ${r[1]}:00`;
+                                    })
+                                    .join(", ")
+                                : time.time
+                            } ${
                               time.type === "peak"
                                 ? "尖峰"
                                 : time.type === "halfpeak"
                                 ? "半尖峰"
                                 : "離峰"
-                            }`
-                        : `${
-                            Array.isArray(time.time)
-                              ? time.time
-                                  .map((r) => {
-                                    return `${r[0]}:00 - ${r[1]}:00`;
-                                  })
-                                  .join(", ")
-                              : time.time
-                          } ${
-                            time.type === "peak"
-                              ? "尖峰"
-                              : time.type === "halfpeak"
-                              ? "半尖峰"
-                              : "離峰"
-                          }`}
-                    </TableCell>
-                    {time.fullWeekDays.map((day) => (
-                      <HighlightedCell
-                        key={`${key}-${day}`}
-                        color={
-                          time.days.includes(day)
-                            ? colors[time.type]
-                            : "transparent"
-                        }
-                      >
-                        {day}
-                      </HighlightedCell>
-                    ))}
-                    <TableCell>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={price}
-                          onChange={(e) =>
-                            handlePriceChange(
-                              time.type,
-                              periodType,
-                              e.target.value
-                            )
+                            }`}
+                      </TableCell>
+                      {time.fullWeekDays.map((day) => (
+                        <HighlightedCell
+                          key={`${key}-${day}`}
+                          color={
+                            time.days.includes(day)
+                              ? colors[time.type]
+                              : "transparent"
                           }
-                        />
-                      ) : (
-                        price
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </TableBody>
-      </Table>
+                        >
+                          {day}
+                        </HighlightedCell>
+                      ))}
+                      <TableCell>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={price}
+                            onChange={(e) =>
+                              handlePriceChange(
+                                time.type,
+                                periodType,
+                                e.target.value
+                              )
+                            }
+                          />
+                        ) : (
+                          price
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </TableWrapper>
     </>
   ) : null;
 };

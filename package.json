@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
@@ -17,15 +19,36 @@
     "next": "14.2.2",
     "p-limit": "^5.0.0",
     "react": "^18",
+    "react-beautiful-dnd": "^13.1.1",
     "react-bootstrap": "^2.10.2",
     "react-datepicker": "^6.9.0",
     "react-dom": "^18",
+    "react-icons": "^5.2.1",
     "react-select": "^5.8.0",
     "styled-components": "^6.1.11"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.25.0",
+    "@babel/preset-react": "^7.24.7",
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^16.0.0",
+    "babel-jest": "^29.7.0",
     "babel-plugin-styled-components": "^2.1.4",
     "eslint": "^8",
-    "eslint-config-next": "14.2.2"
+    "eslint-config-next": "14.2.2",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "transform": {
+      "^.+\\.(js|jsx)$": "babel-jest"
+    },
+    "moduleNameMapper": {
+      "\\.(css|less|sass|scss)$": "<rootDir>/fileMock.js"
+    }
   }
 }
