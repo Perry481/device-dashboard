@@ -517,7 +517,7 @@ const MonitorPage = () => {
           <RTMSearchContainer className="search-container">
             <RTMSearchInput
               type="text"
-              placeholder="Search for a gauge..."
+              placeholder="搜尋電錶..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -539,7 +539,7 @@ const MonitorPage = () => {
             )}
           </RTMSearchContainer>
           <div>
-            <RTMCountdownText>Next fetch in: {countdown}s</RTMCountdownText>
+            <RTMCountdownText>下次更新: {countdown}s</RTMCountdownText>
             <RTMSettingsButton onClick={() => setShowSettings(true)}>
               <FaCog size={20} />
             </RTMSettingsButton>

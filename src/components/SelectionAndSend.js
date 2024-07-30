@@ -123,7 +123,7 @@ const SelectionAndSend = ({ onSend }) => {
 
   return (
     <Card>
-      <CardHeader>Selection and Send</CardHeader>
+      <CardHeader>選擇電錶</CardHeader>
       <Container>
         <SelectWrapper>
           <Select
