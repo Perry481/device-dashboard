@@ -51,6 +51,118 @@ const aggregateFetchedData = (results) => {
   }));
 };
 
+const aggregateQuarterData = (results) => {
+  const aggregatedData = {};
+  results.forEach((dataArray) => {
+    dataArray.forEach((item) => {
+      if (aggregatedData[item.Key]) {
+        aggregatedData[item.Key] += item.Value;
+      } else {
+        aggregatedData[item.Key] = item.Value;
+      }
+    });
+  });
+  return Object.keys(aggregatedData).map((key) => ({
+    Key: key,
+    Value: aggregatedData[key],
+  }));
+};
+const categorizeQuarterData = (data, timeRanges) => {
+  if (!timeRanges) {
+    console.error("Time ranges not provided.");
+    return data.map((item) => ({
+      ...item,
+      peakState: "unknown",
+      isSummer: false,
+    }));
+  }
+
+  return data.map((item) => {
+    const [datePart, timePart] = item.Key.split(" ");
+    const [year, month, day] = datePart.split("/");
+    const [hour, minute] = timePart.split(":");
+
+    const date = new Date(year, month - 1, day, hour, minute);
+    const dayOfWeek = date.getDay();
+    const isSummer = parseInt(month) >= 6 && parseInt(month) <= 9;
+
+    const period = isSummer ? "夏月" : "非夏月";
+    if (!timeRanges[period]) {
+      console.error(`Time ranges not defined for period: ${period}`);
+      return { ...item, peakState: "unknown", isSummer };
+    }
+
+    const dayType =
+      dayOfWeek >= 1 && dayOfWeek <= 5
+        ? "weekdays"
+        : dayOfWeek === 6
+        ? "saturday"
+        : "sunday";
+    if (!timeRanges[period][dayType]) {
+      console.error(
+        `Time ranges not defined for day type: ${dayType} in period: ${period}`
+      );
+      return { ...item, peakState: "unknown", isSummer };
+    }
+
+    let peakState = "offpeak";
+    const ranges = timeRanges[period][dayType];
+    const timeInHours = parseInt(hour) + parseInt(minute) / 60;
+
+    if (
+      ranges.peak.some(
+        (range) => timeInHours >= range[0] && timeInHours < range[1]
+      )
+    ) {
+      peakState = "peak";
+    } else if (
+      ranges.halfpeak.some(
+        (range) => timeInHours >= range[0] && timeInHours < range[1]
+      )
+    ) {
+      peakState = "halfpeak";
+    }
+
+    return {
+      ...item,
+      peakState,
+      DayOfWeek: ["週日", "週一", "週二", "週三", "週四", "週五", "週六"][
+        dayOfWeek
+      ],
+      isSummer,
+    };
+  });
+};
+
+const processQuarterData = (results, timeRanges) => {
+  const aggregatedQuarterData = aggregateQuarterData(results);
+  const categorizedQuarterData = categorizeQuarterData(
+    aggregatedQuarterData,
+    timeRanges
+  );
+
+  // Group the data by date while maintaining quarter-hour intervals
+  const groupedQuarterData = categorizedQuarterData.reduce((acc, item) => {
+    const [date, time] = item.Key.split(" ");
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push({
+      Time: time,
+      Value: item.Value,
+      DayOfWeek: item.DayOfWeek,
+      PeakState: item.peakState,
+      isSummer: item.isSummer,
+    });
+    return acc;
+  }, {});
+
+  return {
+    categorizedData: categorizedQuarterData,
+    groupedData: groupedQuarterData,
+  };
+};
+
 const removeYearFromDate = (data) => {
   return data.map((item) => {
     const dateWithoutYear = item.Key.split(" ")[0].slice(5);
@@ -65,6 +177,11 @@ const getDayOfWeek = (dateStr) => {
   const daysOfWeek = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
   const date = new Date(`2024/${dateStr}`);
   return daysOfWeek[date.getDay()];
+};
+
+const getCurrentQuarter = () => {
+  const month = new Date().getMonth();
+  return Math.floor(month / 3) + 1;
 };
 
 const categorizeData = (data, timeRanges) => {
@@ -198,8 +315,8 @@ const getCurrentQuarterDates = () => {
 };
 
 const HomePage = () => {
-  const energyCostChartRef = useRef(null);
-  const totalEnergyTrendChartRef = useRef(null);
+  const combinedEnergyChartRef = useRef(null);
+  const dailyPeakDemandChartRef = useRef(null);
   const pieChartRef = useRef(null);
 
   const updatePieChart = () => {
@@ -234,48 +351,67 @@ const HomePage = () => {
       return pieChart;
     }
   };
-  const updateEnergyCostChart = () => {
-    if (energyCostChartRef.current && !isLoading) {
-      const energyCostChart = echarts.init(energyCostChartRef.current);
+
+  const updateCombinedEnergyChart = () => {
+    if (combinedEnergyChartRef.current && !isLoading) {
+      const combinedEnergyChart = echarts.init(combinedEnergyChartRef.current);
 
       // Get the current date
       const today = new Date();
       const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth(); // 0-indexed, so July is 6
+      const currentMonth = today.getMonth() + 1; // 1-indexed, so August is 8
 
       // Calculate the number of days in the current month
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
       // Create an array representing the full month
       const xAxisData = [...Array(daysInMonth).keys()].map(
-        (i) => `${currentMonth + 1}/${i + 1}`
+        (i) => `${currentMonth}/${i + 1}`
       );
 
-      // Initialize the data array for the chart
-      const totalEnergyData = new Array(daysInMonth).fill(0);
+      // Initialize the data arrays for the chart
+      const totalEnergyConsumptionData = new Array(daysInMonth).fill(0);
+      const averagePowerData = new Array(daysInMonth).fill(0);
 
-      // Sum up all the energy values (peak, off-peak, and semi-peak) from energyConsumptionData
+      // Process energyConsumptionData for total energy consumption
       Object.keys(energyConsumptionData).forEach((date) => {
-        const day = parseInt(date.split("/")[1], 10) - 1; // Extract day and convert to zero-indexed
-        const dayData = energyConsumptionData[date];
-        totalEnergyData[day] =
-          parseFloat(dayData.peak) +
-          parseFloat(dayData.offPeak) +
-          parseFloat(dayData.semiPeak);
+        const [month, day] = date.split("/").map(Number);
+        if (month === currentMonth) {
+          const dayIndex = day - 1; // Convert to zero-indexed
+          const dayData = energyConsumptionData[date];
+          totalEnergyConsumptionData[dayIndex] =
+            parseFloat(dayData.peak) +
+            parseFloat(dayData.offPeak) +
+            parseFloat(dayData.semiPeak);
+        }
       });
 
-      const energyCostOptions = {
-        // title: { text: "總能耗趨勢", left: "center" },
+      // Process groupedData for average power
+      Object.keys(groupedData).forEach((date) => {
+        const [month, day] = date.split("/").map(Number);
+        if (month === currentMonth) {
+          const dayIndex = day - 1; // Convert to zero-indexed
+          const dayData = groupedData[date];
+          averagePowerData[dayIndex] = calculateAveragePower(dayData);
+        }
+      });
+
+      const combinedEnergyOptions = {
         tooltip: {
           trigger: "axis",
           axisPointer: {
             type: "shadow",
           },
           formatter: (params) => {
-            const param = params[0];
-            return `${param.axisValue}<br/>${
-              param.marker
-            }總能耗: ${param.data.toFixed(2)} kWh`;
+            const totalEnergyParam = params[0];
+            const averagePowerParam = params[1];
+            return `${totalEnergyParam.axisValue}<br/>
+                    ${
+                      totalEnergyParam.marker
+                    }總能耗: ${totalEnergyParam.data.toFixed(2)} kWh<br/>
+                    ${
+                      averagePowerParam.marker
+                    }平均功率: ${averagePowerParam.data.toFixed(2)} kW`;
           },
         },
         xAxis: {
@@ -286,55 +422,72 @@ const HomePage = () => {
             rotate: 45,
           },
         },
-        yAxis: {
-          type: "value",
-          name: "kwh",
-        },
+        yAxis: [
+          {
+            type: "value",
+            name: "kWh / kW",
+          },
+        ],
         series: [
           {
             name: "總能耗",
-            data: totalEnergyData,
             type: "bar",
-            itemStyle: { color: "#3ba272" },
+            stack: "total",
+            itemStyle: { color: "#3ba272" }, // Main color
+            data: totalEnergyConsumptionData,
+          },
+          {
+            name: "平均功率",
+            type: "bar",
+            stack: "total",
+            itemStyle: { color: "#264653" }, // Darker shade for contrast
+            data: averagePowerData,
           },
         ],
       };
 
-      energyCostChart.setOption(energyCostOptions);
-      return energyCostChart;
+      combinedEnergyChart.setOption(combinedEnergyOptions);
+      return combinedEnergyChart;
     }
   };
-  const updateTotalEnergyTrendChart = () => {
-    if (totalEnergyTrendChartRef.current && !isLoading) {
-      const totalEnergyTrendChart = echarts.init(
-        totalEnergyTrendChartRef.current
+
+  const updateDailyPeakDemandChart = () => {
+    if (dailyPeakDemandChartRef.current && !isLoading) {
+      const dailyPeakDemandChart = echarts.init(
+        dailyPeakDemandChartRef.current
       );
 
       // Get the current date
       const today = new Date();
       const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth(); // 0-indexed, so July is 6
+      const currentMonth = today.getMonth() + 1; // 1-indexed, so August is 8
 
       // Calculate the number of days in the current month
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
       // Create an array representing the full month
       const xAxisData = [...Array(daysInMonth).keys()].map(
-        (i) => `${currentMonth + 1}/${i + 1}`
+        (i) => `${currentMonth}/${i + 1}`
       );
 
       // Initialize the data array for the chart
-      const averagePowerData = new Array(daysInMonth).fill(0);
+      const peakDemandData = new Array(daysInMonth).fill(0);
 
-      // Calculate average power for each day in groupedData
+      // Calculate peak demand for each day in groupedData
       Object.keys(groupedData).forEach((date) => {
-        const day = parseInt(date.split("/")[1], 10) - 1; // Extract day and convert to zero-indexed
-        const dayData = groupedData[date];
-        averagePowerData[day] = calculateAveragePower(dayData);
+        const [month, day] = date.split("/").map(Number);
+        if (month === currentMonth) {
+          const dayIndex = day - 1; // Convert to zero-indexed
+          const dayData = groupedData[date];
+          peakDemandData[dayIndex] = Math.max(
+            ...dayData.map((item) => item.Value)
+          );
+        }
       });
 
-      const totalEnergyTrendOptions = {
-        // title: { text: "總有效功率趨勢", left: "center" },
+      const markLineValue = 8;
+
+      const dailyPeakDemandOptions = {
         tooltip: {
           trigger: "axis",
           axisPointer: {
@@ -344,7 +497,7 @@ const HomePage = () => {
             const param = params[0];
             return `${param.axisValue}<br/>${
               param.marker
-            }平均功率: ${param.data.toFixed(2)} kW`;
+            }最高需量: ${param.data.toFixed(2)} kW`;
           },
         },
         xAxis: {
@@ -361,49 +514,54 @@ const HomePage = () => {
         },
         series: [
           {
-            name: "平均功率",
-            data: averagePowerData,
+            name: "Peak Demand",
+            data: peakDemandData,
             type: "bar",
-            itemStyle: { color: "#3ba272" },
+            itemStyle: {
+              color: (params) => {
+                return params.data > markLineValue ? "#ff0000" : "#3ba272";
+              },
+            },
+            markLine: {
+              silent: true,
+              lineStyle: {
+                color: "#333",
+              },
+              label: {
+                position: "insideEndTop",
+                formatter: "額定功率: {c}kW",
+                fontSize: 12,
+                padding: [0, 0, 0, 10], // Add padding to the left
+              },
+              data: [
+                {
+                  yAxis: markLineValue,
+                  label: {
+                    show: true,
+                  },
+                },
+              ],
+            },
           },
         ],
       };
 
-      totalEnergyTrendChart.setOption(totalEnergyTrendOptions);
-      return totalEnergyTrendChart;
+      dailyPeakDemandChart.setOption(dailyPeakDemandOptions);
+      return dailyPeakDemandChart;
     }
   };
 
-  useEffect(() => {
-    const pieChart = updatePieChart();
-    const energyCostChart = updateEnergyCostChart();
-    const totalEnergyTrendChart = updateTotalEnergyTrendChart();
-
-    const handleResize = () => {
-      if (pieChart) pieChart.resize();
-      if (energyCostChart) energyCostChart.resize();
-      if (totalEnergyTrendChart) totalEnergyTrendChart.resize();
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      if (pieChart) pieChart.dispose();
-      if (energyCostChart) pieChart.dispose();
-      if (totalEnergyTrendChart) pieChart.dispose();
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
   const today = new Date();
-  const startOfYear = new Date(today.getFullYear(), 0, 1);
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const currentQuarter = getCurrentQuarter();
   const [isLoading, setIsLoading] = useState(true);
   const { startDate, endDate } = getCurrentQuarterDates();
   const [dateRange, setDateRange] = useState({ startDate, endDate });
   const currentMonthIndex = today.getMonth() + 1; // Get current month as a 1-indexed value
-  const paddedMonth = currentMonthIndex.toString().padStart(2, "0"); // Ensure two-digit month
+  const paddedMonth = currentMonthIndex.toString().padStart(2, "0"); // Ensure two-digit month|
+  const [quarterData, setQuarterData] = useState({
+    categorizedData: [],
+    groupedData: {},
+  });
   const [groupedData, setGroupedData] = useState({});
   const [aggregatedData, setAggregatedData] = useState({});
   const [prices, setPrices] = useState(null);
@@ -414,7 +572,7 @@ const HomePage = () => {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
   const [energyConsumptionData, setEnergyConsumptionData] = useState({});
-  const [energyPriceData, setEnergyPriceData] = useState({});
+
   const [co2, setCO2] = useState(0);
 
   const fetchSettings = async () => {
@@ -456,31 +614,27 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    if (initialized && selectedOptions.length > 0 && timeRanges) {
-      fetchAllData();
-    }
-  }, []);
-
-  useEffect(() => {
     if (dataReady && !isLoading) {
-      const energyCostChart = updateEnergyCostChart();
-      const totalEnergyTrendChart = updateTotalEnergyTrendChart();
+      const pieChart = updatePieChart();
+      const dailyPeakDemandChart = updateDailyPeakDemandChart();
+      const combinedEnergyChart = updateCombinedEnergyChart();
 
-      if (energyCostChart || totalEnergyTrendChart) {
-        const handleResize = () => {
-          if (energyCostChart) energyCostChart.resize();
-          if (totalEnergyTrendChart) totalEnergyTrendChart.resize();
-        };
-        window.addEventListener("resize", handleResize);
-        return () => {
-          if (energyCostChart) energyCostChart.dispose();
-          if (totalEnergyTrendChart) totalEnergyTrendChart.dispose();
-          window.removeEventListener("resize", handleResize);
-        };
-      }
+      const handleResize = () => {
+        if (pieChart) pieChart.resize();
+        if (dailyPeakDemandChart) dailyPeakDemandChart.resize();
+        if (combinedEnergyChart) combinedEnergyChart.resize();
+      };
+
+      window.addEventListener("resize", handleResize);
+
+      return () => {
+        if (pieChart) pieChart.dispose();
+        if (dailyPeakDemandChart) dailyPeakDemandChart.dispose();
+        if (combinedEnergyChart) combinedEnergyChart.dispose();
+        window.removeEventListener("resize", handleResize);
+      };
     }
   }, [dataReady, groupedData, isLoading]);
-
   const fetchAllData = async () => {
     if (selectedOptions.length === 0) {
       console.error("No options selected");
@@ -490,8 +644,8 @@ const HomePage = () => {
     console.log("Starting data fetch for selected options:", selectedOptions);
 
     const fetchPromises = selectedOptions.map(async (sn) => {
-      console.log(`Fetching data for ${sn}...`);
-      const result = await fetchData(
+      // console.log(`Fetching quarter data for ${sn}...`);
+      const result = await fetchQuarterData(
         sn,
         dateRange.startDate,
         dateRange.endDate
@@ -501,10 +655,25 @@ const HomePage = () => {
 
     try {
       const results = await Promise.all(fetchPromises);
-      console.log("All data fetched. Aggregating data...");
-      const aggregatedData = aggregateFetchedData(results);
-      console.log("Data aggregated:", aggregatedData);
-      processAndSetData(aggregatedData, timeRanges);
+      console.log("All data fetched. Processing data...");
+
+      // Process the quarter data
+      const { categorizedData, groupedData } = processQuarterData(
+        results,
+        timeRanges
+      );
+
+      console.log("Categorized Quarter Data:", categorizedData);
+      console.log("Grouped Quarter Data:", groupedData);
+
+      // Continue with your existing data processing for hourly data
+      const processedHourlyData = results.map(processQuarterDataToHourly);
+      const aggregatedHourlyData = aggregateFetchedData(processedHourlyData);
+      processAndSetData(aggregatedHourlyData, timeRanges);
+
+      // You can store the quarter data in a new state if needed
+      setQuarterData({ categorizedData, groupedData });
+
       setIsLoading(false);
       console.log("Data processing complete.");
     } catch (error) {
@@ -513,10 +682,10 @@ const HomePage = () => {
     }
   };
 
-  const fetchData = async (sn, startDate, endDate) => {
+  const fetchQuarterData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
 
     try {
       const response = await fetch(url);
@@ -529,26 +698,24 @@ const HomePage = () => {
     }
   };
 
-  const handleDataFetch = debounce(
-    async (selectedOptions, dateRange, timeRanges) => {
-      if (!initialized) return;
-      setIsLoading(true); // Set loading to true when starting fetch
-      try {
-        const fetchPromises = selectedOptions.map((sn) =>
-          fetchData(sn, dateRange.startDate, dateRange.endDate)
-        );
-        const results = await Promise.all(fetchPromises);
-        const aggregatedFetchedData = aggregateFetchedData(results);
-        processAndSetData(aggregatedFetchedData, timeRanges);
-      } catch (error) {
-        console.error("Error during data fetch:", error);
-      } finally {
-        setIsLoading(false); // Set loading to false when fetch is complete (success or error)
-      }
-    },
-    300
-  );
+  const processQuarterDataToHourly = (quarterData) => {
+    const hourlyData = {};
+    quarterData.forEach((item) => {
+      const [date, time] = item.Key.split(" ");
+      const hour = time.split(":")[0];
+      const hourKey = `${date} ${hour}`;
 
+      if (!hourlyData[hourKey]) {
+        hourlyData[hourKey] = 0;
+      }
+      hourlyData[hourKey] += item.Value;
+    });
+
+    return Object.entries(hourlyData).map(([key, value]) => ({
+      Key: key,
+      Value: parseFloat(value.toFixed(2)), // Round to 2 decimal places
+    }));
+  };
   const processAndSetData = (data, timeRanges) => {
     if (!timeRanges) {
       console.error("Time ranges not initialized.");
@@ -620,9 +787,14 @@ const HomePage = () => {
 
   useEffect(() => {
     if (initialized && selectedOptions.length > 0 && timeRanges) {
-      handleDataFetch(selectedOptions, dateRange, timeRanges);
+      fetchAllData();
     }
   }, [initialized, selectedOptions, timeRanges, dateRange]);
+  useEffect(() => {
+    if (Object.keys(quarterData).length > 0) {
+      console.log("Quarter Data:", quarterData);
+    }
+  }, [quarterData]);
 
   useEffect(() => {
     if (Object.keys(priceData).length > 0) {
@@ -693,14 +865,14 @@ const HomePage = () => {
         <div className="col-12 h-100">
           <div className="row h-100">
             <ChartCard
-              ref={energyCostChartRef}
-              title="總能耗趨勢"
+              ref={combinedEnergyChartRef}
+              title="總能耗與平均功率趨勢"
               height="250px"
               isLoading={isLoading}
             />
             <ChartCard
-              ref={totalEnergyTrendChartRef}
-              title="總有效功率趨勢"
+              ref={dailyPeakDemandChartRef}
+              title="每日最高十五分鐘需量"
               height="250px"
               isLoading={isLoading}
             />
@@ -727,21 +899,26 @@ const HomePage = () => {
               <div className="row flex-grow-1">
                 <InfoCard
                   title="能耗量"
-                  value={`本季: ${totalEnergyConsumption} kWh`}
+                  value={`${totalEnergyConsumption} kWh`}
                   monthlyValue={`當月 ${currentMonthEnergyConsumption} kWh`}
                   isLoading={isLoading}
+                  quarter={currentQuarter}
                 />
+
                 <InfoCard
                   title="參考電費"
-                  value={`本季: ${totalPrice} NT$`}
+                  value={`${totalPrice} NT$`}
                   monthlyValue={`當月 ${currentMonthPrice} NT$`}
                   isLoading={isLoading}
+                  quarter={currentQuarter}
                 />
+
                 <InfoCard
                   title="碳排放量"
-                  value={`本季: ${totalCO2Emission} kg`}
+                  value={`${totalCO2Emission} kg`}
                   monthlyValue={`當月 ${currentMonthCO2Emission} kg`}
                   isLoading={isLoading}
+                  quarter={currentQuarter}
                 />
               </div>
             </div>
@@ -752,24 +929,49 @@ const HomePage = () => {
   );
 };
 
-const InfoCard = ({ title, value, monthlyValue, isLoading }) => (
-  <div className="col-md-4 col-12 mb-4 d-flex">
-    <div className="card text-center shadow-sm flex-fill">
+const CardTitle = styled.h5`
+  color: #3ba272;
+  margin-bottom: 0.5rem;
+`;
+
+const CardValue = styled.h3`
+  margin-bottom: 0.5rem;
+
+  @media (min-width: 992px) {
+    .col-lg-4 & {
+      display: flex;
+      flex-direction: column;
+
+      span {
+        margin-top: 0.5rem;
+      }
+    }
+  }
+`;
+
+const MonthlyValue = styled.p`
+  margin-bottom: 0;
+`;
+
+const InfoCard = ({ title, value, monthlyValue, isLoading, quarter }) => (
+  <div className="col-lg-4 col-md-6 col-12 mb-4">
+    <div className="card text-center shadow-sm h-100">
       <div className="card-body d-flex flex-column justify-content-center">
-        <h5 className="card-title text-success">{title}</h5>
+        <CardTitle>{title}</CardTitle>
         {isLoading ? (
           <LoadingSpinner />
         ) : (
           <>
-            <h3 className="card-text">{value}</h3>
-            <p className="card-text">{monthlyValue}</p>
+            <CardValue>
+              本季(Q{quarter}) <span>{value}</span>
+            </CardValue>
+            <MonthlyValue>{monthlyValue}</MonthlyValue>
           </>
         )}
       </div>
     </div>
   </div>
 );
-
 const ChartCard = React.forwardRef(({ title, height, isLoading }, ref) => (
   <div className="col-lg-6 col-12 mb-4 d-flex">
     <div className="card text-center shadow-sm flex-fill">
