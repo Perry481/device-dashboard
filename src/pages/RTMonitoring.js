@@ -170,7 +170,7 @@ const MonitorPage = () => {
   const [meterData, setMeterData] = useState([]);
   const [order, setOrder] = useState([]);
   const [orderedMeters, setOrderedMeters] = useState([]);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
   const [showSettings, setShowSettings] = useState(false);
   const [draggableOrder, setDraggableOrder] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -308,8 +308,8 @@ const MonitorPage = () => {
 
     const interval = setInterval(() => {
       fetchDataAndOrder();
-      setCountdown(10);
-    }, 10000);
+      setCountdown(5);
+    }, 5000);
 
     const countdownInterval = setInterval(() => {
       setCountdown((prevCountdown) =>
