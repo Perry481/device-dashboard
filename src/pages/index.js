@@ -162,7 +162,6 @@ const processQuarterData = (results, timeRanges) => {
     groupedData: groupedQuarterData,
   };
 };
-
 const removeYearFromDate = (data) => {
   return data.map((item) => {
     const dateWithoutYear = item.Key.split(" ")[0].slice(5);
@@ -255,7 +254,7 @@ const groupDataByDate = (data) => {
 };
 
 const aggregateDataByPeakState = (groupedData) => {
-  console.log(groupedData);
+  // console.log(groupedData);
   const aggregatedData = {};
   Object.keys(groupedData).forEach((date) => {
     const dateParts = date.split("/");
@@ -457,35 +456,42 @@ const HomePage = () => {
         dailyPeakDemandChartRef.current
       );
 
-      // Get the current date
+      // console.log("quarterGroupedData:", quarterGroupedData);
+      // console.log("quarterGroupedData keys:", Object.keys(quarterGroupedData));
+
       const today = new Date();
       const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth() + 1; // 1-indexed, so August is 8
-
-      // Calculate the number of days in the current month
+      const currentMonth = today.getMonth() + 1;
       const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-
-      // Create an array representing the full month
       const xAxisData = [...Array(daysInMonth).keys()].map(
         (i) => `${currentMonth}/${i + 1}`
       );
 
-      // Initialize the data array for the chart
       const peakDemandData = new Array(daysInMonth).fill(0);
 
-      // Calculate peak demand for each day in groupedData
-      Object.keys(groupedData).forEach((date) => {
-        const [month, day] = date.split("/").map(Number);
+      Object.entries(quarterGroupedData).forEach(([date, dayData]) => {
+        // console.log(`Processing date: ${date}, dayData:`, dayData);
+        const [year, month, day] = date.split("/").map(Number);
+        // console.log(
+        //   `Parsed year: ${year}, month: ${month}, day: ${day}, currentMonth: ${currentMonth}`
+        // );
         if (month === currentMonth) {
-          const dayIndex = day - 1; // Convert to zero-indexed
-          const dayData = groupedData[date];
-          peakDemandData[dayIndex] = Math.max(
-            ...dayData.map((item) => item.Value)
-          );
+          const dayIndex = day - 1;
+
+          if (
+            Array.isArray(dayData) &&
+            dayData.length > 0 &&
+            "Value" in dayData[0]
+          ) {
+            const maxValue = Math.max(...dayData.map((item) => item.Value));
+            peakDemandData[dayIndex] = maxValue;
+            // console.log(`Max value for ${date}: ${maxValue}`);
+          }
         }
       });
 
-      const markLineValue = 8;
+      console.log("Final peakDemandData:", peakDemandData);
+      const markLineValue = 2; // Assuming this is your threshold value
 
       const dailyPeakDemandOptions = {
         tooltip: {
@@ -495,9 +501,9 @@ const HomePage = () => {
           },
           formatter: (params) => {
             const param = params[0];
-            return `${param.axisValue}<br/>${
-              param.marker
-            }最高需量: ${param.data.toFixed(2)} kW`;
+            return `${param.axisValue}<br/>${param.marker}最高需量: ${
+              param.data !== undefined ? param.data.toFixed(2) : "N/A"
+            } kW`;
           },
         },
         xAxis: {
@@ -531,7 +537,7 @@ const HomePage = () => {
                 position: "insideEndTop",
                 formatter: "額定功率: {c}kW",
                 fontSize: 12,
-                padding: [0, 0, 0, 10], // Add padding to the left
+                padding: [0, 0, 0, 10],
               },
               data: [
                 {
@@ -563,6 +569,7 @@ const HomePage = () => {
     groupedData: {},
   });
   const [groupedData, setGroupedData] = useState({});
+  const [quarterGroupedData, setQuarterGroupedData] = useState({});
   const [aggregatedData, setAggregatedData] = useState({});
   const [prices, setPrices] = useState(null);
   const [timeRanges, setTimeRanges] = useState(null);
@@ -580,7 +587,7 @@ const HomePage = () => {
       const response = await fetch("/api/settings");
       if (!response.ok) throw new Error("Failed to fetch settings");
       const savedSettings = await response.json();
-      console.log("Fetched Prices:", savedSettings);
+      // console.log("Fetched Prices:", savedSettings);
       setPrices(savedSettings);
       setTimeRanges(savedSettings.timeRanges);
       setCO2(savedSettings.CO2);
@@ -635,13 +642,14 @@ const HomePage = () => {
       };
     }
   }, [dataReady, groupedData, isLoading]);
+
   const fetchAllData = async () => {
     if (selectedOptions.length === 0) {
       console.error("No options selected");
       return;
     }
 
-    console.log("Starting data fetch for selected options:", selectedOptions);
+    // console.log("Starting data fetch for selected options:", selectedOptions);
 
     const fetchPromises = selectedOptions.map(async (sn) => {
       // console.log(`Fetching quarter data for ${sn}...`);
@@ -663,16 +671,16 @@ const HomePage = () => {
         timeRanges
       );
 
-      console.log("Categorized Quarter Data:", categorizedData);
-      console.log("Grouped Quarter Data:", groupedData);
+      // console.log("Categorized Quarter Data:", categorizedData);
+      // console.log("Grouped Quarter Data:", groupedData);
 
       // Continue with your existing data processing for hourly data
       const processedHourlyData = results.map(processQuarterDataToHourly);
       const aggregatedHourlyData = aggregateFetchedData(processedHourlyData);
       processAndSetData(aggregatedHourlyData, timeRanges);
 
-      // You can store the quarter data in a new state if needed
       setQuarterData({ categorizedData, groupedData });
+      setQuarterGroupedData(groupedData);
 
       setIsLoading(false);
       console.log("Data processing complete.");
@@ -736,10 +744,10 @@ const HomePage = () => {
     }));
     const categorizedData = categorizeData(updatedData, timeRanges);
     const groupedByDate = groupDataByDate(categorizedData);
-    console.log(groupedByDate);
+
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
 
-    console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
+    // console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
 
     const newPriceData = {};
     const newConsumptionData = {};
@@ -790,21 +798,6 @@ const HomePage = () => {
       fetchAllData();
     }
   }, [initialized, selectedOptions, timeRanges, dateRange]);
-  useEffect(() => {
-    if (Object.keys(quarterData).length > 0) {
-      console.log("Quarter Data:", quarterData);
-    }
-  }, [quarterData]);
-
-  useEffect(() => {
-    if (Object.keys(priceData).length > 0) {
-      console.log("Price Data:", priceData);
-    }
-    if (Object.keys(energyConsumptionData).length > 0) {
-      console.log("Energy Consumption Data:", energyConsumptionData);
-    }
-    console.log("CO2 value:", co2);
-  }, [priceData, energyConsumptionData, co2]);
 
   // Calculate the total energy consumption, total price, and total CO2 emission for the info cards
   const totalEnergyConsumption = Object.values(energyConsumptionData)
