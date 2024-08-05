@@ -283,7 +283,7 @@ const calculateAveragePower = (dayData) => {
 };
 
 const parsePrice = (priceString) => {
-  return parseFloat(priceString.replace("NT$", ""));
+  return parseFloat((priceString || "").replace("NT$", "") || "0");
 };
 
 const getCurrentQuarterDates = () => {
@@ -587,8 +587,7 @@ const HomePage = () => {
       const response = await fetch("/api/settings");
       if (!response.ok) throw new Error("Failed to fetch settings");
       const savedSettings = await response.json();
-      // console.log("Fetched Prices:", savedSettings);
-      setPrices(savedSettings);
+      setPrices(savedSettings.prices || savedSettings); // Use new structure if available, fallback to old
       setTimeRanges(savedSettings.timeRanges);
       setCO2(savedSettings.CO2);
       setInitialized(true);
@@ -754,15 +753,12 @@ const HomePage = () => {
     Object.keys(aggregatedByPeakState).forEach((date) => {
       const { peak, semiPeak, offPeak, isSummer } = aggregatedByPeakState[date];
 
-      const peakPrice = parsePrice(
-        prices.peakPrices[isSummer ? "夏月" : "非夏月"]
-      );
-      const semiPeakPrice = parsePrice(
-        prices.halfPeakPrices[isSummer ? "夏月" : "非夏月"]
-      );
-      const offPeakPrice = parsePrice(
-        prices.offPeakPrices[isSummer ? "夏月" : "非夏月"]
-      );
+      const priceObj = prices.prices || prices; // Use new structure if available, fallback to old
+      const period = isSummer ? "夏月" : "非夏月";
+
+      const peakPrice = parsePrice(priceObj.peakPrices[period]);
+      const semiPeakPrice = parsePrice(priceObj.halfPeakPrices[period]);
+      const offPeakPrice = parsePrice(priceObj.offPeakPrices[period]);
 
       const peakCost = parseFloat(peak) * peakPrice;
       const semiPeakCost = parseFloat(semiPeak) * semiPeakPrice;

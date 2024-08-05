@@ -94,9 +94,19 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
           throw new Error("Failed to fetch settings");
         }
         const savedSettings = await response.json();
-        setOffPeakPrices(savedSettings.offPeakPrices);
-        setPeakPrices(savedSettings.peakPrices);
-        setHalfPeakPrices(savedSettings.halfPeakPrices);
+
+        // Check if the new prices structure exists
+        if (savedSettings.prices) {
+          setOffPeakPrices(savedSettings.prices.offPeakPrices);
+          setPeakPrices(savedSettings.prices.peakPrices);
+          setHalfPeakPrices(savedSettings.prices.halfPeakPrices);
+        } else {
+          // Fallback to old structure if new one is not present
+          setOffPeakPrices(savedSettings.offPeakPrices);
+          setPeakPrices(savedSettings.peakPrices);
+          setHalfPeakPrices(savedSettings.halfPeakPrices);
+        }
+
         setTimeRanges(savedSettings.timeRanges);
         setTempTimeRanges(savedSettings.timeRanges); // Initialize tempTimeRanges correctly
       } catch (error) {
@@ -144,50 +154,41 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
 
     setTempTimeRanges(updatedRanges);
   };
-
   const handleEditMode = async () => {
     if (editMode) {
       try {
-        // Fetch current settings
-        const response = await fetch("/api/settings");
-        if (!response.ok) {
-          throw new Error("Failed to fetch current settings");
-        }
-        const currentSettings = await response.json();
-
-        // Merge updated settings into current settings
-        const updatedSettings = {
-          ...currentSettings,
-          offPeakPrices: offPeakPrices,
-          peakPrices: peakPrices,
-          halfPeakPrices: halfPeakPrices,
+        const updates = {
+          prices: {
+            offPeakPrices,
+            peakPrices,
+            halfPeakPrices,
+          },
           timeRanges: tempTimeRanges,
         };
 
-        // Save merged settings
         const saveResponse = await fetch("/api/settings", {
-          method: "POST",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(updatedSettings),
+          body: JSON.stringify(updates),
         });
+
         if (!saveResponse.ok) {
           throw new Error("Failed to save settings");
         }
         console.log("Settings saved successfully");
 
-        setTimeRanges(tempTimeRanges); // Update the main state with new values
-        triggerHandleSend(); // Trigger handleSend when exiting edit mode
+        setTimeRanges(tempTimeRanges);
+        triggerHandleSend();
       } catch (error) {
         console.error("Error saving settings:", error);
       }
     } else {
-      setTempTimeRanges(timeRanges); // Initialize temp state with current values
+      setTempTimeRanges(timeRanges);
     }
     setEditMode(!editMode);
   };
-
   const renderTimeRange = (range, periodType, dayType, type, index) => (
     <div key={`${periodType}-${dayType}-${type}-${index}`}>
       <TimeSelect

@@ -186,7 +186,7 @@ const EnergyPriceAnalysis = () => {
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const [groupedData, setGroupedData] = useState({});
   const [aggregatedData, setAggregatedData] = useState({});
-  const [prices, setPrices] = useState(null);
+  const [prices, setPrices] = useState({});
   const [timeRanges, setTimeRanges] = useState(null);
   const [initialized, setInitialized] = useState(false);
   const [dataReady, setDataReady] = useState(false);
@@ -208,11 +208,14 @@ const EnergyPriceAnalysis = () => {
         throw new Error("Failed to fetch settings");
       }
       const savedSettings = await response.json();
-      setPrices(savedSettings);
+      setPrices(
+        savedSettings.prices ? savedSettings : { prices: savedSettings }
+      );
       setTimeRanges(savedSettings.timeRanges);
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
+      setPrices({}); // Set to an empty object in case of error
     }
   }, []);
 
@@ -357,15 +360,20 @@ const EnergyPriceAnalysis = () => {
       dates.forEach((date) => {
         const { peak, semiPeak, offPeak, isSummer } = aggregatedData[date];
         const period = isSummer ? "夏月" : "非夏月";
-
         const peakPrice = parseFloat(
-          prices.peakPrices?.[period]?.replace("NT$", "")
+          prices?.prices?.peakPrices?.[period]?.replace("NT$", "") ||
+            prices?.peakPrices?.[period]?.replace("NT$", "") ||
+            "0"
         );
         const semiPeakPrice = parseFloat(
-          prices.halfPeakPrices?.[period]?.replace("NT$", "")
+          prices?.prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
+            prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
+            "0"
         );
         const offPeakPrice = parseFloat(
-          prices.offPeakPrices?.[period]?.replace("NT$", "")
+          prices?.prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
+            prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
+            "0"
         );
 
         newBarChartData.peak.push((parseFloat(peak) * peakPrice).toFixed(2));
@@ -457,13 +465,19 @@ const EnergyPriceAnalysis = () => {
           const period = isSummer ? "夏月" : "非夏月";
 
           const peakPrice = parseFloat(
-            prices.peakPrices?.[period]?.replace("NT$", "")
+            prices?.prices?.peakPrices?.[period]?.replace("NT$", "") ||
+              prices?.peakPrices?.[period]?.replace("NT$", "") ||
+              "0"
           );
           const semiPeakPrice = parseFloat(
-            prices.halfPeakPrices?.[period]?.replace("NT$", "")
+            prices?.prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
+              prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
+              "0"
           );
           const offPeakPrice = parseFloat(
-            prices.offPeakPrices?.[period]?.replace("NT$", "")
+            prices?.prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
+              prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
+              "0"
           );
 
           totalPeak += parseFloat(peak) * peakPrice;
@@ -525,12 +539,16 @@ const EnergyPriceAnalysis = () => {
   };
 
   useEffect(() => {
-    if (dataReady && prices && Object.keys(aggregatedData).length > 0) {
+    if (
+      dataReady &&
+      prices &&
+      Object.keys(prices).length > 0 &&
+      Object.keys(aggregatedData).length > 0
+    ) {
       renderBarChart();
       renderPieChart();
     }
   }, [dataReady, aggregatedData, prices]);
-
   return (
     <div className="container-fluid">
       <RowContainer>
@@ -558,7 +576,7 @@ const EnergyPriceAnalysis = () => {
           <DetailCard
             aggregatedData={aggregatedData}
             energyPrice
-            prices={prices}
+            prices={prices?.prices || prices || {}}
           />
         </div>
       </div>
@@ -567,6 +585,7 @@ const EnergyPriceAnalysis = () => {
           <PriceTable
             onPricesUpdate={fetchSettings}
             triggerHandleSend={handleExitEditMode}
+            prices={prices?.prices || prices || {}}
           />
         </div>
       </div>
@@ -575,7 +594,7 @@ const EnergyPriceAnalysis = () => {
           <DataTableComponent
             aggregatedData={aggregatedData}
             energyPrice
-            prices={prices}
+            prices={prices?.prices || prices || {}}
           />
         </div>
       </div>
