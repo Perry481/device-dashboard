@@ -74,6 +74,20 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                 </a>
               </Link>
             </li>
+            <li
+              className={`nav-item ${
+                selectedPage === "SettingsPage" ? "active" : ""
+              }`}
+            >
+              <Link href="/SettingsPage" legacyBehavior>
+                <a
+                  className="nav-link"
+                  onClick={() => onPageChange("SettingsPage")}
+                >
+                  設定
+                </a>
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

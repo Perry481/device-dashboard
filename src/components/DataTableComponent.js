@@ -98,14 +98,14 @@ const DataTableComponent = ({
               break;
             case "半尖峰":
               value =
-                data[date] && data[date].semiPeak !== undefined
-                  ? data[date].semiPeak
+                data[date] && data[date].halfpeak !== undefined
+                  ? data[date].halfpeak
                   : "0";
               break;
             case "離峰":
               value =
-                data[date] && data[date].offPeak !== undefined
-                  ? data[date].offPeak
+                data[date] && data[date].offpeak !== undefined
+                  ? data[date].offpeak
                   : "0";
               break;
             case "總合":
@@ -114,11 +114,11 @@ const DataTableComponent = ({
                   (data[date].peak !== undefined
                     ? parseFloat(data[date].peak)
                     : 0) +
-                  (data[date].semiPeak !== undefined
-                    ? parseFloat(data[date].semiPeak)
+                  (data[date].halfpeak !== undefined
+                    ? parseFloat(data[date].halfpeak)
                     : 0) +
-                  (data[date].offPeak !== undefined
-                    ? parseFloat(data[date].offPeak)
+                  (data[date].offpeak !== undefined
+                    ? parseFloat(data[date].offpeak)
                     : 0)
                 ).toFixed(2);
               } else {
@@ -132,10 +132,10 @@ const DataTableComponent = ({
           const period = data[date].isSummer ? "夏月" : "非夏月";
           const peakPrice =
             parseFloat(prices.peakPrices?.[period]?.replace("NT$", "")) || 0;
-          const semiPeakPrice =
+          const halfpeakPrice =
             parseFloat(prices.halfPeakPrices?.[period]?.replace("NT$", "")) ||
             0;
-          const offPeakPrice =
+          const offpeakPrice =
             parseFloat(prices.offPeakPrices?.[period]?.replace("NT$", "")) || 0;
 
           switch (state) {
@@ -147,14 +147,14 @@ const DataTableComponent = ({
               break;
             case "半尖峰":
               value =
-                data[date] && data[date].semiPeak !== undefined
-                  ? (parseFloat(data[date].semiPeak) * semiPeakPrice).toFixed(2)
+                data[date] && data[date].halfpeak !== undefined
+                  ? (parseFloat(data[date].halfpeak) * halfpeakPrice).toFixed(2)
                   : "0";
               break;
             case "離峰":
               value =
-                data[date] && data[date].offPeak !== undefined
-                  ? (parseFloat(data[date].offPeak) * offPeakPrice).toFixed(2)
+                data[date] && data[date].offpeak !== undefined
+                  ? (parseFloat(data[date].offpeak) * offpeakPrice).toFixed(2)
                   : "0";
               break;
             case "總合":
@@ -163,11 +163,11 @@ const DataTableComponent = ({
                   (data[date].peak !== undefined
                     ? parseFloat(data[date].peak) * peakPrice
                     : 0) +
-                  (data[date].semiPeak !== undefined
-                    ? parseFloat(data[date].semiPeak) * semiPeakPrice
+                  (data[date].halfpeak !== undefined
+                    ? parseFloat(data[date].halfpeak) * halfpeakPrice
                     : 0) +
-                  (data[date].offPeak !== undefined
-                    ? parseFloat(data[date].offPeak) * offPeakPrice
+                  (data[date].offpeak !== undefined
+                    ? parseFloat(data[date].offpeak) * offpeakPrice
                     : 0)
                 ).toFixed(2);
               } else {

@@ -85,8 +85,6 @@ const getDayOfWeek = (dateStr) => {
   return daysOfWeek[date.getDay()];
 };
 const categorizeData = (data, timeRanges) => {
-  console.log("Data before categorization:", data);
-
   if (!timeRanges) {
     console.error("Time ranges not provided.");
     return data.map((item) => ({
@@ -105,8 +103,6 @@ const categorizeData = (data, timeRanges) => {
     const month = date.getMonth() + 1;
     const isSummer = month >= 6 && month <= 9;
 
-    // console.log(`Processing item: ${item.Key}, isSummer: ${isSummer}`);
-
     const period = isSummer ? "夏月" : "非夏月";
     if (!timeRanges[period]) {
       console.error(`Time ranges not defined for period: ${period}`);
@@ -124,9 +120,15 @@ const categorizeData = (data, timeRanges) => {
 
     let peakState = "offpeak";
     const ranges = timeRanges[period][dayType];
-    if (ranges.peak.some((range) => hour >= range[0] && hour < range[1])) {
+
+    // Check if the property exists before using .some()
+    if (
+      ranges.peak &&
+      ranges.peak.some((range) => hour >= range[0] && hour < range[1])
+    ) {
       peakState = "peak";
     } else if (
+      ranges.halfpeak &&
       ranges.halfpeak.some((range) => hour >= range[0] && hour < range[1])
     ) {
       peakState = "halfpeak";
@@ -140,7 +142,6 @@ const categorizeData = (data, timeRanges) => {
     };
   });
 };
-
 const groupDataByDate = (data) => {
   return data.reduce((acc, item) => {
     const date = item.Key.split(" ")[0];
@@ -159,23 +160,22 @@ const groupDataByDate = (data) => {
 };
 
 const aggregateDataByPeakState = (groupedData) => {
-  // console.log(groupedData);
   const aggregatedData = {};
   Object.keys(groupedData).forEach((date) => {
     const { items, isSummer } = groupedData[date];
-    aggregatedData[date] = { peak: 0, semiPeak: 0, offPeak: 0, isSummer };
+    aggregatedData[date] = { peak: 0, halfpeak: 0, offpeak: 0, isSummer };
     items.forEach((item) => {
       if (item.PeakState === "peak") {
         aggregatedData[date].peak += item.Value;
-      } else if (item.PeakState === "semi-peak") {
-        aggregatedData[date].semiPeak += item.Value;
+      } else if (item.PeakState === "halfpeak") {
+        aggregatedData[date].halfpeak += item.Value;
       } else if (item.PeakState === "offpeak") {
-        aggregatedData[date].offPeak += item.Value;
+        aggregatedData[date].offpeak += item.Value;
       }
     });
     aggregatedData[date].peak = aggregatedData[date].peak.toFixed(2);
-    aggregatedData[date].semiPeak = aggregatedData[date].semiPeak.toFixed(2);
-    aggregatedData[date].offPeak = aggregatedData[date].offPeak.toFixed(2);
+    aggregatedData[date].halfpeak = aggregatedData[date].halfpeak.toFixed(2);
+    aggregatedData[date].offpeak = aggregatedData[date].offpeak.toFixed(2);
   });
   return aggregatedData;
 };
@@ -208,17 +208,15 @@ const EnergyPriceAnalysis = () => {
         throw new Error("Failed to fetch settings");
       }
       const savedSettings = await response.json();
-      setPrices(
-        savedSettings.prices ? savedSettings : { prices: savedSettings }
-      );
+      setPrices(savedSettings.prices);
       setTimeRanges(savedSettings.timeRanges);
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
       setPrices({}); // Set to an empty object in case of error
+      setTimeRanges({}); // Set to an empty object in case of error
     }
   }, []);
-
   const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch(
@@ -290,11 +288,16 @@ const EnergyPriceAnalysis = () => {
   );
 
   const processAndSetData = (data, timeRanges) => {
-    console.log(data);
+    console.log("Data before categorization:");
+    console.log(
+      data.map((item) => ({ ...item, peakState: "to be determined" }))
+    );
+
     if (!timeRanges) {
       console.error("Time ranges not initialized.");
       return;
     }
+
     const dataWithoutYear = removeYearFromDate(data);
     const updatedData = dataWithoutYear.map((item) => ({
       ...item,
@@ -302,8 +305,12 @@ const EnergyPriceAnalysis = () => {
     }));
 
     const categorizedData = categorizeData(updatedData, timeRanges);
+    console.log("Data after categorization:");
+    console.log(categorizedData);
+
     const groupedByDate = groupDataByDate(categorizedData);
     console.log("Grouped Data by Date:", groupedByDate);
+
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
     console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
 
@@ -353,35 +360,35 @@ const EnergyPriceAnalysis = () => {
       const newBarChartData = {
         dates,
         peak: [],
-        semiPeak: [],
-        offPeak: [],
+        halfpeak: [],
+        offpeak: [],
       };
 
       dates.forEach((date) => {
-        const { peak, semiPeak, offPeak, isSummer } = aggregatedData[date];
+        const { peak, halfpeak, offpeak, isSummer } = aggregatedData[date];
         const period = isSummer ? "夏月" : "非夏月";
         const peakPrice = parseFloat(
           prices?.prices?.peakPrices?.[period]?.replace("NT$", "") ||
             prices?.peakPrices?.[period]?.replace("NT$", "") ||
             "0"
         );
-        const semiPeakPrice = parseFloat(
+        const halfpeakPrice = parseFloat(
           prices?.prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
             prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
             "0"
         );
-        const offPeakPrice = parseFloat(
+        const offpeakPrice = parseFloat(
           prices?.prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
             prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
             "0"
         );
 
         newBarChartData.peak.push((parseFloat(peak) * peakPrice).toFixed(2));
-        newBarChartData.semiPeak.push(
-          (parseFloat(semiPeak) * semiPeakPrice).toFixed(2)
+        newBarChartData.halfpeak.push(
+          (parseFloat(halfpeak) * halfpeakPrice).toFixed(2)
         );
-        newBarChartData.offPeak.push(
-          (parseFloat(offPeak) * offPeakPrice).toFixed(2)
+        newBarChartData.offpeak.push(
+          (parseFloat(offpeak) * offpeakPrice).toFixed(2)
         );
       });
 
@@ -426,13 +433,13 @@ const EnergyPriceAnalysis = () => {
             name: "半尖峰",
             type: "bar",
             stack: "total",
-            data: newBarChartData.semiPeak,
+            data: newBarChartData.halfpeak,
           },
           {
             name: "離峰",
             type: "bar",
             stack: "total",
-            data: newBarChartData.offPeak,
+            data: newBarChartData.offpeak,
           },
         ],
       };
@@ -441,7 +448,7 @@ const EnergyPriceAnalysis = () => {
         barChart.resize();
       };
       window.addEventListener("resize", handleResize);
-      setLastBarChartData(newBarChartData); // Update state after the chart is rendered
+      setLastBarChartData(newBarChartData);
       return () => {
         barChart.dispose();
         window.removeEventListener("resize", handleResize);
@@ -457,11 +464,11 @@ const EnergyPriceAnalysis = () => {
       Object.keys(aggregatedData).length > 0
     ) {
       let totalPeak = 0;
-      let totalSemiPeak = 0;
-      let totalOffPeak = 0;
+      let totalHalfpeak = 0;
+      let totalOffpeak = 0;
 
       Object.values(aggregatedData).forEach(
-        ({ peak, semiPeak, offPeak, isSummer }) => {
+        ({ peak, halfpeak, offpeak, isSummer }) => {
           const period = isSummer ? "夏月" : "非夏月";
 
           const peakPrice = parseFloat(
@@ -469,27 +476,27 @@ const EnergyPriceAnalysis = () => {
               prices?.peakPrices?.[period]?.replace("NT$", "") ||
               "0"
           );
-          const semiPeakPrice = parseFloat(
+          const halfpeakPrice = parseFloat(
             prices?.prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
               prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
               "0"
           );
-          const offPeakPrice = parseFloat(
+          const offpeakPrice = parseFloat(
             prices?.prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
               prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
               "0"
           );
 
           totalPeak += parseFloat(peak) * peakPrice;
-          totalSemiPeak += parseFloat(semiPeak) * semiPeakPrice;
-          totalOffPeak += parseFloat(offPeak) * offPeakPrice;
+          totalHalfpeak += parseFloat(halfpeak) * halfpeakPrice;
+          totalOffpeak += parseFloat(offpeak) * offpeakPrice;
         }
       );
 
       const newPieChartData = {
         totalPeak: totalPeak.toFixed(2),
-        totalSemiPeak: totalSemiPeak.toFixed(2),
-        totalOffPeak: totalOffPeak.toFixed(2),
+        totalHalfpeak: totalHalfpeak.toFixed(2),
+        totalOffpeak: totalOffpeak.toFixed(2),
       };
 
       if (isEqual(newPieChartData, lastPieChartData)) {
@@ -519,8 +526,8 @@ const EnergyPriceAnalysis = () => {
             labelLine: { show: false },
             data: [
               { value: newPieChartData.totalPeak, name: "尖峰" },
-              { value: newPieChartData.totalSemiPeak, name: "半尖峰" },
-              { value: newPieChartData.totalOffPeak, name: "離峰" },
+              { value: newPieChartData.totalHalfpeak, name: "半尖峰" },
+              { value: newPieChartData.totalOffpeak, name: "離峰" },
             ],
           },
         ],
@@ -530,14 +537,13 @@ const EnergyPriceAnalysis = () => {
         pieChart.resize();
       };
       window.addEventListener("resize", handleResize);
-      setLastPieChartData(newPieChartData); // Update state after the chart is rendered
+      setLastPieChartData(newPieChartData);
       return () => {
         pieChart.dispose();
         window.removeEventListener("resize", handleResize);
       };
     }
   };
-
   useEffect(() => {
     if (
       dataReady &&

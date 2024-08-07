@@ -109,13 +109,16 @@ const categorizeQuarterData = (data, timeRanges) => {
     const ranges = timeRanges[period][dayType];
     const timeInHours = parseInt(hour) + parseInt(minute) / 60;
 
+    // Check if the property exists before using .some()
     if (
+      ranges.peak &&
       ranges.peak.some(
         (range) => timeInHours >= range[0] && timeInHours < range[1]
       )
     ) {
       peakState = "peak";
     } else if (
+      ranges.halfpeak &&
       ranges.halfpeak.some(
         (range) => timeInHours >= range[0] && timeInHours < range[1]
       )
@@ -219,9 +222,13 @@ const categorizeData = (data, timeRanges) => {
 
     let peakState = "offpeak";
     const ranges = timeRanges[period][dayType];
-    if (ranges.peak.some((range) => hour >= range[0] && hour < range[1])) {
+    if (
+      ranges.peak &&
+      ranges.peak.some((range) => hour >= range[0] && hour < range[1])
+    ) {
       peakState = "peak";
     } else if (
+      ranges.halfpeak &&
       ranges.halfpeak.some((range) => hour >= range[0] && hour < range[1])
     ) {
       peakState = "halfpeak";
@@ -254,25 +261,24 @@ const groupDataByDate = (data) => {
 };
 
 const aggregateDataByPeakState = (groupedData) => {
-  // console.log(groupedData);
   const aggregatedData = {};
   Object.keys(groupedData).forEach((date) => {
     const dateParts = date.split("/");
     const month = parseInt(dateParts[0], 10);
     const isSummer = month >= 6 && month <= 9;
 
-    aggregatedData[date] = { peak: 0, semiPeak: 0, offPeak: 0, isSummer };
+    aggregatedData[date] = { peak: 0, halfPeak: 0, offPeak: 0, isSummer };
     groupedData[date].forEach((item) => {
       if (item.PeakState === "peak") {
         aggregatedData[date].peak += item.Value;
-      } else if (item.PeakState === "semi-peak") {
-        aggregatedData[date].semiPeak += item.Value;
+      } else if (item.PeakState === "halfpeak") {
+        aggregatedData[date].halfPeak += item.Value;
       } else if (item.PeakState === "offpeak") {
         aggregatedData[date].offPeak += item.Value;
       }
     });
     aggregatedData[date].peak = aggregatedData[date].peak.toFixed(2);
-    aggregatedData[date].semiPeak = aggregatedData[date].semiPeak.toFixed(2);
+    aggregatedData[date].halfPeak = aggregatedData[date].halfPeak.toFixed(2);
     aggregatedData[date].offPeak = aggregatedData[date].offPeak.toFixed(2);
   });
   return aggregatedData;
@@ -355,45 +361,60 @@ const HomePage = () => {
     if (combinedEnergyChartRef.current && !isLoading) {
       const combinedEnergyChart = echarts.init(combinedEnergyChartRef.current);
 
-      // Get the current date
       const today = new Date();
       const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth() + 1; // 1-indexed, so August is 8
+      const currentMonth = today.getMonth() + 1;
 
-      // Calculate the number of days in the current month
       const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-      // Create an array representing the full month
       const xAxisData = [...Array(daysInMonth).keys()].map(
         (i) => `${currentMonth}/${i + 1}`
       );
 
-      // Initialize the data arrays for the chart
       const totalEnergyConsumptionData = new Array(daysInMonth).fill(0);
       const averagePowerData = new Array(daysInMonth).fill(0);
 
-      // Process energyConsumptionData for total energy consumption
+      console.log("Energy Consumption Data:", energyConsumptionData);
+
       Object.keys(energyConsumptionData).forEach((date) => {
         const [month, day] = date.split("/").map(Number);
         if (month === currentMonth) {
-          const dayIndex = day - 1; // Convert to zero-indexed
+          const dayIndex = day - 1;
           const dayData = energyConsumptionData[date];
+          console.log(`Processing date: ${date}, Data:`, dayData);
+
+          const peakValue = parseFloat(dayData.peak) || 0;
+          const offPeakValue = parseFloat(dayData.offPeak) || 0;
+          const halfPeakValue = parseFloat(dayData.halfPeak) || 0;
+
           totalEnergyConsumptionData[dayIndex] =
-            parseFloat(dayData.peak) +
-            parseFloat(dayData.offPeak) +
-            parseFloat(dayData.semiPeak);
+            peakValue + offPeakValue + halfPeakValue;
+
+          console.log(
+            `Date: ${date}, Total Energy: ${totalEnergyConsumptionData[dayIndex]}`
+          );
         }
       });
 
-      // Process groupedData for average power
+      console.log("Grouped Data:", groupedData);
+
       Object.keys(groupedData).forEach((date) => {
         const [month, day] = date.split("/").map(Number);
         if (month === currentMonth) {
-          const dayIndex = day - 1; // Convert to zero-indexed
+          const dayIndex = day - 1;
           const dayData = groupedData[date];
           averagePowerData[dayIndex] = calculateAveragePower(dayData);
+          console.log(
+            `Date: ${date}, Average Power: ${averagePowerData[dayIndex]}`
+          );
         }
       });
+
+      console.log(
+        "Final Total Energy Consumption Data:",
+        totalEnergyConsumptionData
+      );
+      console.log("Final Average Power Data:", averagePowerData);
 
       const combinedEnergyOptions = {
         tooltip: {
@@ -491,7 +512,7 @@ const HomePage = () => {
       });
 
       console.log("Final peakDemandData:", peakDemandData);
-      const markLineValue = 2; // Assuming this is your threshold value
+      const markLineValue = 10; // Assuming this is your threshold value
 
       const dailyPeakDemandOptions = {
         tooltip: {
@@ -535,7 +556,7 @@ const HomePage = () => {
               },
               label: {
                 position: "insideEndTop",
-                formatter: "額定功率: {c}kW",
+                formatter: "契約容量(test): {c}kW",
                 fontSize: 12,
                 padding: [0, 0, 0, 10],
               },
@@ -640,7 +661,7 @@ const HomePage = () => {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [dataReady, groupedData, isLoading]);
+  }, [dataReady, isLoading, energyConsumptionData, priceData, co2]);
 
   const fetchAllData = async () => {
     if (selectedOptions.length === 0) {
@@ -751,23 +772,32 @@ const HomePage = () => {
     const newPriceData = {};
     const newConsumptionData = {};
     Object.keys(aggregatedByPeakState).forEach((date) => {
-      const { peak, semiPeak, offPeak, isSummer } = aggregatedByPeakState[date];
+      const { peak, halfPeak, offPeak, isSummer } = aggregatedByPeakState[date];
 
-      const priceObj = prices.prices || prices; // Use new structure if available, fallback to old
+      const priceObj = prices.prices || prices;
       const period = isSummer ? "夏月" : "非夏月";
 
       const peakPrice = parsePrice(priceObj.peakPrices[period]);
-      const semiPeakPrice = parsePrice(priceObj.halfPeakPrices[period]);
+      const halfPeakPrice = parsePrice(priceObj.halfPeakPrices[period]);
       const offPeakPrice = parsePrice(priceObj.offPeakPrices[period]);
 
+      // console.log(`Date: ${date}, Period: ${period}`);
+      // console.log(`Peak: ${peak} kWh, Price: ${peakPrice} NT$/kWh`);
+      // console.log(
+      //   `Half-Peak: ${halfPeak} kWh, Price: ${halfPeakPrice} NT$/kWh`
+      // );
+      // console.log(`Off-Peak: ${offPeak} kWh, Price: ${offPeakPrice} NT$/kWh`);
+
       const peakCost = parseFloat(peak) * peakPrice;
-      const semiPeakCost = parseFloat(semiPeak) * semiPeakPrice;
+      const halfPeakCost = parseFloat(halfPeak) * halfPeakPrice;
       const offPeakCost = parseFloat(offPeak) * offPeakPrice;
-      const totalCost = peakCost + semiPeakCost + offPeakCost;
+      const totalCost = peakCost + halfPeakCost + offPeakCost;
+
+      console.log(`Total cost for ${date}: ${totalCost.toFixed(2)} NT$`);
 
       newPriceData[date] = {
         peak: peakCost.toFixed(2),
-        semiPeak: semiPeakCost.toFixed(2),
+        halfPeak: halfPeakCost.toFixed(2),
         offPeak: offPeakCost.toFixed(2),
         total: totalCost.toFixed(2),
         isSummer,
@@ -775,7 +805,7 @@ const HomePage = () => {
 
       newConsumptionData[date] = {
         peak,
-        semiPeak,
+        halfPeak,
         offPeak,
         isSummer,
       };
@@ -787,6 +817,8 @@ const HomePage = () => {
     setEnergyConsumptionData(newConsumptionData);
     setDataReady(true);
     setIsLoading(false);
+    console.log("Final price data:", newPriceData);
+    console.log("Final consumption data:", newConsumptionData);
   };
 
   useEffect(() => {
@@ -801,7 +833,7 @@ const HomePage = () => {
       (acc, data) =>
         acc +
         parseFloat(data.peak) +
-        parseFloat(data.semiPeak) +
+        parseFloat(data.halfPeak) +
         parseFloat(data.offPeak),
       0
     )
@@ -812,13 +844,16 @@ const HomePage = () => {
       (acc, data) =>
         acc +
         parseFloat(data.peak) +
-        parseFloat(data.semiPeak) +
+        parseFloat(data.halfPeak) +
         parseFloat(data.offPeak),
       0
     )
     .toFixed(2);
 
-  const totalCO2Emission = co2 ? (totalEnergyConsumption * co2).toFixed(2) : 0;
+  // Add this calculation for total CO2 emission
+  const totalCO2Emission = (parseFloat(totalEnergyConsumption) * co2).toFixed(
+    2
+  );
 
   const currentMonthEnergyConsumption = Object.keys(energyConsumptionData)
     .filter((date) => date.startsWith(`${paddedMonth}/`))
@@ -826,27 +861,39 @@ const HomePage = () => {
       (acc, date) =>
         acc +
         parseFloat(energyConsumptionData[date].peak) +
-        parseFloat(energyConsumptionData[date].semiPeak) +
+        parseFloat(energyConsumptionData[date].halfPeak) +
         parseFloat(energyConsumptionData[date].offPeak),
       0
     )
     .toFixed(2);
+
   const currentMonthPrice = Object.keys(priceData)
     .filter((date) => date.startsWith(`${paddedMonth}/`))
     .reduce(
       (acc, date) =>
         acc +
         parseFloat(priceData[date].peak) +
-        parseFloat(priceData[date].semiPeak) +
+        parseFloat(priceData[date].halfPeak) +
         parseFloat(priceData[date].offPeak),
       0
     )
     .toFixed(2);
 
-  const currentMonthCO2Emission = co2
-    ? (currentMonthEnergyConsumption * co2).toFixed(2)
-    : 0;
+  // Add this calculation for current month CO2 emission
+  const currentMonthCO2Emission = (
+    parseFloat(currentMonthEnergyConsumption) * co2
+  ).toFixed(2);
 
+  console.log("Total Energy Consumption:", totalEnergyConsumption, "kWh");
+  console.log("Total Price:", totalPrice, "NT$");
+  console.log("Total CO2 Emission:", totalCO2Emission, "kg");
+  console.log(
+    "Current Month Energy Consumption:",
+    currentMonthEnergyConsumption,
+    "kWh"
+  );
+  console.log("Current Month Price:", currentMonthPrice, "NT$");
+  console.log("Current Month CO2 Emission:", currentMonthCO2Emission, "kg");
   return (
     <div className="container-fluid min-vh-100 d-flex flex-column">
       {/* Top 50% section (charts) */}

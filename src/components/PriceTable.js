@@ -239,10 +239,19 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
       period: "06/01 - 09/30 夏月",
       times: [
         {
-          time: tempTimeRanges["夏月"]?.weekdays?.peak || [[9, 24]],
+          time: tempTimeRanges["夏月"]?.weekdays?.peak || [[16, 22]],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["一", "二", "三", "四", "五"],
           type: "peak",
+        },
+        {
+          time: tempTimeRanges["夏月"]?.weekdays?.halfpeak || [
+            [9, 16],
+            [22, 24],
+          ],
+          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
+          days: ["一", "二", "三", "四", "五"],
+          type: "halfpeak",
         },
         {
           time: tempTimeRanges["夏月"]?.weekdays?.offpeak || [[0, 9]],
@@ -251,19 +260,7 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
           type: "offpeak",
         },
         {
-          time: tempTimeRanges["夏月"]?.saturday?.halfpeak || [
-            [6, 11],
-            [14, 24],
-          ],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["六"],
-          type: "halfpeak",
-        },
-        {
-          time: tempTimeRanges["夏月"]?.saturday?.offpeak || [
-            [0, 6],
-            [11, 14],
-          ],
+          time: tempTimeRanges["夏月"]?.saturday?.offpeak || [[0, 24]],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["六"],
           type: "offpeak",
@@ -280,13 +277,13 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
       period: "10/01 - 05/31 非夏月",
       times: [
         {
-          time: tempTimeRanges["非夏月"]?.weekdays?.peak || [
+          time: tempTimeRanges["非夏月"]?.weekdays?.halfpeak || [
             [6, 11],
             [14, 24],
           ],
           fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
           days: ["一", "二", "三", "四", "五"],
-          type: "peak",
+          type: "halfpeak",
         },
         {
           time: tempTimeRanges["非夏月"]?.weekdays?.offpeak || [
@@ -324,7 +321,6 @@ const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
       ],
     },
   ];
-
   const colors = {
     peak: "#ee6666",
     halfpeak: "#fac858",

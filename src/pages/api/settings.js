@@ -91,7 +91,9 @@ function deepMerge(target, source) {
       if (source[key] instanceof Object && key in target) {
         deepMerge(target[key], source[key]);
       } else {
-        target[key] = source[key];
+        // If the value is a number, ensure it's not being manipulated
+        target[key] =
+          typeof source[key] === "number" ? source[key] : source[key];
       }
     }
   }
@@ -115,12 +117,18 @@ export default async function handler(req, res) {
     }
   } else if (req.method === "PATCH") {
     try {
+      console.log("Received PATCH request with body:", req.body); // Add this line
       const currentSettings = await readSettingsFromFile();
       const updatedSettings = deepMerge(currentSettings, req.body);
+      console.log("Updated settings:", updatedSettings); // Add this line
       await writeSettingsToFile(updatedSettings);
       res.status(200).json({ message: "Settings updated successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to update settings", error });
+      console.error("Error in PATCH method:", error); // Modify this line
+      res.status(500).json({
+        message: "Failed to update settings",
+        error: error.toString(),
+      });
     }
   } else {
     res.setHeader("Allow", ["GET", "POST", "PATCH"]);

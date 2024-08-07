@@ -31,6 +31,9 @@ const App = ({ Component, pageProps }) => {
       case "energyPriceAnalysis":
         setSelectedPage("energyPriceAnalysis");
         break;
+      case "SettingsPage":
+        setSelectedPage("SettingsPage");
+        break;
       default:
         setSelectedPage("Index");
         break;

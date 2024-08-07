@@ -65,39 +65,39 @@ const DetailCard = ({
     (acc, curr) => acc + parseFloat(curr.peak),
     0
   );
-  const totalSemiPeak = Object.values(aggregatedData).reduce(
-    (acc, curr) => acc + parseFloat(curr.semiPeak),
+  const totalHalfpeak = Object.values(aggregatedData).reduce(
+    (acc, curr) => acc + parseFloat(curr.halfpeak),
     0
   );
-  const totalOffPeak = Object.values(aggregatedData).reduce(
-    (acc, curr) => acc + parseFloat(curr.offPeak),
+  const totalOffpeak = Object.values(aggregatedData).reduce(
+    (acc, curr) => acc + parseFloat(curr.offpeak),
     0
   );
-  const total = totalPeak + totalSemiPeak + totalOffPeak;
+  const total = totalPeak + totalHalfpeak + totalOffpeak;
 
   let totalCostPeak = 0;
-  let totalCostSemiPeak = 0;
-  let totalCostOffPeak = 0;
+  let totalCostHalfpeak = 0;
+  let totalCostOffpeak = 0;
 
   if (prices) {
     Object.keys(aggregatedData).forEach((date) => {
-      const { peak, semiPeak, offPeak, isSummer } = aggregatedData[date];
+      const { peak, halfpeak, offpeak, isSummer } = aggregatedData[date];
       const period = isSummer ? "夏月" : "非夏月";
 
       const peakPrice =
         parseFloat(prices.peakPrices?.[period]?.replace("NT$", "")) || 0;
-      const semiPeakPrice =
+      const halfpeakPrice =
         parseFloat(prices.halfPeakPrices?.[period]?.replace("NT$", "")) || 0;
-      const offPeakPrice =
+      const offpeakPrice =
         parseFloat(prices.offPeakPrices?.[period]?.replace("NT$", "")) || 0;
 
       totalCostPeak += parseFloat(peak) * peakPrice;
-      totalCostSemiPeak += parseFloat(semiPeak) * semiPeakPrice;
-      totalCostOffPeak += parseFloat(offPeak) * offPeakPrice;
+      totalCostHalfpeak += parseFloat(halfpeak) * halfpeakPrice;
+      totalCostOffpeak += parseFloat(offpeak) * offpeakPrice;
     });
   }
 
-  const totalCost = totalCostPeak + totalCostSemiPeak + totalCostOffPeak;
+  const totalCost = totalCostPeak + totalCostHalfpeak + totalCostOffpeak;
 
   return (
     <Card>
@@ -123,8 +123,8 @@ const DetailCard = ({
                 <span>半尖峰</span>
               </div>
               <span>
-                {totalSemiPeak.toFixed(1)} kWh (
-                {((totalSemiPeak / total) * 100).toFixed(1)}%)
+                {totalHalfpeak.toFixed(1)} kWh (
+                {((totalHalfpeak / total) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
             <DetailItem>
@@ -133,8 +133,8 @@ const DetailCard = ({
                 <span>離峰</span>
               </div>
               <span>
-                {totalOffPeak.toFixed(1)} kWh (
-                {((totalOffPeak / total) * 100).toFixed(1)}%)
+                {totalOffpeak.toFixed(1)} kWh (
+                {((totalOffpeak / total) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
           </>
@@ -157,8 +157,8 @@ const DetailCard = ({
                 <span>半尖峰</span>
               </div>
               <span>
-                {totalCostSemiPeak.toFixed(1)} NT$ (
-                {((totalCostSemiPeak / totalCost) * 100).toFixed(1)}%)
+                {totalCostHalfpeak.toFixed(1)} NT$ (
+                {((totalCostHalfpeak / totalCost) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
             <DetailItem>
@@ -167,8 +167,8 @@ const DetailCard = ({
                 <span>離峰</span>
               </div>
               <span>
-                {totalCostOffPeak.toFixed(1)} NT$ (
-                {((totalCostOffPeak / totalCost) * 100).toFixed(1)}%)
+                {totalCostOffpeak.toFixed(1)} NT$ (
+                {((totalCostOffpeak / totalCost) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
           </>
