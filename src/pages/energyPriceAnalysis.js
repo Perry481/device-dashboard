@@ -208,6 +208,7 @@ const EnergyPriceAnalysis = () => {
         throw new Error("Failed to fetch settings");
       }
       const savedSettings = await response.json();
+      console.log("Settings fetched successfully:", savedSettings);
       setPrices(savedSettings.prices);
       setTimeRanges(savedSettings.timeRanges);
       setInitialized(true);

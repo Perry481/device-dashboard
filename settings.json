@@ -1,0 +1,54 @@
+{
+  "timeRanges": {
+    "夏月": {
+      "weekdays": {
+        "peak": [[16, 22]],
+        "halfpeak": [
+          [9, 16],
+          [22, 24]
+        ],
+        "offpeak": [[0, 9]]
+      },
+      "saturday": {
+        "offpeak": [[0, 24]]
+      },
+      "sunday": {
+        "offpeak": [[0, 24]]
+      }
+    },
+    "非夏月": {
+      "weekdays": {
+        "halfpeak": [
+          [6, 11],
+          [14, 24]
+        ],
+        "offpeak": [
+          [0, 6],
+          [11, 14]
+        ]
+      },
+      "saturday": {
+        "offpeak": [[0, 24]]
+      },
+      "sunday": {
+        "offpeak": [[0, 24]]
+      }
+    }
+  },
+  "CO2": 0.494,
+  "prices": {
+    "offPeakPrices": {
+      "夏月": "NT$1.96",
+      "非夏月": "NT$1.89"
+    },
+    "peakPrices": {
+      "夏月": "NT$6.92",
+      "非夏月": "NT$4.33"
+    },
+    "halfPeakPrices": {
+      "夏月": "NT$4.54",
+      "非夏月": "NT$4.33"
+    }
+  },
+  "超過2000度": 1.02
+}
