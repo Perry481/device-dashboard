@@ -88,6 +88,70 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                 </a>
               </Link>
             </li>
+
+            {/* New multilevel dropdown using AdminLTE classes */}
+            <li className="nav-item dropdown">
+              <a
+                className="nav-link dropdown-toggle"
+                href="#"
+                data-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                電表詳細資訊
+              </a>
+              {/* Update the dropdown menu items */}
+              <ul className="dropdown-menu border-0 shadow">
+                <li>
+                  <Link
+                    href="/electricMeterDetails?view=fifteenMinuteDemand"
+                    legacyBehavior
+                  >
+                    <a className="dropdown-item">每十五分鐘需量</a>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/electricMeterDetails?view=dailyUsage"
+                    legacyBehavior
+                  >
+                    <a className="dropdown-item">每日用電圖</a>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/electricMeterDetails?view=intervalUsage"
+                    legacyBehavior
+                  >
+                    <a className="dropdown-item">區間用電圖</a>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/electricMeterDetails?view=energyTrend"
+                    legacyBehavior
+                  >
+                    <a className="dropdown-item">能耗趨勢圖</a>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/electricMeterDetails?view=cumulativeEnergy"
+                    legacyBehavior
+                  >
+                    <a className="dropdown-item">累積能耗圖</a>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/electricMeterDetails?view=powerHeatmap"
+                    legacyBehavior
+                  >
+                    <a className="dropdown-item">電力熱點圖</a>
+                  </Link>
+                </li>
+              </ul>
+            </li>
           </ul>
         </div>
       </div>
