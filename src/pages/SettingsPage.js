@@ -1,33 +1,58 @@
-// pages/SettingsPage.js
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import styled from "styled-components";
+import PriceTable from "../components/PriceTable";
 
 const SettingsContainer = styled.div`
-  max-width: 1000px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
+  box-sizing: border-box;
+
+  @media (min-width: 576px) {
+    padding: 20px;
+  }
 `;
 
-const Form = styled.form`
+const RowContainer = styled.div`
   display: flex;
   flex-direction: column;
+  margin-bottom: 20px;
+
+  @media (min-width: 576px) {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 `;
 
-const FormRow = styled.div`
-  display: flex;
-  justify-content: space-between;
+const HalfWidthContainer = styled.div`
+  width: 100%;
   margin-bottom: 20px;
+
+  @media (min-width: 576px) {
+    width: 48%;
+  }
+`;
+
+const SectionTitle = styled.h2`
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  text-align: center;
+
+  @media (min-width: 576px) {
+    font-size: 1.5rem;
+    text-align: left;
+  }
 `;
 
 const FormGroup = styled.div`
-  width: 48%;
+  margin-bottom: 15px;
 `;
 
 const Label = styled.label`
   font-weight: bold;
-  margin-bottom: 5px;
   display: block;
+  margin-bottom: 5px;
 `;
 
 const Input = styled.input`
@@ -35,24 +60,33 @@ const Input = styled.input`
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: 16px;
+  box-sizing: border-box;
 `;
 
 const Button = styled.button`
-  padding: 10px 20px;
+  width: 100%;
+  padding: 10px;
   background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 16px;
+
   &:hover {
     background-color: #0056b3;
   }
 `;
 
+const PriceTableSection = styled.div`
+  margin-top: 20px;
+`;
+
 const SettingsPage = () => {
   const [settings, setSettings] = useState(null);
-  const [changes, setChanges] = useState({});
-  const router = useRouter();
+  const [co2, setCO2] = useState(0);
+  const [contractCapacity, setContractCapacity] = useState(0);
 
   useEffect(() => {
     fetchSettings();
@@ -64,54 +98,23 @@ const SettingsPage = () => {
       if (!response.ok) throw new Error("設定取得失敗");
       const data = await response.json();
       setSettings(data);
+      setCO2(data.CO2);
+      setContractCapacity(data.contractCapacity);
     } catch (error) {
       console.error("設定取得錯誤:", error);
     }
   };
 
-  const handleInputChange = (path, value) => {
-    setSettings((prevSettings) => {
-      const newSettings = JSON.parse(JSON.stringify(prevSettings));
-      let current = newSettings;
-      const keys = path.split(".");
-      keys.forEach((key, index) => {
-        if (index === keys.length - 1) {
-          current[key] = value;
-        } else {
-          if (!current[key]) current[key] = {};
-          current = current[key];
-        }
-      });
-      return newSettings;
-    });
-
-    setChanges((prevChanges) => {
-      const newChanges = { ...prevChanges };
-      let current = newChanges;
-      const keys = path.split(".");
-      keys.forEach((key, index) => {
-        if (index === keys.length - 1) {
-          current[key] = value;
-        } else {
-          if (!current[key]) current[key] = {};
-          current = current[key];
-        }
-      });
-      return newChanges;
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSave = async (type) => {
     try {
+      const dataToUpdate = type === "CO2" ? { CO2: co2 } : { contractCapacity };
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(changes),
+        body: JSON.stringify(dataToUpdate),
       });
       if (!response.ok) throw new Error("設定更新失敗");
       alert("設定更新成功");
-      setChanges({});
       fetchSettings();
     } catch (error) {
       console.error("設定更新錯誤:", error);
@@ -119,106 +122,49 @@ const SettingsPage = () => {
     }
   };
 
-  if (!settings) return <div>載入中...</div>;
-
-  const renderFormGroups = () => {
-    const formGroups = [];
-
-    // CO2 排放係數
-    formGroups.push(
-      <FormGroup key="CO2">
-        <Label>CO2 排放係數：</Label>
-        <Input
-          type="number"
-          step="0.001"
-          value={settings.CO2}
-          onChange={(e) => {
-            const value = parseFloat(e.target.value);
-            if (!isNaN(value)) {
-              handleInputChange("CO2", value);
-            }
-          }}
-          style={{ appearance: "textfield" }}
-        />
-      </FormGroup>
-    );
-
-    // Prices
-    if (settings.prices) {
-      Object.entries(settings.prices).forEach(([priceType, priceObj]) => {
-        Object.entries(priceObj).forEach(([season, price]) => {
-          formGroups.push(
-            <FormGroup key={`${priceType}-${season}`}>
-              <Label>{`${priceType} - ${season}:`}</Label>
-              <Input
-                type="text"
-                value={price}
-                onChange={(e) =>
-                  handleInputChange(
-                    `prices.${priceType}.${season}`,
-                    e.target.value
-                  )
-                }
-              />
-            </FormGroup>
-          );
-        });
-      });
-    }
-
-    // Time Ranges
-    if (settings.timeRanges) {
-      Object.entries(settings.timeRanges).forEach(([season, dayTypes]) =>
-        Object.entries(dayTypes).forEach(([dayType, peakTypes]) =>
-          Object.entries(peakTypes).forEach(([peakType, timeRanges]) =>
-            timeRanges.forEach((range, index) => {
-              formGroups.push(
-                <FormGroup key={`${season}-${dayType}-${peakType}-${index}`}>
-                  <Label>{`${season} - ${dayType} - ${peakType} (Range ${
-                    index + 1
-                  }):`}</Label>
-                  <Input
-                    type="text"
-                    value={`${range[0]}-${range[1]}`}
-                    onChange={(e) => {
-                      const [start, end] = e.target.value
-                        .split("-")
-                        .map(Number);
-                      handleInputChange(
-                        `timeRanges.${season}.${dayType}.${peakType}.${index}`,
-                        [start, end]
-                      );
-                    }}
-                  />
-                </FormGroup>
-              );
-            })
-          )
-        )
-      );
-    }
-
-    // Arrange form groups into rows
-    const rows = [];
-    for (let i = 0; i < formGroups.length; i += 2) {
-      rows.push(
-        <FormRow key={i}>
-          {formGroups[i]}
-          {formGroups[i + 1] ? formGroups[i + 1] : <FormGroup />}
-        </FormRow>
-      );
-    }
-
-    return rows;
+  const handlePriceTableUpdate = () => {
+    fetchSettings();
   };
+
+  if (!settings) return <div>載入中...</div>;
 
   return (
     <SettingsContainer>
-      <h1>設定</h1>
-      <Form onSubmit={handleSubmit}>
-        {renderFormGroups()}
-        <Button type="submit">儲存設定</Button>
-      </Form>
+      <RowContainer>
+        <HalfWidthContainer>
+          <SectionTitle>CO2 排放係數設定</SectionTitle>
+          <FormGroup>
+            <Label>CO2 排放係數：</Label>
+            <Input
+              type="number"
+              step="0.001"
+              value={co2}
+              onChange={(e) => setCO2(parseFloat(e.target.value))}
+            />
+          </FormGroup>
+          <Button onClick={() => handleSave("CO2")}>儲存 CO2 設定</Button>
+        </HalfWidthContainer>
+
+        <HalfWidthContainer>
+          <SectionTitle>契約容量設定</SectionTitle>
+          <FormGroup>
+            <Label>契約容量 (kW)：</Label>
+            <Input
+              type="number"
+              value={contractCapacity}
+              onChange={(e) => setContractCapacity(parseInt(e.target.value))}
+            />
+          </FormGroup>
+          <Button onClick={() => handleSave("capacity")}>儲存容量設定</Button>
+        </HalfWidthContainer>
+      </RowContainer>
+
+      <PriceTableSection>
+        <PriceTable
+          onPricesUpdate={handlePriceTableUpdate}
+          triggerHandleSend={handlePriceTableUpdate}
+        />
+      </PriceTableSection>
     </SettingsContainer>
   );
 };

@@ -512,8 +512,8 @@ const HomePage = () => {
       });
 
       console.log("Final peakDemandData:", peakDemandData);
-      const markLineValue = 10; // Assuming this is your threshold value
-
+      // Use contractCapacity instead of hardcoded value
+      const markLineValue = contractCapacity;
       const dailyPeakDemandOptions = {
         tooltip: {
           trigger: "axis",
@@ -556,7 +556,7 @@ const HomePage = () => {
               },
               label: {
                 position: "insideEndTop",
-                formatter: "契約容量(test): {c}kW",
+                formatter: "契約容量: {c}kW",
                 fontSize: 12,
                 padding: [0, 0, 0, 10],
               },
@@ -602,15 +602,17 @@ const HomePage = () => {
   const [energyConsumptionData, setEnergyConsumptionData] = useState({});
 
   const [co2, setCO2] = useState(0);
+  const [contractCapacity, setContractCapacity] = useState(0); // Default to 10 as a fallback
 
   const fetchSettings = async () => {
     try {
       const response = await fetch("/api/settings");
       if (!response.ok) throw new Error("Failed to fetch settings");
       const savedSettings = await response.json();
-      setPrices(savedSettings.prices || savedSettings); // Use new structure if available, fallback to old
+      setPrices(savedSettings.prices || savedSettings);
       setTimeRanges(savedSettings.timeRanges);
       setCO2(savedSettings.CO2);
+      setContractCapacity(savedSettings.contractCapacity || 10); // Set contract capacity, default to 10 if not found
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
