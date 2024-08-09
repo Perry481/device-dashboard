@@ -263,12 +263,17 @@ const EnergyCostAnalysis = () => {
       return null;
     }
   };
-
   const handleDataFetch = async (selectedOptions, dateRange) => {
     if (isLoading || !timeRanges) {
       console.log("Still loading or time ranges not available");
       return;
     }
+    // Show loading for both charts
+    const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
+    const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
+    if (barChartInstance) barChartInstance.showLoading();
+    if (pieChartInstance) pieChartInstance.showLoading();
+
     const { startDate, endDate } = dateRange;
     const fetchPromises = selectedOptions.map((sn) =>
       fetchData(sn, startDate, endDate)
@@ -281,9 +286,12 @@ const EnergyCostAnalysis = () => {
       console.log("Fetched results:", results);
     } catch (error) {
       console.error("Error during data fetch:", error);
+    } finally {
+      // Hide loading for both charts
+      if (barChartInstance) barChartInstance.hideLoading();
+      if (pieChartInstance) pieChartInstance.hideLoading();
     }
   };
-
   const processAndSetData = (data, timeRanges) => {
     console.log("Time ranges:", timeRanges);
     console.log("Data before categorization:", data);
@@ -456,7 +464,6 @@ const EnergyCostAnalysis = () => {
       };
     }
   }, [aggregatedData]);
-
   return (
     <div className="container-fluid">
       <RowContainer>
