@@ -347,7 +347,7 @@ const EnergyPriceAnalysis = () => {
     if (initialized && selectedOptions.length > 0 && timeRanges) {
       handleDataFetch(selectedOptions, dateRange, timeRanges);
     }
-  }, [initialized, selectedOptions, timeRanges, handleDataFetch]);
+  }, [initialized, selectedOptions, timeRanges, handleDataFetch, dateRange]);
 
   const renderBarChart = () => {
     if (

@@ -245,7 +245,7 @@ const EnergyCostAnalysis = () => {
     if (!isLoading && timeRanges && selectedOptions.length > 0) {
       handleDataFetch(selectedOptions, dateRange);
     }
-  }, [isLoading, timeRanges]);
+  }, [isLoading, timeRanges, dateRange]);
 
   const fetchData = async (sn, startDate, endDate) => {
     console.log("fetchData called");
