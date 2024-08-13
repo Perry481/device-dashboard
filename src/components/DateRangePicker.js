@@ -68,20 +68,20 @@ const CustomButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
 `;
-const DateRangePicker = ({ onDateChange, useShorterRanges = false }) => {
+const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
   const [startDate, setStartDate] = useState(
-    useShorterRanges ? today : firstDayOfMonth
+    useShortDateRange ? today : firstDayOfMonth
   );
   const [endDate, setEndDate] = useState(
-    useShorterRanges ? today : lastDayOfMonth
+    useShortDateRange ? today : lastDayOfMonth
   );
   const [useCustomEndDate, setUseCustomEndDate] = useState(false);
   const [selectedRange, setSelectedRange] = useState(
-    useShorterRanges ? "day" : "month"
+    useShortDateRange ? "day" : "month"
   );
 
   useEffect(() => {
@@ -157,14 +157,14 @@ const DateRangePicker = ({ onDateChange, useShorterRanges = false }) => {
     onDateChange({ startDate, endDate: date });
   };
   useEffect(() => {
-    if (useShorterRanges) {
+    if (useShortDateRange) {
       handlePredefinedRange("day");
     } else {
       handlePredefinedRange("month");
     }
-  }, [useShorterRanges]);
+  }, [useShortDateRange]);
   const renderButtons = () => {
-    if (useShorterRanges) {
+    if (useShortDateRange) {
       return (
         <>
           <CustomButton
