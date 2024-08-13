@@ -405,7 +405,14 @@ const EnergyPriceAnalysis = () => {
       const barChart = echarts.init(barChartRef.current);
       const barChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
-        title: { text: "尖離峰費用分析", left: "center" },
+        title: {
+          text: "尖離峰費用分析",
+          left: "center",
+          top: 0,
+          textStyle: {
+            fontSize: 16,
+          },
+        },
         tooltip: {
           trigger: "axis",
           axisPointer: { type: "shadow" },
@@ -421,7 +428,15 @@ const EnergyPriceAnalysis = () => {
             return tooltipText;
           },
         },
-        xAxis: { type: "category", data: dates },
+        xAxis: {
+          type: "category",
+          data: dates,
+          axisLabel: {
+            rotate: dates.length > 30 ? 45 : 0,
+            interval: dates.length > 30 ? "auto" : 0,
+            fontSize: 10,
+          },
+        },
         yAxis: { type: "value", name: "NT$" },
         series: [
           {
@@ -444,6 +459,33 @@ const EnergyPriceAnalysis = () => {
           },
         ],
       };
+      if (dates.length > 30) {
+        barChartOptions.dataZoom = [
+          {
+            type: "slider",
+            show: true,
+            xAxisIndex: [0],
+            start: 0,
+            end: 100,
+            bottom: 0, // Position at the very bottom
+            handleSize: "110%", // Slightly larger handle for easier interaction
+            borderColor: "transparent", // Makes the border invisible
+            fillerColor: "rgba(59, 162, 114, 0.2)", // Light green fill
+            backgroundColor: "rgba(0, 0, 0, 0.05)", // Very light gray background
+            textStyle: {
+              color: "#3ba272", // Matching text color
+            },
+            moveHandleSize: 5, // Smaller move handle for a sleeker look
+          },
+          {
+            type: "inside",
+            xAxisIndex: [0],
+            start: 0,
+            end: 100,
+          },
+        ];
+      }
+
       barChart.setOption(barChartOptions);
       const handleResize = () => {
         barChart.resize();
