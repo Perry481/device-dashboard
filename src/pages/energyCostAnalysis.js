@@ -245,9 +245,10 @@ const EnergyCostAnalysis = () => {
     if (!isLoading && timeRanges && selectedOptions.length > 0) {
       handleDataFetch(selectedOptions, dateRange);
     }
-  }, [isLoading, timeRanges, selectedOptions, dateRange]);
+  }, [isLoading, timeRanges]);
 
   const fetchData = async (sn, startDate, endDate) => {
+    console.log("fetchData called");
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
     const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
@@ -264,8 +265,9 @@ const EnergyCostAnalysis = () => {
     }
   };
   const handleDataFetch = async (selectedOptions, dateRange) => {
+    console.log("handleDataFetch called");
     if (isLoading || !timeRanges) {
-      console.log("Still loading or time ranges not available");
+      // console.log("Still loading or time ranges not available");
       return;
     }
     // Show loading for both charts
@@ -283,7 +285,7 @@ const EnergyCostAnalysis = () => {
       const results = await Promise.all(fetchPromises);
       const aggregatedFetchedData = aggregateFetchedData(results);
       processAndSetData(aggregatedFetchedData, timeRanges);
-      console.log("Fetched results:", results);
+      // console.log("Fetched results:", results);
     } catch (error) {
       console.error("Error during data fetch:", error);
     } finally {
@@ -293,8 +295,8 @@ const EnergyCostAnalysis = () => {
     }
   };
   const processAndSetData = (data, timeRanges) => {
-    console.log("Time ranges:", timeRanges);
-    console.log("Data before categorization:", data);
+    // console.log("Time ranges:", timeRanges);
+    // console.log("Data before categorization:", data);
 
     if (!timeRanges) {
       console.error("Time ranges not initialized.");
@@ -307,12 +309,12 @@ const EnergyCostAnalysis = () => {
     }));
 
     const categorizedData = categorizeData(updatedData, timeRanges);
-    console.log("Data after categorization:", categorizedData);
+    // console.log("Data after categorization:", categorizedData);
 
     const groupedByDate = groupDataByDate(categorizedData);
-    console.log("Grouped Data by Date:", groupedByDate);
+    // console.log("Grouped Data by Date:", groupedByDate);
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
-    console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
+    // console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
 
     setGroupedData(groupedByDate);
     setAggregatedData(aggregatedByPeakState);
@@ -320,13 +322,14 @@ const EnergyCostAnalysis = () => {
 
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
-    console.log("Selected date range:", newDateRange);
+    // console.log("Selected date range:", newDateRange);
   }, []);
 
   const handleSend = useCallback(
     (newSelectedOptions) => {
+      console.log("handleSend Triggered");
       setSelectedOptions(newSelectedOptions);
-      console.log("Selected options:", newSelectedOptions);
+      // console.log("Selected options:", newSelectedOptions);
       handleDataFetch(newSelectedOptions, dateRange);
     },
     [dateRange]
