@@ -62,12 +62,15 @@ const ButtonGroup = styled.div`
 
 const CustomButton = styled.button`
   padding: 10px 20px;
-  background-color: ${({ $active }) => ($active ? "#484848" : "#F4F6F9")};
-  color: ${({ $active }) => ($active ? "#F4F6F9" : "#484848")};
+  background-color: ${({ $active, $toggled }) =>
+    $toggled ? "#a0a0a0" : $active ? "#484848" : "#F4F6F9"};
+  color: ${({ $active, $toggled }) =>
+    $toggled || $active ? "#F4F6F9" : "#484848"};
   border: 1px solid #484848;
   border-radius: 4px;
   cursor: pointer;
 `;
+
 const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -107,41 +110,49 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
         return newEndDate;
     }
   };
+
   const handlePredefinedRange = (range) => {
-    let newStartDate, newEndDate;
-    const today = new Date();
+    if (selectedRange === range && !useCustomEndDate) {
+      // Toggle off the selected range
+      setUseCustomEndDate(true);
+      setSelectedRange(null);
+    } else {
+      let newStartDate, newEndDate;
+      const today = new Date();
 
-    switch (range) {
-      case "day":
-        newStartDate = new Date(today);
-        newEndDate = new Date(today);
-        break;
-      case "week":
-        newStartDate = new Date(today);
-        newStartDate.setDate(today.getDate() - 6);
-        newEndDate = new Date(today);
-        break;
-      case "month":
-        newStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        newEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        break;
-      case "year":
-        newStartDate = new Date(today.getFullYear(), 0, 1);
-        newEndDate = new Date(today.getFullYear(), 11, 31);
-        break;
-      default:
-        return;
+      switch (range) {
+        case "day":
+          newStartDate = new Date(today);
+          newEndDate = new Date(today);
+          break;
+        case "week":
+          newStartDate = new Date(today);
+          newStartDate.setDate(today.getDate() - 6);
+          newEndDate = new Date(today);
+          break;
+        case "month":
+          newStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          newEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          break;
+        case "year":
+          newStartDate = new Date(today.getFullYear(), 0, 1);
+          newEndDate = new Date(today.getFullYear(), 11, 31);
+          break;
+        default:
+          return;
+      }
+
+      setStartDate(newStartDate);
+      setEndDate(newEndDate);
+      setUseCustomEndDate(false);
+      setSelectedRange(range);
     }
-
-    setStartDate(newStartDate);
-    setEndDate(newEndDate);
-    setUseCustomEndDate(false);
-    setSelectedRange(range);
-    onDateChange({ startDate: newStartDate, endDate: newEndDate });
+    onDateChange({ startDate, endDate });
   };
+
   const handleStartDateChange = (date) => {
     setStartDate(date);
-    if (selectedRange) {
+    if (selectedRange && !useCustomEndDate) {
       const newEndDate = calculateEndDate(date, selectedRange);
       setEndDate(newEndDate);
       onDateChange({ startDate: date, endDate: newEndDate });
@@ -152,10 +163,9 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
 
   const handleEndDateChange = (date) => {
     setEndDate(date);
-    setUseCustomEndDate(true);
-    setSelectedRange(null);
     onDateChange({ startDate, endDate: date });
   };
+
   useEffect(() => {
     if (useShortDateRange) {
       handlePredefinedRange("day");
@@ -163,54 +173,22 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
       handlePredefinedRange("month");
     }
   }, [useShortDateRange]);
+
   const renderButtons = () => {
-    if (useShortDateRange) {
-      return (
-        <>
-          <CustomButton
-            $active={selectedRange === "day"}
-            onClick={() => handlePredefinedRange("day")}
-          >
-            Day
-          </CustomButton>
-          <CustomButton
-            $active={selectedRange === "week"}
-            onClick={() => handlePredefinedRange("week")}
-          >
-            Week
-          </CustomButton>
-          <CustomButton
-            $active={selectedRange === "month"}
-            onClick={() => handlePredefinedRange("month")}
-          >
-            Month
-          </CustomButton>
-        </>
-      );
-    } else {
-      return (
-        <>
-          <CustomButton
-            $active={selectedRange === "week"}
-            onClick={() => handlePredefinedRange("week")}
-          >
-            Week
-          </CustomButton>
-          <CustomButton
-            $active={selectedRange === "month"}
-            onClick={() => handlePredefinedRange("month")}
-          >
-            Month
-          </CustomButton>
-          <CustomButton
-            $active={selectedRange === "year"}
-            onClick={() => handlePredefinedRange("year")}
-          >
-            Year
-          </CustomButton>
-        </>
-      );
-    }
+    const buttons = useShortDateRange
+      ? ["day", "week", "month"]
+      : ["week", "month", "year"];
+
+    return buttons.map((range) => (
+      <CustomButton
+        key={range}
+        $active={selectedRange === range}
+        $toggled={selectedRange === range && useCustomEndDate}
+        onClick={() => handlePredefinedRange(range)}
+      >
+        {range.charAt(0).toUpperCase() + range.slice(1)}
+      </CustomButton>
+    ));
   };
 
   return (
