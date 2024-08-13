@@ -89,7 +89,7 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
 
   useEffect(() => {
     onDateChange({ startDate, endDate });
-  }, [startDate, endDate, onDateChange]);
+  }, []);
 
   const calculateEndDate = (start, range) => {
     const newEndDate = new Date(start);
@@ -116,6 +116,7 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
       // Toggle off the selected range
       setUseCustomEndDate(true);
       setSelectedRange(null);
+      onDateChange({ startDate, endDate });
     } else {
       let newStartDate, newEndDate;
       const today = new Date();
@@ -146,8 +147,8 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
       setEndDate(newEndDate);
       setUseCustomEndDate(false);
       setSelectedRange(range);
+      onDateChange({ startDate: newStartDate, endDate: newEndDate });
     }
-    onDateChange({ startDate, endDate });
   };
 
   const handleStartDateChange = (date) => {
