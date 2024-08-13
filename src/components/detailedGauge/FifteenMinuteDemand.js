@@ -55,6 +55,7 @@ const FifteenMinuteDemand = () => {
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const fetchTriggerRef = useRef({ date: null, options: null });
   const [dateRange, setDateRange] = useState({
     startDate: firstDayOfMonth,
     endDate: lastDayOfMonth,
@@ -86,17 +87,9 @@ const FifteenMinuteDemand = () => {
 
     fetchOptions();
   }, []);
-
   const handleDateChange = useCallback((newDateRange) => {
-    setDateRange((prevRange) => {
-      if (
-        newDateRange.startDate !== prevRange.startDate ||
-        newDateRange.endDate !== prevRange.endDate
-      ) {
-        return newDateRange;
-      }
-      return prevRange;
-    });
+    setDateRange(newDateRange);
+    fetchTriggerRef.current.date = new Date();
   }, []);
 
   const fetchQuarterData = useCallback(async () => {
@@ -136,7 +129,6 @@ const FifteenMinuteDemand = () => {
           Value: value,
         })
       );
-
       setQuarterData(processedData);
     } catch (error) {
       console.error("Error fetching quarter data:", error);
@@ -194,6 +186,15 @@ const FifteenMinuteDemand = () => {
                 .toString()
                 .padStart(2, "0")}`;
             },
+            interval: "auto",
+            rotate: 45,
+            textStyle: {
+              fontSize: 10,
+            },
+            hideOverlap: true,
+          },
+          axisTick: {
+            alignWithLabel: true,
           },
         },
         yAxis: {
@@ -222,6 +223,9 @@ const FifteenMinuteDemand = () => {
             end: 100,
           },
         ],
+        grid: {
+          bottom: 100,
+        },
       };
 
       chart.setOption(option);
@@ -243,17 +247,18 @@ const FifteenMinuteDemand = () => {
     renderChart();
   }, [renderChart]);
 
-  const handleSend = useCallback(
-    (newSelectedOptions) => {
-      setSelectedOptions(newSelectedOptions);
-      fetchQuarterData();
-    },
-    [fetchQuarterData]
-  );
+  const handleSend = useCallback((newSelectedOptions) => {
+    setSelectedOptions(newSelectedOptions);
+    fetchTriggerRef.current.options = new Date();
+  }, []);
 
   useEffect(() => {
-    if (selectedOptions.length > 0) {
+    const shouldFetch =
+      fetchTriggerRef.current.date || fetchTriggerRef.current.options;
+
+    if (shouldFetch && selectedOptions.length > 0) {
       fetchQuarterData();
+      fetchTriggerRef.current = { date: null, options: null };
     }
   }, [selectedOptions, dateRange, fetchQuarterData]);
 
@@ -263,7 +268,7 @@ const FifteenMinuteDemand = () => {
         <HalfWidthContainer>
           <DateRangePicker
             onDateChange={handleDateChange}
-            useShorterRanges={true}
+            useShortDateRange={true}
           />
         </HalfWidthContainer>
         <HalfWidthContainer>
