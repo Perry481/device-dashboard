@@ -32,7 +32,7 @@ const ElectricMeterDetails = () => {
 
   return (
     <div>
-      <h1>電表詳細資訊</h1>
+      {/* <h1>電表詳細資訊</h1> */}
       {renderComponent()}
     </div>
   );

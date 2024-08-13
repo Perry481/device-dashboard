@@ -34,6 +34,9 @@ const App = ({ Component, pageProps }) => {
       case "SettingsPage":
         setSelectedPage("SettingsPage");
         break;
+      case "electricMeterDetails":
+        setSelectedPage("electricMeterDetails");
+        break;
       default:
         setSelectedPage("Index");
         break;

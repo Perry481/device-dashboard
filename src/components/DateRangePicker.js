@@ -68,46 +68,81 @@ const CustomButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
 `;
-
-const DateRangePicker = ({ onDateChange }) => {
+const DateRangePicker = ({ onDateChange, useShorterRanges = false }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-  const [startDate, setStartDate] = useState(firstDayOfMonth);
-  const [endDate, setEndDate] = useState(lastDayOfMonth);
+  const [startDate, setStartDate] = useState(
+    useShorterRanges ? today : firstDayOfMonth
+  );
+  const [endDate, setEndDate] = useState(
+    useShorterRanges ? today : lastDayOfMonth
+  );
   const [useCustomEndDate, setUseCustomEndDate] = useState(false);
-  const [selectedRange, setSelectedRange] = useState("month");
+  const [selectedRange, setSelectedRange] = useState(
+    useShorterRanges ? "day" : "month"
+  );
 
   useEffect(() => {
     onDateChange({ startDate, endDate });
   }, [startDate, endDate, onDateChange]);
 
-  const handlePredefinedEndDate = (daysToAdd, range) => {
-    if (selectedRange === range) {
-      setSelectedRange(null);
-      setUseCustomEndDate(true);
-    } else {
-      const newEndDate = new Date(startDate);
-      newEndDate.setDate(newEndDate.getDate() + daysToAdd);
-      setEndDate(newEndDate);
-      setUseCustomEndDate(false);
-      setSelectedRange(range);
-      onDateChange({ startDate, endDate: newEndDate });
+  const calculateEndDate = (start, range) => {
+    const newEndDate = new Date(start);
+    switch (range) {
+      case "day":
+        return newEndDate;
+      case "week":
+        newEndDate.setDate(start.getDate() + 6);
+        return newEndDate;
+      case "month":
+        newEndDate.setMonth(start.getMonth() + 1);
+        newEndDate.setDate(0);
+        return newEndDate;
+      case "year":
+        newEndDate.setFullYear(start.getFullYear(), 11, 31);
+        return newEndDate;
+      default:
+        return newEndDate;
     }
   };
+  const handlePredefinedRange = (range) => {
+    let newStartDate, newEndDate;
+    const today = new Date();
 
+    switch (range) {
+      case "day":
+        newStartDate = new Date(today);
+        newEndDate = new Date(today);
+        break;
+      case "week":
+        newStartDate = new Date(today);
+        newStartDate.setDate(today.getDate() - 6);
+        newEndDate = new Date(today);
+        break;
+      case "month":
+        newStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        newEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      case "year":
+        newStartDate = new Date(today.getFullYear(), 0, 1);
+        newEndDate = new Date(today.getFullYear(), 11, 31);
+        break;
+      default:
+        return;
+    }
+
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
+    setUseCustomEndDate(false);
+    setSelectedRange(range);
+    onDateChange({ startDate: newStartDate, endDate: newEndDate });
+  };
   const handleStartDateChange = (date) => {
     setStartDate(date);
-
     if (selectedRange) {
-      let daysToAdd;
-      if (selectedRange === "week") daysToAdd = 7;
-      else if (selectedRange === "month") daysToAdd = 30;
-      else if (selectedRange === "year") daysToAdd = 365;
-
-      const newEndDate = new Date(date);
-      newEndDate.setDate(newEndDate.getDate() + daysToAdd);
+      const newEndDate = calculateEndDate(date, selectedRange);
       setEndDate(newEndDate);
       onDateChange({ startDate: date, endDate: newEndDate });
     } else {
@@ -120,6 +155,62 @@ const DateRangePicker = ({ onDateChange }) => {
     setUseCustomEndDate(true);
     setSelectedRange(null);
     onDateChange({ startDate, endDate: date });
+  };
+  useEffect(() => {
+    if (useShorterRanges) {
+      handlePredefinedRange("day");
+    } else {
+      handlePredefinedRange("month");
+    }
+  }, [useShorterRanges]);
+  const renderButtons = () => {
+    if (useShorterRanges) {
+      return (
+        <>
+          <CustomButton
+            $active={selectedRange === "day"}
+            onClick={() => handlePredefinedRange("day")}
+          >
+            Day
+          </CustomButton>
+          <CustomButton
+            $active={selectedRange === "week"}
+            onClick={() => handlePredefinedRange("week")}
+          >
+            Week
+          </CustomButton>
+          <CustomButton
+            $active={selectedRange === "month"}
+            onClick={() => handlePredefinedRange("month")}
+          >
+            Month
+          </CustomButton>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <CustomButton
+            $active={selectedRange === "week"}
+            onClick={() => handlePredefinedRange("week")}
+          >
+            Week
+          </CustomButton>
+          <CustomButton
+            $active={selectedRange === "month"}
+            onClick={() => handlePredefinedRange("month")}
+          >
+            Month
+          </CustomButton>
+          <CustomButton
+            $active={selectedRange === "year"}
+            onClick={() => handlePredefinedRange("year")}
+          >
+            Year
+          </CustomButton>
+        </>
+      );
+    }
   };
 
   return (
@@ -144,26 +235,7 @@ const DateRangePicker = ({ onDateChange }) => {
             />
           </DatePickerWrapper>
         </DatePickersContainer>
-        <ButtonGroup>
-          <CustomButton
-            $active={selectedRange === "week"}
-            onClick={() => handlePredefinedEndDate(7, "week")}
-          >
-            Week
-          </CustomButton>
-          <CustomButton
-            $active={selectedRange === "month"}
-            onClick={() => handlePredefinedEndDate(30, "month")}
-          >
-            Month
-          </CustomButton>
-          <CustomButton
-            $active={selectedRange === "year"}
-            onClick={() => handlePredefinedEndDate(365, "year")}
-          >
-            Year
-          </CustomButton>
-        </ButtonGroup>
+        <ButtonGroup>{renderButtons()}</ButtonGroup>
       </CardBody>
     </Card>
   );
