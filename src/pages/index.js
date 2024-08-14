@@ -945,8 +945,8 @@ const HomePage = () => {
 
                 <InfoCard
                   title="參考電費"
-                  value={`${totalPrice} NT$`}
-                  monthlyValue={`當月 ${currentMonthPrice} NT$`}
+                  value={`$NT ${totalPrice} `}
+                  monthlyValue={`當月 $NT ${currentMonthPrice}`}
                   isLoading={isLoading}
                   quarter={currentQuarter}
                 />
