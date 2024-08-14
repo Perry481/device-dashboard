@@ -8,9 +8,8 @@ const Card = styled.div`
   border-radius: 4px;
   padding: 20px;
   margin: 20px 0;
-
   width: 100%;
-  height: 250px; /* Fixed height */
+  height: 250px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -83,9 +82,11 @@ const customStyles = {
   }),
 };
 
-const SelectionAndSend = ({ onSend }) => {
+const SelectionAndSend = ({ onSend, singleSelection = false }) => {
   const [options, setOptions] = useState([]);
-  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState(
+    singleSelection ? null : []
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,7 +102,9 @@ const SelectionAndSend = ({ onSend }) => {
         setOptions(formattedOptions);
 
         if (formattedOptions.length > 0) {
-          setSelectedOptions([formattedOptions[0]]);
+          setSelectedOptions(
+            singleSelection ? formattedOptions[0] : [formattedOptions[0]]
+          );
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -109,14 +112,16 @@ const SelectionAndSend = ({ onSend }) => {
     };
 
     fetchData();
-  }, []);
+  }, [singleSelection]);
 
   const handleSelectChange = (selected) => {
     setSelectedOptions(selected);
   };
 
   const handleSend = () => {
-    const selectedSn = selectedOptions.map((option) => option.value);
+    const selectedSn = singleSelection
+      ? selectedOptions.value
+      : selectedOptions.map((option) => option.value);
     console.log("Selected options:", selectedSn);
     onSend(selectedSn);
   };
@@ -127,13 +132,15 @@ const SelectionAndSend = ({ onSend }) => {
       <Container>
         <SelectWrapper>
           <Select
-            isMulti
-            closeMenuOnSelect={false}
+            isMulti={!singleSelection}
+            closeMenuOnSelect={singleSelection}
             options={options}
             value={selectedOptions}
             onChange={handleSelectChange}
             styles={customStyles}
-            components={{ ValueContainer: CustomValueContainer }}
+            components={
+              singleSelection ? {} : { ValueContainer: CustomValueContainer }
+            }
           />
         </SelectWrapper>
         <SendButton onClick={handleSend}>Send</SendButton>
