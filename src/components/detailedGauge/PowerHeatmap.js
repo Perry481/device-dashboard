@@ -38,15 +38,19 @@ const HalfWidthContainer = styled.div`
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 500px;
+  height: 600px;
   margin-top: 20px;
 `;
-
 const formatDate = (date) => {
   const year = date.getFullYear();
   const month = `0${date.getMonth() + 1}`.slice(-2);
   const day = `0${date.getDate()}`.slice(-2);
   return `${year}/${month}/${day}`;
+};
+
+const formatDateWithoutYear = (dateString) => {
+  const [, month, day] = dateString.split("/");
+  return `${month}/${day}`;
 };
 
 const PowerHeatmap = () => {
@@ -57,7 +61,11 @@ const PowerHeatmap = () => {
     endDate: today,
   });
   const [selectedMeters, setSelectedMeters] = useState([]);
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState({
+    data: [],
+    minKwh: 0,
+    maxKwh: 0,
+  });
   const [options, setOptions] = useState([]);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -96,38 +104,36 @@ const PowerHeatmap = () => {
   }, [selectedMeters, dateRange]);
 
   const processData = (dataArray) => {
-    const aggregatedData = {};
+    const combinedData = {};
     let minKwh = Infinity;
     let maxKwh = -Infinity;
 
-    // Create a complete grid of dates and hours
-    const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = formatDate(d);
-      aggregatedData[dateStr] = Array(24).fill(0);
-    }
-
-    // Aggregate data from all meters
     dataArray.forEach((data) => {
       data.forEach((item) => {
-        const [date, timeStr] = item.Key.split(" ");
-        const hour = parseInt(timeStr, 10);
+        const [date, time] = item.Key.split(" ");
+        const hour = parseInt(time, 10);
 
-        if (aggregatedData[date]) {
-          aggregatedData[date][hour] += item.Value;
-          minKwh = Math.min(minKwh, aggregatedData[date][hour]);
-          maxKwh = Math.max(maxKwh, aggregatedData[date][hour]);
+        if (!combinedData[date]) {
+          combinedData[date] = Array(24)
+            .fill()
+            .map((_, index) => ({
+              Time: index,
+              Value: 0,
+            }));
         }
+
+        combinedData[date][hour].Value += item.Value;
+        minKwh = Math.min(minKwh, combinedData[date][hour].Value);
+        maxKwh = Math.max(maxKwh, combinedData[date][hour].Value);
       });
     });
 
-    // Convert aggregated data to the format expected by ECharts
-    const processedData = Object.entries(aggregatedData).flatMap(
-      ([date, hours]) => hours.map((value, hour) => [date, hour, value])
+    const heatmapData = Object.entries(combinedData).flatMap(
+      ([date, entries]) =>
+        entries.map((entry) => [entry.Time, date, entry.Value])
     );
 
-    setChartData({ data: processedData, minKwh, maxKwh });
+    setChartData({ data: heatmapData, minKwh, maxKwh });
   };
 
   const handleDateChange = useCallback((newDateRange) => {
@@ -176,7 +182,7 @@ const PowerHeatmap = () => {
   }, [selectedMeters, dateRange, fetchData]);
 
   useEffect(() => {
-    if (chartRef.current && chartData.data && chartData.data.length > 0) {
+    if (chartRef.current && chartData.data.length > 0) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.dispose();
       }
@@ -184,61 +190,116 @@ const PowerHeatmap = () => {
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
 
-      const dates = [...new Set(chartData.data.map((item) => item[0]))].sort();
+      const dates = [...new Set(chartData.data.map((item) => item[1]))]
+        .sort()
+        .reverse();
+      const { minKwh, maxKwh } = chartData;
+
+      const colorThreshold = (minKwh + maxKwh) / 10;
+      const colorThresholds = Array.from(
+        { length: 10 },
+        (_, i) => i * colorThreshold
+      );
+      const colors = [
+        "#99DA80",
+        "#66B400",
+        "#99B400",
+        "#EBE100",
+        "#FFE100",
+        "#FFCC00",
+        "#FF9900",
+        "#FF6600",
+        "#FF3300",
+        "#FF0000",
+      ];
 
       const option = {
         title: {
           text: "電力熱點圖",
           left: "center",
+          textStyle: {
+            fontSize: 14,
+            color: "black",
+          },
         },
         tooltip: {
           position: "top",
           formatter: function (params) {
-            return `${params.data[0]}, ${
-              params.data[1]
-            }:00<br>Power: ${params.data[2].toFixed(2)} kWh`;
+            return `時間: ${params.value[0]}:00<br/>日期: ${
+              params.value[1]
+            }<br/>耗電: ${params.value[2].toFixed(2)} 千瓦/時`;
+          },
+        },
+        visualMap: {
+          type: "piecewise",
+          min: minKwh,
+          max: maxKwh,
+          orient: "horizontal",
+          left: "center",
+          top: 20,
+          pieces: colorThresholds.map((threshold, index) => ({
+            min: threshold,
+            max:
+              index === colorThresholds.length - 1
+                ? maxKwh
+                : colorThresholds[index + 1],
+            color: colors[index],
+          })),
+          textStyle: {
+            color: "black",
+          },
+          formatter: function (value, value2) {
+            return `${value.toFixed(2)} - ${value2.toFixed(2)}`;
           },
         },
         grid: {
           height: "70%",
-          top: "10%",
+          top: "15%",
+          left: "10%",
         },
         xAxis: {
           type: "category",
           data: Array.from({ length: 24 }, (_, i) => i),
+          name: "時",
+          nameLocation: "middle",
+          nameGap: 30,
           splitArea: {
             show: true,
           },
-          name: "小時",
-          nameLocation: "middle",
-          nameGap: 30,
         },
         yAxis: {
           type: "category",
-          data: dates,
+          data: dates.map(formatDateWithoutYear),
+          name: "日期",
+          nameLocation: "start",
+          nameGap: 55,
+          nameTextStyle: {
+            align: "right",
+            verticalAlign: "top",
+            padding: [0, 0, 0, -50],
+          },
           splitArea: {
             show: true,
           },
-          name: "日期",
-          nameLocation: "middle",
-          nameGap: 50,
-        },
-        visualMap: {
-          min: chartData.minKwh,
-          max: chartData.maxKwh,
-          calculable: true,
-          orient: "horizontal",
-          left: "center",
-          bottom: "5%",
-          color: ["#d94e5d", "#eac736", "#50a3ba"],
         },
         series: [
           {
             name: "Power Consumption",
             type: "heatmap",
-            data: chartData.data,
+            data: chartData.data.map((item) => [
+              item[0],
+              formatDateWithoutYear(item[1]),
+              item[2],
+            ]),
             label: {
-              show: false,
+              show: true,
+              formatter: function (params) {
+                return params.value[2].toFixed(1);
+              },
+            },
+            itemStyle: {
+              borderWidth: 1.3,
+              borderColor: "rgba(0, 0, 0, 0.2)",
             },
             emphasis: {
               itemStyle: {
@@ -246,6 +307,12 @@ const PowerHeatmap = () => {
                 shadowColor: "rgba(0, 0, 0, 0.5)",
               },
             },
+          },
+        ],
+        dataZoom: [
+          {
+            type: "inside",
+            yAxisIndex: 0,
           },
         ],
       };
@@ -264,7 +331,6 @@ const PowerHeatmap = () => {
       };
     }
   }, [chartData]);
-
   return (
     <div className="container-fluid">
       <RowContainer>
