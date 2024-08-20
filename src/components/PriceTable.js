@@ -5,62 +5,81 @@ const TableWrapper = styled.div`
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const Table = styled.table`
   width: 100%;
-  min-width: 600px; // Ensures table doesn't shrink below this width
+  min-width: 600px;
   border-collapse: collapse;
   margin: 20px 0;
   font-size: 14px;
 `;
 
 const TableHead = styled.thead`
-  background-color: #f2f2f2;
+  background-color: #e9ecef;
 `;
 
 const TableHeader = styled.th`
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #dee2e6;
   text-align: center;
+  font-weight: bold;
+  color: #495057;
 `;
 
 const TableBody = styled.tbody``;
 
 const TableRow = styled.tr`
   &:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #f8f9fa;
   }
 `;
 
 const TableCell = styled.td`
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #dee2e6;
   text-align: center;
 `;
 
 const HighlightedCell = styled(TableCell)`
   background-color: ${(props) => props.color || "transparent"};
-  color: ${(props) => (props.color ? "#000" : "#000")};
+  color: ${(props) => (props.color ? "#000" : "#495057")};
+`;
+
+const TimeRangeCell = styled(TableCell)`
+  text-align: left;
+  vertical-align: top;
+  padding: 8px;
+`;
+
+const PeakStateLabel = styled.div`
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+`;
+
+const TimeRangeText = styled.div`
+  font-size: 12px;
+  margin-bottom: 2px;
 `;
 
 const Button = styled.button`
   padding: 10px 20px;
-  background-color: #484848;
+  background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
-`;
+  transition: background-color 0.2s;
 
-const ButtonWrapper = styled.div`
-  margin-top: 20px;
-`;
-
-const Title = styled.h2`
-  margin: 0;
-  font-size: 24px;
+  &:hover {
+    background-color: #0056b3;
+  }
 `;
 
 const HeaderContainer = styled.div`
@@ -71,386 +90,419 @@ const HeaderContainer = styled.div`
   flex-wrap: wrap;
 `;
 
+const Title = styled.h2`
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+`;
+
+const SelectWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const Select = styled.select`
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+`;
+
 const TimeSelect = styled.select`
-  padding: 8px;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 14px;
 `;
 
-const PriceTable = ({ onPricesUpdate, triggerHandleSend }) => {
+const Input = styled.input`
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+`;
+
+const StandardDisplay = styled.div`
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+`;
+const PriceTable = ({
+  onPricesUpdate,
+  triggerHandleSend,
+  disableEdit = false,
+  selectedPricingStandard,
+}) => {
+  console.log("PriceTable - selectedPricingStandard:", selectedPricingStandard);
   const [isClient, setIsClient] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [offPeakPrices, setOffPeakPrices] = useState({});
-  const [peakPrices, setPeakPrices] = useState({});
-  const [halfPeakPrices, setHalfPeakPrices] = useState({});
-  const [timeRanges, setTimeRanges] = useState({});
+  const [pricingStandards, setPricingStandards] = useState({});
+  const [selectedStandard, setSelectedStandard] = useState("");
   const [tempTimeRanges, setTempTimeRanges] = useState({});
+  const [activePricingStandard, setActivePricingStandard] = useState("");
 
   useEffect(() => {
     setIsClient(true);
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch("/api/settings");
-        if (!response.ok) {
-          throw new Error("Failed to fetch settings");
-        }
-        const savedSettings = await response.json();
-
-        // Check if the new prices structure exists
-        if (savedSettings.prices) {
-          setOffPeakPrices(savedSettings.prices.offPeakPrices);
-          setPeakPrices(savedSettings.prices.peakPrices);
-          setHalfPeakPrices(savedSettings.prices.halfPeakPrices);
-        } else {
-          // Fallback to old structure if new one is not present
-          setOffPeakPrices(savedSettings.offPeakPrices);
-          setPeakPrices(savedSettings.peakPrices);
-          setHalfPeakPrices(savedSettings.halfPeakPrices);
-        }
-
-        setTimeRanges(savedSettings.timeRanges);
-        setTempTimeRanges(savedSettings.timeRanges); // Initialize tempTimeRanges correctly
-      } catch (error) {
-        console.error("Error fetching settings:", error);
-      }
-    };
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (selectedPricingStandard) {
+      setSelectedStandard(selectedPricingStandard);
+    }
+  }, [selectedPricingStandard]);
+
+  useEffect(() => {
+    if (selectedStandard && pricingStandards[selectedStandard]) {
+      setTempTimeRanges(pricingStandards[selectedStandard].timeRanges);
+    }
+  }, [selectedStandard, pricingStandards]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch("/api/settings");
+      if (!response.ok) {
+        throw new Error("Failed to fetch settings");
+      }
+      const savedSettings = await response.json();
+      console.log("Fetched settings:", savedSettings);
+      setPricingStandards(savedSettings.pricingStandards);
+      setActivePricingStandard(savedSettings.activePricingStandard);
+
+      if (!selectedStandard) {
+        setSelectedStandard(savedSettings.activePricingStandard);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
+
+  const handleStandardChange = (e) => {
+    const newSelectedStandard = e.target.value;
+    setSelectedStandard(newSelectedStandard);
+  };
+
   const handlePriceChange = (type, period, value) => {
-    const updatePrices = (setter) =>
-      setter((prevPrices) => ({
-        ...prevPrices,
-        [period]: value,
-      }));
-
-    if (type === "offpeak") {
-      updatePrices(setOffPeakPrices);
-    } else if (type === "peak") {
-      updatePrices(setPeakPrices);
-    } else if (type === "halfpeak") {
-      updatePrices(setHalfPeakPrices);
-    }
+    setPricingStandards((prevStandards) => ({
+      ...prevStandards,
+      [selectedStandard]: {
+        ...prevStandards[selectedStandard],
+        prices: {
+          ...prevStandards[selectedStandard].prices,
+          [`${type}Prices`]: {
+            ...prevStandards[selectedStandard].prices[`${type}Prices`],
+            [period]: value,
+          },
+        },
+      },
+    }));
   };
 
-  const handleTimeRangeChange = (season, dayType, type, index, part, value) => {
-    const updatedRanges = JSON.parse(JSON.stringify(tempTimeRanges));
-    if (!updatedRanges[season]) {
-      updatedRanges[season] = {};
-    }
-    if (!updatedRanges[season][dayType]) {
-      updatedRanges[season][dayType] = {};
-    }
-    if (!updatedRanges[season][dayType][type]) {
-      updatedRanges[season][dayType][type] = [];
-    }
-    updatedRanges[season][dayType][type][index] = [
-      part === 0
-        ? Number(value)
-        : updatedRanges[season][dayType][type][index][0],
-      part === 1
-        ? Number(value)
-        : updatedRanges[season][dayType][type][index][1],
-    ];
-
-    setTempTimeRanges(updatedRanges);
-  };
   const handleEditMode = async () => {
     if (editMode) {
       try {
-        const updates = {
-          prices: {
-            offPeakPrices,
-            peakPrices,
-            halfPeakPrices,
+        const updatedPricingStandards = {
+          ...pricingStandards,
+          [selectedStandard]: {
+            ...pricingStandards[selectedStandard],
+            timeRanges: tempTimeRanges,
           },
-          timeRanges: tempTimeRanges,
         };
 
-        const saveResponse = await fetch("/api/settings", {
+        const response = await fetch("/api/settings", {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updates),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pricingStandards: updatedPricingStandards,
+          }),
         });
 
-        if (!saveResponse.ok) {
-          throw new Error("Failed to save settings");
-        }
-        console.log("Settings saved successfully");
+        if (!response.ok) throw new Error("Failed to save settings");
 
-        setTimeRanges(tempTimeRanges);
+        console.log("Settings saved successfully");
+        await fetchSettings(); // Refetch settings but keep the selected standard
         triggerHandleSend();
       } catch (error) {
         console.error("Error saving settings:", error);
       }
     } else {
-      setTempTimeRanges(timeRanges);
+      setTempTimeRanges(pricingStandards[selectedStandard].timeRanges);
     }
     setEditMode(!editMode);
   };
-  const renderTimeRange = (range, periodType, dayType, type, index) => (
-    <div key={`${periodType}-${dayType}-${type}-${index}`}>
-      <TimeSelect
-        value={range[0]}
-        onChange={(e) =>
-          handleTimeRangeChange(
-            periodType,
-            dayType,
-            type,
-            index,
-            0,
-            e.target.value
-          )
-        }
-      >
-        {Array.from({ length: 25 }, (_, i) => (
-          <option key={i} value={i}>
-            {i}:00
-          </option>
-        ))}
-      </TimeSelect>
-      {" - "}
-      <TimeSelect
-        value={range[1]}
-        onChange={(e) =>
-          handleTimeRangeChange(
-            periodType,
-            dayType,
-            type,
-            index,
-            1,
-            e.target.value
-          )
-        }
-      >
-        {Array.from({ length: 25 }, (_, i) => (
-          <option key={i} value={i}>
-            {i}:00
-          </option>
-        ))}
-      </TimeSelect>{" "}
-      {type === "peak" ? "尖峰" : type === "halfpeak" ? "半尖峰" : "離峰"}
-    </div>
-  );
 
-  const data = [
-    {
-      period: "06/01 - 09/30 夏月",
-      times: [
-        {
-          time: tempTimeRanges["夏月"]?.weekdays?.peak || [[16, 22]],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["一", "二", "三", "四", "五"],
-          type: "peak",
-        },
-        {
-          time: tempTimeRanges["夏月"]?.weekdays?.halfpeak || [
-            [9, 16],
-            [22, 24],
-          ],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["一", "二", "三", "四", "五"],
-          type: "halfpeak",
-        },
-        {
-          time: tempTimeRanges["夏月"]?.weekdays?.offpeak || [[0, 9]],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["一", "二", "三", "四", "五"],
-          type: "offpeak",
-        },
-        {
-          time: tempTimeRanges["夏月"]?.saturday?.offpeak || [[0, 24]],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["六"],
-          type: "offpeak",
-        },
-        {
-          time: tempTimeRanges["夏月"]?.sunday?.offpeak || [[0, 24]],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["日"],
-          type: "offpeak",
-        },
-      ],
-    },
-    {
-      period: "10/01 - 05/31 非夏月",
-      times: [
-        {
-          time: tempTimeRanges["非夏月"]?.weekdays?.halfpeak || [
-            [6, 11],
-            [14, 24],
-          ],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["一", "二", "三", "四", "五"],
-          type: "halfpeak",
-        },
-        {
-          time: tempTimeRanges["非夏月"]?.weekdays?.offpeak || [
-            [0, 6],
-            [11, 14],
-          ],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["一", "二", "三", "四", "五"],
-          type: "offpeak",
-        },
-        {
-          time: tempTimeRanges["非夏月"]?.saturday?.halfpeak || [
-            [6, 11],
-            [14, 24],
-          ],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["六"],
-          type: "halfpeak",
-        },
-        {
-          time: tempTimeRanges["非夏月"]?.saturday?.offpeak || [
-            [0, 6],
-            [11, 14],
-          ],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["六"],
-          type: "offpeak",
-        },
-        {
-          time: tempTimeRanges["非夏月"]?.sunday?.offpeak || [[0, 24]],
-          fullWeekDays: ["日", "一", "二", "三", "四", "五", "六"],
-          days: ["日"],
-          type: "offpeak",
-        },
-      ],
-    },
-  ];
-  const colors = {
-    peak: "#ee6666",
-    halfpeak: "#fac858",
-    offpeak: "#91CC75",
+  const handleTimeRangeChange = (season, dayType, type, index, part, value) => {
+    setTempTimeRanges((prev) => {
+      const updated = JSON.parse(JSON.stringify(prev));
+      if (!updated[season]) updated[season] = {};
+      if (!updated[season][dayType]) updated[season][dayType] = {};
+      if (!updated[season][dayType][type]) updated[season][dayType][type] = [];
+      if (!updated[season][dayType][type][index])
+        updated[season][dayType][type][index] = [0, 0];
+      updated[season][dayType][type][index][part] = Number(value);
+      return updated;
+    });
   };
-
-  return isClient ? (
-    <>
+  const renderHeader = () => {
+    return (
       <HeaderContainer>
         <Title>電價一覽表</Title>
-        <ButtonWrapper>
-          <Button onClick={handleEditMode}>
-            {editMode ? "保存電價" : "更改電價"}
-          </Button>
-        </ButtonWrapper>
+        <SelectWrapper>
+          <Select
+            value={selectedStandard}
+            onChange={handleStandardChange}
+            disabled={disableEdit}
+          >
+            {Object.keys(pricingStandards).map((key) => (
+              <option key={key} value={key}>
+                {pricingStandards[key].name}
+                {key === activePricingStandard ? " " : ""}
+              </option>
+            ))}
+          </Select>
+          {!disableEdit && (
+            <Button onClick={handleEditMode}>
+              {editMode ? "保存電價" : "更改電價"}
+            </Button>
+          )}
+        </SelectWrapper>
       </HeaderContainer>
-      <TableWrapper>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeader>項目名稱</TableHeader>
-              <TableHeader>時段</TableHeader>
-              {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
-                <TableHeader key={day}>{day}</TableHeader>
+    );
+  };
+
+  const renderTimeRange = (periodType, timeType) => {
+    const weekdayRanges =
+      tempTimeRanges[periodType]?.weekdays?.[timeType.toLowerCase()] || [];
+    const saturdayRanges =
+      tempTimeRanges[periodType]?.saturday?.[timeType.toLowerCase()] || [];
+    const sundayRanges =
+      tempTimeRanges[periodType]?.sunday?.[timeType.toLowerCase()] || [];
+
+    const renderRanges = (ranges, dayType) => (
+      <div>
+        <strong>
+          {dayType === "weekdays"
+            ? "平日"
+            : dayType === "saturday"
+            ? "週六"
+            : "週日"}
+          :
+        </strong>
+        {ranges.map((range, index) => (
+          <div key={`${periodType}-${dayType}-${timeType}-${index}`}>
+            <TimeSelect
+              value={range[0]}
+              onChange={(e) =>
+                handleTimeRangeChange(
+                  periodType,
+                  dayType,
+                  timeType.toLowerCase(),
+                  index,
+                  0,
+                  e.target.value
+                )
+              }
+            >
+              {Array.from({ length: 25 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i}:00
+                </option>
               ))}
-              <TableHeader>電價NT$/kWh</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.map((period, periodIndex) => (
-              <React.Fragment key={period.period}>
-                {period.times.map((time, timeIndex) => {
-                  const key = `${period.period}-${time.time}-${timeIndex}`;
-                  const periodType = period.period.includes("夏月")
-                    ? "夏月"
-                    : "非夏月";
-                  const price =
-                    time.type === "offpeak"
-                      ? offPeakPrices[periodType]
-                      : time.type === "peak"
-                      ? peakPrices[periodType]
-                      : halfPeakPrices[periodType];
-                  const dayType =
-                    time.days[0] === "六"
-                      ? "saturday"
-                      : time.days[0] === "日"
-                      ? "sunday"
-                      : "weekdays";
-                  return (
-                    <TableRow key={key}>
-                      {timeIndex === 0 && (
-                        <TableCell rowSpan={period.times.length}>
-                          {`${period.period}`}
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        {editMode
-                          ? Array.isArray(time.time)
-                            ? time.time.map((range, index) => (
-                                <div key={index}>
-                                  {renderTimeRange(
-                                    range,
-                                    periodType,
-                                    dayType,
-                                    time.type,
-                                    index
-                                  )}{" "}
-                                </div>
-                              ))
-                            : `${time.time} ${
-                                time.type === "peak"
-                                  ? "尖峰"
-                                  : time.type === "halfpeak"
-                                  ? "半尖峰"
-                                  : "離峰"
-                              }`
-                          : `${
-                              Array.isArray(time.time)
-                                ? time.time
-                                    .map((r) => {
-                                      return `${r[0]}:00 - ${r[1]}:00`;
-                                    })
-                                    .join(", ")
-                                : time.time
-                            } ${
-                              time.type === "peak"
-                                ? "尖峰"
-                                : time.type === "halfpeak"
-                                ? "半尖峰"
-                                : "離峰"
-                            }`}
+            </TimeSelect>
+            {" - "}
+            <TimeSelect
+              value={range[1]}
+              onChange={(e) =>
+                handleTimeRangeChange(
+                  periodType,
+                  dayType,
+                  timeType.toLowerCase(),
+                  index,
+                  1,
+                  e.target.value
+                )
+              }
+            >
+              {Array.from({ length: 25 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i}:00
+                </option>
+              ))}
+            </TimeSelect>
+          </div>
+        ))}
+      </div>
+    );
+
+    return (
+      <div>
+        {renderRanges(weekdayRanges, "weekdays")}
+        {renderRanges(saturdayRanges, "saturday")}
+        {renderRanges(sundayRanges, "sunday")}
+      </div>
+    );
+  };
+
+  const renderTimeRanges = (periodType, timeType) => {
+    const weekdayRanges =
+      tempTimeRanges[periodType]?.weekdays?.[timeType.toLowerCase()] || [];
+    const saturdayRanges =
+      tempTimeRanges[periodType]?.saturday?.[timeType.toLowerCase()] || [];
+    const sundayRanges =
+      tempTimeRanges[periodType]?.sunday?.[timeType.toLowerCase()] || [];
+
+    const formatTimeRange = (ranges) => {
+      if (ranges.length === 0) return "";
+      if (ranges.length === 1 && ranges[0][0] === 0 && ranges[0][1] === 24) {
+        return "0:00-24:00";
+      }
+      return ranges.map((range) => `${range[0]}:00-${range[1]}:00`).join(", ");
+    };
+
+    const weekdayString = formatTimeRange(weekdayRanges);
+    const saturdayString = formatTimeRange(saturdayRanges);
+    const sundayString = formatTimeRange(sundayRanges);
+
+    const labels = {
+      peak: "尖峰",
+      halfPeak: "半尖峰",
+      offPeak: "離峰",
+    };
+
+    return (
+      <>
+        <PeakStateLabel>{labels[timeType]}</PeakStateLabel>
+        {weekdayString && <TimeRangeText>平日: {weekdayString}</TimeRangeText>}
+        {saturdayString && (
+          <TimeRangeText>週六: {saturdayString}</TimeRangeText>
+        )}
+        {sundayString && <TimeRangeText>週日: {sundayString}</TimeRangeText>}
+      </>
+    );
+  };
+
+  const renderPriceTable = () => {
+    if (!selectedStandard || !pricingStandards[selectedStandard]) {
+      console.log("No selected standard or pricing standards");
+      return null;
+    }
+
+    const standard = pricingStandards[selectedStandard];
+    console.log("Selected standard:", standard);
+
+    const data = [
+      {
+        period: "06/01 - 09/30 夏月",
+        type: "夏月",
+        times: ["peak", "halfPeak", "offPeak"],
+      },
+      {
+        period: "10/01 - 05/31 非夏月",
+        type: "非夏月",
+        times: ["peak", "halfPeak", "offPeak"],
+      },
+    ];
+
+    const colors = {
+      peak: "#ee6666",
+      halfPeak: "#fac858",
+      offPeak: "#91CC75",
+    };
+
+    const isTimeActive = (periodType, timeType, dayType) => {
+      const ranges =
+        tempTimeRanges[periodType]?.[dayType]?.[timeType.toLowerCase()] || [];
+      return ranges.length > 0;
+    };
+
+    return (
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableHeader>項目名稱</TableHeader>
+            <TableHeader>時段</TableHeader>
+            {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+              <TableHeader key={day}>{day}</TableHeader>
+            ))}
+            <TableHeader>電價NT$/kWh</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {data.map((period) => (
+            <React.Fragment key={period.period}>
+              {period.times.map((timeType, index) => {
+                const price =
+                  standard.prices?.[`${timeType}Prices`]?.[period.type] || "";
+
+                return (
+                  <TableRow key={`${period.period}-${timeType}`}>
+                    {index === 0 && (
+                      <TableCell rowSpan={period.times.length}>
+                        {period.period}
                       </TableCell>
-                      {time.fullWeekDays.map((day) => (
+                    )}
+                    <TimeRangeCell>
+                      {editMode
+                        ? renderTimeRange(period.type, timeType)
+                        : renderTimeRanges(period.type, timeType)}
+                    </TimeRangeCell>
+                    {["日", "一", "二", "三", "四", "五", "六"].map(
+                      (day, dayIndex) => (
                         <HighlightedCell
-                          key={`${key}-${day}`}
+                          key={`${period.period}-${timeType}-${day}`}
                           color={
-                            time.days.includes(day)
-                              ? colors[time.type]
+                            (dayIndex === 0 &&
+                              isTimeActive(period.type, timeType, "sunday")) ||
+                            (dayIndex === 6 &&
+                              isTimeActive(
+                                period.type,
+                                timeType,
+                                "saturday"
+                              )) ||
+                            (dayIndex > 0 &&
+                              dayIndex < 6 &&
+                              isTimeActive(period.type, timeType, "weekdays"))
+                              ? colors[timeType]
                               : "transparent"
                           }
                         >
                           {day}
                         </HighlightedCell>
-                      ))}
-                      <TableCell>
-                        {editMode ? (
-                          <input
-                            type="text"
-                            value={price}
-                            onChange={(e) =>
-                              handlePriceChange(
-                                time.type,
-                                periodType,
-                                e.target.value
-                              )
-                            }
-                          />
-                        ) : (
-                          price
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableWrapper>
-    </>
+                      )
+                    )}
+                    <TableCell>
+                      {editMode ? (
+                        <Input
+                          type="text"
+                          value={price}
+                          onChange={(e) =>
+                            handlePriceChange(
+                              timeType,
+                              period.type,
+                              e.target.value
+                            )
+                          }
+                        />
+                      ) : (
+                        price
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  };
+  return isClient ? (
+    <TableWrapper>
+      {renderHeader()}
+      {renderPriceTable()}
+    </TableWrapper>
   ) : null;
 };
 

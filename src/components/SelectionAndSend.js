@@ -12,7 +12,8 @@ const Card = styled.div`
   height: 250px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: ${(props) =>
+    props.$showPricingStandard ? "space-between" : "center"};
 `;
 
 const CardHeader = styled.div`
@@ -25,11 +26,18 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  height: ${(props) => (props.$showPricingStandard ? "100%" : "auto")};
+  justify-content: ${(props) =>
+    props.$showPricingStandard ? "space-between" : "center"};
 `;
 
 const SelectWrapper = styled.div`
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: ${(props) => (props.$showPricingStandard ? "0" : "10px")};
+  height: ${(props) => (props.$showPricingStandard ? "auto" : "100%")};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const SendButton = styled.button`
@@ -39,6 +47,7 @@ const SendButton = styled.button`
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  margin-top: ${(props) => (props.$showPricingStandard ? "10px" : "0")};
 
   &:hover {
     background-color: #3a3a3a;
@@ -50,12 +59,13 @@ const customStyles = {
     ...provided,
     maxHeight: "100px",
   }),
-  valueContainer: (provided) => ({
+  valueContainer: (provided, state) => ({
     ...provided,
-    height: "90px",
-    overflowY: "hidden",
+    height: state.selectProps.showPricingStandard ? "auto" : "90px",
+    maxHeight: state.selectProps.showPricingStandard ? "80px" : "90px",
+    overflowY: "auto",
     display: "flex",
-    flexWrap: "nowrap",
+    flexWrap: "wrap",
     width: "100%",
   }),
   multiValue: (provided) => ({
@@ -82,11 +92,18 @@ const customStyles = {
   }),
 };
 
-const SelectionAndSend = ({ onSend, singleSelection = false }) => {
+const SelectionAndSend = ({
+  onSend,
+  singleSelection = false,
+  showPricingStandard = false,
+  pricingStandards = {},
+  activePricingStandard = "",
+}) => {
   const [options, setOptions] = useState([]);
   const [selectedOptions, setSelectedOptions] = useState(
     singleSelection ? null : []
   );
+  const [selectedStandard, setSelectedStandard] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,8 +131,25 @@ const SelectionAndSend = ({ onSend, singleSelection = false }) => {
     fetchData();
   }, [singleSelection]);
 
+  useEffect(() => {
+    if (
+      showPricingStandard &&
+      Object.keys(pricingStandards).length > 0 &&
+      activePricingStandard
+    ) {
+      setSelectedStandard({
+        value: activePricingStandard,
+        label: pricingStandards[activePricingStandard].name,
+      });
+    }
+  }, [showPricingStandard, pricingStandards, activePricingStandard]);
+
   const handleSelectChange = (selected) => {
     setSelectedOptions(selected);
+  };
+
+  const handleStandardChange = (selected) => {
+    setSelectedStandard(selected);
   };
 
   const handleSend = () => {
@@ -123,14 +157,28 @@ const SelectionAndSend = ({ onSend, singleSelection = false }) => {
       ? selectedOptions.value
       : selectedOptions.map((option) => option.value);
     console.log("Selected options:", selectedSn);
-    onSend(selectedSn);
+    if (showPricingStandard && selectedStandard) {
+      console.log("Selected standard:", selectedStandard.value);
+      onSend(selectedSn, selectedStandard.value);
+    } else {
+      onSend(selectedSn);
+    }
   };
 
+  const standardOptions = Object.entries(pricingStandards).map(
+    ([key, value]) => ({
+      value: key,
+      label: value.name,
+    })
+  );
+
   return (
-    <Card>
-      <CardHeader>選擇電錶</CardHeader>
-      <Container>
-        <SelectWrapper>
+    <Card $showPricingStandard={showPricingStandard}>
+      <CardHeader>
+        {showPricingStandard ? "選擇電錶和電價標準" : "選擇電錶"}
+      </CardHeader>
+      <Container $showPricingStandard={showPricingStandard}>
+        <SelectWrapper $showPricingStandard={showPricingStandard}>
           <Select
             isMulti={!singleSelection}
             closeMenuOnSelect={singleSelection}
@@ -141,9 +189,27 @@ const SelectionAndSend = ({ onSend, singleSelection = false }) => {
             components={
               singleSelection ? {} : { ValueContainer: CustomValueContainer }
             }
+            showPricingStandard={showPricingStandard}
           />
         </SelectWrapper>
-        <SendButton onClick={handleSend}>Send</SendButton>
+        {showPricingStandard && (
+          <SelectWrapper $showPricingStandard={showPricingStandard}>
+            <Select
+              options={standardOptions}
+              value={selectedStandard}
+              onChange={handleStandardChange}
+              styles={customStyles}
+              placeholder="選擇電價標準..."
+              showPricingStandard={showPricingStandard}
+            />
+          </SelectWrapper>
+        )}
+        <SendButton
+          $showPricingStandard={showPricingStandard}
+          onClick={handleSend}
+        >
+          Send
+        </SendButton>
       </Container>
     </Card>
   );

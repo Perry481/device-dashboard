@@ -202,7 +202,7 @@ const DataTableComponent = ({
       </Card>
       {transformedDataSets.map((transformedData, index) => {
         const columns = [
-          { title: "Type" },
+          { title: "" },
           ...Object.keys(transformedData[0])
             .filter((key) => key !== "Type")
             .map((date) => ({ title: date })),

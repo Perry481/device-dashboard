@@ -600,7 +600,7 @@ const HomePage = () => {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
   const [energyConsumptionData, setEnergyConsumptionData] = useState({});
-
+  const [activePricingStandard, setActivePricingStandard] = useState(null);
   const [co2, setCO2] = useState(0);
   const [contractCapacity, setContractCapacity] = useState(0); // Default to 10 as a fallback
 
@@ -609,10 +609,13 @@ const HomePage = () => {
       const response = await fetch("/api/settings");
       if (!response.ok) throw new Error("Failed to fetch settings");
       const savedSettings = await response.json();
-      setPrices(savedSettings.prices || savedSettings);
-      setTimeRanges(savedSettings.timeRanges);
+      const activeStandard =
+        savedSettings.pricingStandards[savedSettings.activePricingStandard];
+      setPrices(activeStandard.prices);
+      setTimeRanges(activeStandard.timeRanges);
       setCO2(savedSettings.CO2);
-      setContractCapacity(savedSettings.contractCapacity || 10); // Set contract capacity, default to 10 if not found
+      setContractCapacity(savedSettings.contractCapacity);
+      setActivePricingStandard(savedSettings.activePricingStandard);
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -746,6 +749,7 @@ const HomePage = () => {
       Value: parseFloat(value.toFixed(2)), // Round to 2 decimal places
     }));
   };
+
   const processAndSetData = (data, timeRanges) => {
     if (!timeRanges) {
       console.error("Time ranges not initialized.");
@@ -769,33 +773,21 @@ const HomePage = () => {
 
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
 
-    // console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
-
     const newPriceData = {};
     const newConsumptionData = {};
     Object.keys(aggregatedByPeakState).forEach((date) => {
       const { peak, halfPeak, offPeak, isSummer } = aggregatedByPeakState[date];
 
-      const priceObj = prices.prices || prices;
       const period = isSummer ? "夏月" : "非夏月";
 
-      const peakPrice = parsePrice(priceObj.peakPrices[period]);
-      const halfPeakPrice = parsePrice(priceObj.halfPeakPrices[period]);
-      const offPeakPrice = parsePrice(priceObj.offPeakPrices[period]);
-
-      // console.log(`Date: ${date}, Period: ${period}`);
-      // console.log(`Peak: ${peak} kWh, Price: ${peakPrice} NT$/kWh`);
-      // console.log(
-      //   `Half-Peak: ${halfPeak} kWh, Price: ${halfPeakPrice} NT$/kWh`
-      // );
-      // console.log(`Off-Peak: ${offPeak} kWh, Price: ${offPeakPrice} NT$/kWh`);
+      const peakPrice = parsePrice(prices.peakPrices[period]);
+      const halfPeakPrice = parsePrice(prices.halfPeakPrices[period]);
+      const offPeakPrice = parsePrice(prices.offPeakPrices[period]);
 
       const peakCost = parseFloat(peak) * peakPrice;
       const halfPeakCost = parseFloat(halfPeak) * halfPeakPrice;
       const offPeakCost = parseFloat(offPeak) * offPeakPrice;
       const totalCost = peakCost + halfPeakCost + offPeakCost;
-
-      console.log(`Total cost for ${date}: ${totalCost.toFixed(2)} NT$`);
 
       newPriceData[date] = {
         peak: peakCost.toFixed(2),
@@ -819,8 +811,6 @@ const HomePage = () => {
     setEnergyConsumptionData(newConsumptionData);
     setDataReady(true);
     setIsLoading(false);
-    console.log("Final price data:", newPriceData);
-    console.log("Final consumption data:", newConsumptionData);
   };
 
   useEffect(() => {
@@ -900,7 +890,7 @@ const HomePage = () => {
     <div className="container-fluid min-vh-100 d-flex flex-column">
       {/* Top 50% section (charts) */}
       <div className="row flex-grow-1" style={{ minHeight: "50%" }}>
-        <div className="col-12 h-100">
+        <div className="col-12">
           <div className="row h-100">
             <ChartCard
               ref={combinedEnergyChartRef}
@@ -917,8 +907,6 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-
-      {/* Bottom 50% section (info cards and pie chart) */}
       <div className="row flex-grow-1" style={{ minHeight: "50%" }}>
         <div className="col-12">
           <div className="row h-100">
@@ -942,15 +930,13 @@ const HomePage = () => {
                   isLoading={isLoading}
                   quarter={currentQuarter}
                 />
-
                 <InfoCard
                   title="參考電費"
-                  value={`$NT ${totalPrice} `}
-                  monthlyValue={`當月 $NT ${currentMonthPrice}`}
+                  value={`NT$${totalPrice}`}
+                  monthlyValue={`當月 NT$${currentMonthPrice}`}
                   isLoading={isLoading}
                   quarter={currentQuarter}
                 />
-
                 <InfoCard
                   title="碳排放量"
                   value={`${totalCO2Emission} kg`}
@@ -969,7 +955,6 @@ const HomePage = () => {
 
 const CardTitle = styled.h5`
   color: #3ba272;
-  margin-bottom: 0.5rem;
 `;
 
 const CardValue = styled.h3`

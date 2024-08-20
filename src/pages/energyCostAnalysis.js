@@ -196,6 +196,7 @@ const EnergyCostAnalysis = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [groupedData, setGroupedData] = useState({});
   const [aggregatedData, setAggregatedData] = useState({});
+  const fetchTriggerRef = useRef({ date: null, options: null, standard: null });
   const barChartRef = useRef(null);
   const pieChartRef = useRef(null);
   const [dateRange, setDateRange] = useState({
@@ -204,6 +205,10 @@ const EnergyCostAnalysis = () => {
   });
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
+  const [pricingStandards, setPricingStandards] = useState({});
+
+  const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
+  const [activePricingStandard, setActivePricingStandard] = useState("");
 
   const fetchSettingsAndOptions = async () => {
     setIsLoading(true);
@@ -218,8 +223,12 @@ const EnergyCostAnalysis = () => {
       }
 
       const savedSettings = await settingsResponse.json();
-      setTimeRanges(savedSettings.timeRanges);
-
+      setPricingStandards(savedSettings.pricingStandards);
+      setActivePricingStandard(savedSettings.activePricingStandard);
+      setSelectedPricingStandard(savedSettings.activePricingStandard);
+      const activePricingStandardData =
+        savedSettings.pricingStandards[savedSettings.activePricingStandard];
+      setTimeRanges(activePricingStandardData.timeRanges);
       const optionsData = await optionsResponse.json();
       const formattedOptions = optionsData.map((item) => ({
         value: item.sn,
@@ -264,40 +273,45 @@ const EnergyCostAnalysis = () => {
       return null;
     }
   };
-  const handleDataFetch = async (selectedOptions, dateRange) => {
-    console.log("handleDataFetch called");
-    if (isLoading || !timeRanges) {
-      // console.log("Still loading or time ranges not available");
-      return;
-    }
-    // Show loading for both charts
-    const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
-    const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
-    if (barChartInstance) barChartInstance.showLoading();
-    if (pieChartInstance) pieChartInstance.showLoading();
+  const handleDataFetch = useCallback(
+    async (selectedOptions, dateRange, timeRanges) => {
+      if (!timeRanges) return;
 
-    const { startDate, endDate } = dateRange;
-    const fetchPromises = selectedOptions.map((sn) =>
-      fetchData(sn, startDate, endDate)
-    );
+      const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
+      const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
+      if (barChartInstance) barChartInstance.showLoading();
+      if (pieChartInstance) pieChartInstance.showLoading();
 
-    try {
-      const results = await Promise.all(fetchPromises);
-      const aggregatedFetchedData = aggregateFetchedData(results);
-      processAndSetData(aggregatedFetchedData, timeRanges);
-      // console.log("Fetched results:", results);
-    } catch (error) {
-      console.error("Error during data fetch:", error);
-    } finally {
-      // Hide loading for both charts
-      if (barChartInstance) barChartInstance.hideLoading();
-      if (pieChartInstance) pieChartInstance.hideLoading();
+      const { startDate, endDate } = dateRange;
+      const fetchPromises = selectedOptions.map((sn) =>
+        fetchData(sn, startDate, endDate)
+      );
+
+      try {
+        const results = await Promise.all(fetchPromises);
+        const aggregatedFetchedData = aggregateFetchedData(results);
+        processAndSetData(aggregatedFetchedData, timeRanges);
+      } catch (error) {
+        console.error("Error during data fetch:", error);
+      } finally {
+        if (barChartInstance) barChartInstance.hideLoading();
+        if (pieChartInstance) pieChartInstance.hideLoading();
+      }
+    },
+    []
+  );
+  useEffect(() => {
+    const shouldFetch =
+      fetchTriggerRef.current.date ||
+      fetchTriggerRef.current.options ||
+      fetchTriggerRef.current.standard;
+
+    if (shouldFetch && selectedOptions.length > 0 && timeRanges) {
+      handleDataFetch(selectedOptions, dateRange, timeRanges);
+      fetchTriggerRef.current = { date: null, options: null, standard: null };
     }
-  };
+  }, [selectedOptions, dateRange, timeRanges, handleDataFetch]);
   const processAndSetData = (data, timeRanges) => {
-    // console.log("Time ranges:", timeRanges);
-    // console.log("Data before categorization:", data);
-
     if (!timeRanges) {
       console.error("Time ranges not initialized.");
       return;
@@ -309,12 +323,8 @@ const EnergyCostAnalysis = () => {
     }));
 
     const categorizedData = categorizeData(updatedData, timeRanges);
-    // console.log("Data after categorization:", categorizedData);
-
     const groupedByDate = groupDataByDate(categorizedData);
-    // console.log("Grouped Data by Date:", groupedByDate);
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
-    // console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
 
     setGroupedData(groupedByDate);
     setAggregatedData(aggregatedByPeakState);
@@ -322,17 +332,18 @@ const EnergyCostAnalysis = () => {
 
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
-    // console.log("Selected date range:", newDateRange);
+    fetchTriggerRef.current.date = new Date();
   }, []);
-
   const handleSend = useCallback(
-    (newSelectedOptions) => {
-      console.log("handleSend Triggered");
-      setSelectedOptions(newSelectedOptions);
-      // console.log("Selected options:", newSelectedOptions);
-      handleDataFetch(newSelectedOptions, dateRange);
+    (selectedMeters, selectedStandard) => {
+      setSelectedOptions(selectedMeters);
+      setSelectedPricingStandard(selectedStandard);
+      const standardData = pricingStandards[selectedStandard];
+      setTimeRanges(standardData.timeRanges);
+      fetchTriggerRef.current.options = new Date();
+      fetchTriggerRef.current.standard = new Date();
     },
-    [dateRange]
+    [pricingStandards]
   );
 
   useEffect(() => {
@@ -517,7 +528,13 @@ const EnergyCostAnalysis = () => {
           <DateRangePicker onDateChange={handleDateChange} />
         </HalfWidthContainer>
         <HalfWidthContainer>
-          <SelectionAndSend options={options} onSend={handleSend} />
+          <SelectionAndSend
+            options={options}
+            onSend={handleSend}
+            showPricingStandard={true}
+            pricingStandards={pricingStandards}
+            activePricingStandard={activePricingStandard}
+          />
         </HalfWidthContainer>
       </RowContainer>
       <div className="row mb-4">

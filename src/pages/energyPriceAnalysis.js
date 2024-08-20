@@ -1,5 +1,11 @@
 import dynamic from "next/dynamic";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import * as echarts from "echarts";
 import DataTableComponent from "../components/DataTableComponent";
@@ -121,7 +127,6 @@ const categorizeData = (data, timeRanges) => {
     let peakState = "offpeak";
     const ranges = timeRanges[period][dayType];
 
-    // Check if the property exists before using .some()
     if (
       ranges.peak &&
       ranges.peak.some((range) => hour >= range[0] && hour < range[1])
@@ -198,8 +203,10 @@ const EnergyPriceAnalysis = () => {
   });
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
-  const [lastBarChartData, setLastBarChartData] = useState(null);
-  const [lastPieChartData, setLastPieChartData] = useState(null);
+
+  const [pricingStandards, setPricingStandards] = useState({});
+  const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
+  const [activePricingStandard, setActivePricingStandard] = useState("");
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -209,15 +216,22 @@ const EnergyPriceAnalysis = () => {
       }
       const savedSettings = await response.json();
       console.log("Settings fetched successfully:", savedSettings);
-      setPrices(savedSettings.prices);
-      setTimeRanges(savedSettings.timeRanges);
+      setPricingStandards(savedSettings.pricingStandards);
+      setActivePricingStandard(savedSettings.activePricingStandard);
+      setSelectedPricingStandard(savedSettings.activePricingStandard);
+      const activePricingStandardData =
+        savedSettings.pricingStandards[savedSettings.activePricingStandard];
+      setPrices(activePricingStandardData.prices);
+      setTimeRanges(activePricingStandardData.timeRanges);
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
-      setPrices({}); // Set to an empty object in case of error
-      setTimeRanges({}); // Set to an empty object in case of error
+      setPricingStandards({});
+      setPrices({});
+      setTimeRanges({});
     }
   }, []);
+
   const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch(
@@ -289,10 +303,10 @@ const EnergyPriceAnalysis = () => {
   );
 
   const processAndSetData = (data, timeRanges) => {
-    console.log("Data before categorization:");
-    console.log(
-      data.map((item) => ({ ...item, peakState: "to be determined" }))
-    );
+    // console.log("Data before categorization:");
+    // console.log(
+    //   data.map((item) => ({ ...item, peakState: "to be determined" }))
+    // );
 
     if (!timeRanges) {
       console.error("Time ranges not initialized.");
@@ -306,14 +320,14 @@ const EnergyPriceAnalysis = () => {
     }));
 
     const categorizedData = categorizeData(updatedData, timeRanges);
-    console.log("Data after categorization:");
-    console.log(categorizedData);
+    // console.log("Data after categorization:");
+    // console.log(categorizedData);
 
     const groupedByDate = groupDataByDate(categorizedData);
-    console.log("Grouped Data by Date:", groupedByDate);
+    // console.log("Grouped Data by Date:", groupedByDate);
 
     const aggregatedByPeakState = aggregateDataByPeakState(groupedByDate);
-    console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
+    // console.log("Aggregated Data by Peak State:", aggregatedByPeakState);
 
     setGroupedData(groupedByDate);
     setAggregatedData(aggregatedByPeakState);
@@ -330,18 +344,24 @@ const EnergyPriceAnalysis = () => {
     setDateRange(newDateRange);
   }, []);
 
-  const handleSend = useCallback(
-    (newSelectedOptions, currentRange = timeRanges) => {
-      setSelectedOptions(newSelectedOptions);
-      handleDataFetch(newSelectedOptions, dateRange, currentRange);
+  const handleSelectionAndSend = useCallback(
+    (selectedMeters, selectedStandard) => {
+      setSelectedOptions(selectedMeters);
+      setSelectedPricingStandard(selectedStandard);
+      const standardData = pricingStandards[selectedStandard];
+      setPrices(standardData.prices);
+      setTimeRanges(standardData.timeRanges);
+      if (selectedMeters.length > 0) {
+        handleDataFetch(selectedMeters, dateRange, standardData.timeRanges);
+      }
     },
-    [selectedOptions, timeRanges, dateRange, handleDataFetch]
+    [pricingStandards, dateRange, handleDataFetch]
   );
 
   const handleExitEditMode = useCallback(async () => {
     await fetchSettings();
-    handleSend(selectedOptions, timeRanges);
-  }, [fetchSettings, handleSend, selectedOptions, timeRanges]);
+    handleSelectionAndSend(selectedOptions, timeRanges);
+  }, [fetchSettings, handleSelectionAndSend, selectedOptions, timeRanges]);
 
   useEffect(() => {
     if (initialized && selectedOptions.length > 0 && timeRanges) {
@@ -369,19 +389,13 @@ const EnergyPriceAnalysis = () => {
         const { peak, halfpeak, offpeak, isSummer } = aggregatedData[date];
         const period = isSummer ? "夏月" : "非夏月";
         const peakPrice = parseFloat(
-          prices?.prices?.peakPrices?.[period]?.replace("NT$", "") ||
-            prices?.peakPrices?.[period]?.replace("NT$", "") ||
-            "0"
+          prices.peakPrices?.[period]?.replace("NT$", "") || "0"
         );
         const halfpeakPrice = parseFloat(
-          prices?.prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
-            prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
-            "0"
+          prices.halfPeakPrices?.[period]?.replace("NT$", "") || "0"
         );
         const offpeakPrice = parseFloat(
-          prices?.prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
-            prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
-            "0"
+          prices.offPeakPrices?.[period]?.replace("NT$", "") || "0"
         );
 
         newBarChartData.peak.push((parseFloat(peak) * peakPrice).toFixed(2));
@@ -392,11 +406,6 @@ const EnergyPriceAnalysis = () => {
           (parseFloat(offpeak) * offpeakPrice).toFixed(2)
         );
       });
-
-      if (isEqual(newBarChartData, lastBarChartData)) {
-        console.log("Bar chart data is the same, skipping update.");
-        return;
-      }
 
       if (echarts.getInstanceByDom(barChartRef.current)) {
         echarts.getInstanceByDom(barChartRef.current).dispose();
@@ -491,7 +500,7 @@ const EnergyPriceAnalysis = () => {
         barChart.resize();
       };
       window.addEventListener("resize", handleResize);
-      setLastBarChartData(newBarChartData);
+
       return () => {
         barChart.dispose();
         window.removeEventListener("resize", handleResize);
@@ -515,19 +524,13 @@ const EnergyPriceAnalysis = () => {
           const period = isSummer ? "夏月" : "非夏月";
 
           const peakPrice = parseFloat(
-            prices?.prices?.peakPrices?.[period]?.replace("NT$", "") ||
-              prices?.peakPrices?.[period]?.replace("NT$", "") ||
-              "0"
+            prices.peakPrices?.[period]?.replace("NT$", "") || "0"
           );
           const halfpeakPrice = parseFloat(
-            prices?.prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
-              prices?.halfPeakPrices?.[period]?.replace("NT$", "") ||
-              "0"
+            prices.halfPeakPrices?.[period]?.replace("NT$", "") || "0"
           );
           const offpeakPrice = parseFloat(
-            prices?.prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
-              prices?.offPeakPrices?.[period]?.replace("NT$", "") ||
-              "0"
+            prices.offPeakPrices?.[period]?.replace("NT$", "") || "0"
           );
 
           totalPeak += parseFloat(peak) * peakPrice;
@@ -541,11 +544,6 @@ const EnergyPriceAnalysis = () => {
         totalHalfpeak: totalHalfpeak.toFixed(2),
         totalOffpeak: totalOffpeak.toFixed(2),
       };
-
-      if (isEqual(newPieChartData, lastPieChartData)) {
-        console.log("Pie chart data is the same, skipping update.");
-        return;
-      }
 
       if (echarts.getInstanceByDom(pieChartRef.current)) {
         echarts.getInstanceByDom(pieChartRef.current).dispose();
@@ -580,7 +578,7 @@ const EnergyPriceAnalysis = () => {
         pieChart.resize();
       };
       window.addEventListener("resize", handleResize);
-      setLastPieChartData(newPieChartData);
+
       return () => {
         pieChart.dispose();
         window.removeEventListener("resize", handleResize);
@@ -597,7 +595,7 @@ const EnergyPriceAnalysis = () => {
       renderBarChart();
       renderPieChart();
     }
-  }, [dataReady, aggregatedData, prices]);
+  }, [dataReady, aggregatedData]);
   return (
     <div className="container-fluid">
       <RowContainer>
@@ -606,9 +604,10 @@ const EnergyPriceAnalysis = () => {
         </HalfWidthContainer>
         <HalfWidthContainer>
           <SelectionAndSend
-            options={options}
-            onSend={handleSend}
-            defaultSelectedOptions={selectedOptions}
+            onSend={handleSelectionAndSend}
+            showPricingStandard={true}
+            pricingStandards={pricingStandards}
+            activePricingStandard={activePricingStandard}
           />
         </HalfWidthContainer>
       </RowContainer>
@@ -634,7 +633,8 @@ const EnergyPriceAnalysis = () => {
           <PriceTable
             onPricesUpdate={fetchSettings}
             triggerHandleSend={handleExitEditMode}
-            prices={prices?.prices || prices || {}}
+            disableEdit={true}
+            selectedPricingStandard={selectedPricingStandard}
           />
         </div>
       </div>
@@ -643,7 +643,7 @@ const EnergyPriceAnalysis = () => {
           <DataTableComponent
             aggregatedData={aggregatedData}
             energyPrice
-            prices={prices?.prices || prices || {}}
+            prices={prices}
           />
         </div>
       </div>
