@@ -223,6 +223,7 @@ const IntervalUsageChart = () => {
             options={options}
             onSend={handleMeterSelection}
             defaultSelectedOptions={[selectedMeter]}
+            singleSelection={true}
           />
         </HalfWidthContainer>
       </RowContainer>
