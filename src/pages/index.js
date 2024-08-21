@@ -417,6 +417,16 @@ const HomePage = () => {
       console.log("Final Average Power Data:", averagePowerData);
 
       const combinedEnergyOptions = {
+        title: {
+          text: "總能耗與平均功率趨勢",
+          left: "center",
+          top: 10,
+          textStyle: {
+            color: "#3ba272",
+            fontSize: 18,
+            fontWeight: "300",
+          },
+        },
         tooltip: {
           trigger: "axis",
           axisPointer: {
@@ -515,6 +525,16 @@ const HomePage = () => {
       // Use contractCapacity instead of hardcoded value
       const markLineValue = contractCapacity;
       const dailyPeakDemandOptions = {
+        title: {
+          text: "每日最高十五分鐘需量",
+          left: "center",
+          top: 10,
+          textStyle: {
+            color: "#3ba272",
+            fontSize: 18,
+            fontWeight: "300",
+          },
+        },
         tooltip: {
           trigger: "axis",
           axisPointer: {
@@ -552,7 +572,7 @@ const HomePage = () => {
             markLine: {
               silent: true,
               lineStyle: {
-                color: "#333",
+                color: "#ff0000",
               },
               label: {
                 position: "insideEndTop",
@@ -894,14 +914,12 @@ const HomePage = () => {
           <div className="row h-100">
             <ChartCard
               ref={combinedEnergyChartRef}
-              title="總能耗與平均功率趨勢"
-              height="250px"
+              height="100%"
               isLoading={isLoading}
             />
             <ChartCard
               ref={dailyPeakDemandChartRef}
-              title="每日最高十五分鐘需量"
-              height="250px"
+              height="100%"
               isLoading={isLoading}
             />
           </div>
@@ -995,20 +1013,20 @@ const InfoCard = ({ title, value, monthlyValue, isLoading, quarter }) => (
     </div>
   </div>
 );
-const ChartCard = React.forwardRef(({ title, height, isLoading }, ref) => (
+
+const ChartCard = React.forwardRef(({ isLoading }, ref) => (
   <div className="col-lg-6 col-12 mb-4 d-flex">
-    <div className="card text-center shadow-sm flex-fill">
-      <div className="card-body d-flex flex-column justify-content-center">
-        <h5 className="card-title text-success">{title}</h5>
+    <div className="card shadow-sm flex-fill">
+      <div className="card-body d-flex flex-column justify-content-center p-0">
         {isLoading ? (
           <div
             className="d-flex justify-content-center align-items-center"
-            style={{ height }}
+            style={{ height: "300px" }}
           >
             <LoadingSpinner />
           </div>
         ) : (
-          <div ref={ref} style={{ width: "100%", height }}></div>
+          <div ref={ref} style={{ width: "100%", height: "300px" }}></div>
         )}
       </div>
     </div>
