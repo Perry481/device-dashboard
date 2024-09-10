@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Select from "react-select";
 import PriceTable from "../components/PriceTable";
+import GroupManagement from "../components/GroupManagement";
 
 const SettingsContainer = styled.div`
   width: 100%;
@@ -11,7 +12,7 @@ const SettingsContainer = styled.div`
   box-sizing: border-box;
 `;
 
-const SettingsForm = styled.form`
+const Section = styled.div`
   background-color: #f8f9fa;
   border-radius: 8px;
   padding: 20px;
@@ -19,7 +20,7 @@ const SettingsForm = styled.form`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const FormTitle = styled.h2`
+const SectionTitle = styled.h2`
   font-size: 1.5rem;
   margin-bottom: 20px;
   color: #333;
@@ -90,15 +91,19 @@ const SettingsPage = () => {
   const [contractCapacity, setContractCapacity] = useState(0);
   const [selectedStandard, setSelectedStandard] = useState(null);
   const [standardOptions, setStandardOptions] = useState([]);
+  const [allMachines, setAllMachines] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [ungroupedMachines, setUngroupedMachines] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchSettings();
+    fetchMachines();
   }, []);
 
   const fetchSettings = async () => {
     try {
       const response = await fetch("/api/settings");
-      if (!response.ok) throw new Error("設定取得失敗");
+      if (!response.ok) throw new Error("Failed to fetch settings");
       const data = await response.json();
       setSettings(data);
       setCO2(data.CO2);
@@ -114,12 +119,60 @@ const SettingsPage = () => {
         (option) => option.value === data.activePricingStandard
       );
       setSelectedStandard(activeStandard);
+
+      return data.machineGroups || [];
     } catch (error) {
-      console.error("設定取得錯誤:", error);
+      console.error("Error fetching settings:", error);
+      return [];
     }
   };
 
-  const handleSubmit = async (e) => {
+  const fetchMachines = async () => {
+    setIsLoading(true);
+    try {
+      const [machinesResponse, fetchedGroups] = await Promise.all([
+        fetch("https://iot.jtmes.net/ebc/api/equipment/powermeter_list"),
+        fetchSettings(),
+      ]);
+
+      if (!machinesResponse.ok) throw new Error("Failed to fetch machines");
+      const machinesData = await machinesResponse.json();
+      const formattedMachines = machinesData.map((machine) => ({
+        id: machine.sn,
+        name: machine.name,
+      }));
+      setAllMachines(formattedMachines);
+
+      updateMachineDistribution(formattedMachines, fetchedGroups);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching machines:", error);
+      setIsLoading(false);
+    }
+  };
+
+  const updateMachineDistribution = (machines, fetchedGroups) => {
+    const groupedMachineIds = new Set(
+      fetchedGroups.flatMap((group) =>
+        group.machines.map((machine) => machine.id)
+      )
+    );
+
+    const ungrouped = machines.filter(
+      (machine) => !groupedMachineIds.has(machine.id)
+    );
+    setUngroupedMachines(ungrouped);
+
+    const updatedGroups = fetchedGroups.map((group) => ({
+      ...group,
+      machines: group.machines.filter((machine) =>
+        machines.some((m) => m.id === machine.id)
+      ),
+    }));
+    setGroups(updatedGroups);
+  };
+
+  const handleBasicSettingsSubmit = async (e) => {
     e.preventDefault();
     try {
       const updates = {
@@ -134,13 +187,37 @@ const SettingsPage = () => {
         body: JSON.stringify(updates),
       });
 
-      if (!response.ok) throw new Error("設定更新失敗");
+      if (!response.ok) throw new Error("Failed to update settings");
 
-      alert("設定更新成功");
+      alert("Basic settings updated successfully");
       fetchSettings();
     } catch (error) {
-      console.error("設定更新錯誤:", error);
-      alert("設定更新失敗");
+      console.error("Error updating basic settings:", error);
+      alert("Failed to update basic settings");
+    }
+  };
+
+  const handleGroupSettingsSubmit = async (newGroups, newUngroupedMachines) => {
+    try {
+      const updates = {
+        machineGroups: newGroups,
+      };
+
+      const response = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) throw new Error("Failed to update group settings");
+
+      alert("Group settings updated successfully");
+      setGroups(newGroups);
+      setUngroupedMachines(newUngroupedMachines);
+      fetchSettings();
+    } catch (error) {
+      console.error("Error updating group settings:", error);
+      alert("Failed to update group settings");
     }
   };
 
@@ -148,49 +225,67 @@ const SettingsPage = () => {
     fetchSettings();
   };
 
-  if (!settings) return <div>載入中...</div>;
+  if (!settings) return <div>Loading...</div>;
 
   return (
     <SettingsContainer>
-      <SettingsForm onSubmit={handleSubmit}>
-        <FormTitle>基本設定</FormTitle>
-        <FormGroup>
-          <Label htmlFor="co2">CO2 排放係數：</Label>
-          <Input
-            id="co2"
-            type="number"
-            step="0.001"
-            value={co2}
-            onChange={(e) => setCO2(e.target.value)}
+      <Section>
+        <SectionTitle>Basic Settings</SectionTitle>
+        <form onSubmit={handleBasicSettingsSubmit}>
+          <FormGroup>
+            <Label htmlFor="co2">CO2 Emission Factor:</Label>
+            <Input
+              id="co2"
+              type="number"
+              step="0.001"
+              value={co2}
+              onChange={(e) => setCO2(e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label htmlFor="contractCapacity">Contract Capacity (kW):</Label>
+            <Input
+              id="contractCapacity"
+              type="number"
+              step="0.1"
+              value={contractCapacity}
+              onChange={(e) => setContractCapacity(e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label htmlFor="activePricingStandard">
+              Global Default Pricing Standard:
+            </Label>
+            <Select
+              id="activePricingStandard"
+              options={standardOptions}
+              value={selectedStandard}
+              onChange={setSelectedStandard}
+              styles={customSelectStyles}
+            />
+          </FormGroup>
+          <Button type="submit">Save Basic Settings</Button>
+        </form>
+      </Section>
+      <Section>
+        <SectionTitle>Grouping Settings</SectionTitle>
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : (
+          <GroupManagement
+            initialGroups={groups}
+            initialUngroupedMachines={ungroupedMachines}
+            onSave={handleGroupSettingsSubmit}
           />
-        </FormGroup>
-        <FormGroup>
-          <Label htmlFor="contractCapacity">契約容量 (kW)：</Label>
-          <Input
-            id="contractCapacity"
-            type="number"
-            step="0.1"
-            value={contractCapacity}
-            onChange={(e) => setContractCapacity(e.target.value)}
-          />
-        </FormGroup>
-        <FormGroup>
-          <Label htmlFor="activePricingStandard">全局預設電價標準：</Label>
-          <Select
-            id="activePricingStandard"
-            options={standardOptions}
-            value={selectedStandard}
-            onChange={setSelectedStandard}
-            styles={customSelectStyles}
-          />
-        </FormGroup>
-        <Button type="submit">儲存設定</Button>
-      </SettingsForm>
-
-      <PriceTable
-        onPricesUpdate={handlePriceTableUpdate}
-        triggerHandleSend={handlePriceTableUpdate}
-      />
+        )}
+      </Section>
+      <Section>
+        <SectionTitle>Price Settings</SectionTitle>
+        <PriceTable
+          onPricesUpdate={handlePriceTableUpdate}
+          triggerHandleSend={handlePriceTableUpdate}
+        />
+      </Section>
     </SettingsContainer>
   );
 };

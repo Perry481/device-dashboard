@@ -109,9 +109,13 @@ export default async function handler(req, res) {
       const settings = await readSettingsFromFile();
 
       // Merge the updates into the existing settings
-      Object.assign(settings, updates);
+      const updatedSettings = {
+        ...settings,
+        ...updates,
+        machineGroups: updates.machineGroups || settings.machineGroups,
+      };
 
-      await writeSettingsToFile(settings);
+      await writeSettingsToFile(updatedSettings);
       res.status(200).json({ message: "Settings updated successfully" });
     } catch (error) {
       console.error("Error updating settings:", error);
