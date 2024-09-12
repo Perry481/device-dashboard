@@ -149,22 +149,7 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                 </NavLink>
               </Link>
             </NavItem>
-            <NavItem
-              className={`nav-item ${
-                selectedPage === "SettingsPage" ? "active" : ""
-              }`}
-            >
-              <Link href="/SettingsPage" legacyBehavior>
-                <NavLink
-                  className={`nav-link ${
-                    selectedPage === "SettingsPage" ? "active" : ""
-                  }`}
-                  onClick={() => onPageChange("SettingsPage")}
-                >
-                  設定
-                </NavLink>
-              </Link>
-            </NavItem>
+
             <NavItem
               className={`nav-item dropdown ${
                 selectedPage === "electricMeterDetails" ? "active" : ""
@@ -243,6 +228,22 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                   </Link>
                 </li>
               </DropdownMenu>
+            </NavItem>
+            <NavItem
+              className={`nav-item ${
+                selectedPage === "SettingsPage" ? "active" : ""
+              }`}
+            >
+              <Link href="/SettingsPage" legacyBehavior>
+                <NavLink
+                  className={`nav-link ${
+                    selectedPage === "SettingsPage" ? "active" : ""
+                  }`}
+                  onClick={() => onPageChange("SettingsPage")}
+                >
+                  設定
+                </NavLink>
+              </Link>
             </NavItem>
           </ul>
         </div>
