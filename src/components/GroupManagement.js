@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { FaChevronRight } from "react-icons/fa";
@@ -22,15 +22,21 @@ const Column = styled.div`
   padding: 10px;
   background-color: #fff;
   border-radius: 4px;
-  overflow-y: auto;
   border: 1px solid #ddd;
   min-height: 200px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ColumnHeader = styled.h3`
   margin-bottom: 10px;
   padding-bottom: 10px;
   border-bottom: 1px solid #ddd;
+`;
+
+const GroupsWrapper = styled.div`
+  flex: 1;
+  overflow-y: auto;
 `;
 
 const DroppableArea = styled.div`
@@ -161,6 +167,7 @@ const AddGroupButton = styled.button`
   font-size: 16px;
   transition: background-color 0.2s;
   margin-top: 10px;
+  align-self: center;
 
   &:hover {
     background-color: #0056b3;
@@ -194,6 +201,15 @@ const GroupManagement = ({
     initialUngroupedMachines
   );
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [editingValue, setEditingValue] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (editingGroup !== null && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editingGroup]);
 
   const onDragEnd = (result) => {
     const { source, destination } = result;
@@ -290,19 +306,40 @@ const GroupManagement = ({
     });
   };
 
-  const renameGroup = (oldName, newName) => {
-    setGroups((prevGroups) =>
-      prevGroups.map((group) =>
-        group.name === oldName ? { ...group, name: newName } : group
-      )
-    );
-  };
-
   const toggleGroup = (groupName) => {
     setExpandedGroups((prev) => ({
       ...prev,
       [groupName]: !prev[groupName],
     }));
+  };
+
+  const startEditingGroup = (groupName) => {
+    setEditingGroup(groupName);
+    setEditingValue(groupName);
+  };
+
+  const finishEditingGroup = () => {
+    if (editingGroup !== null && editingValue.trim() !== "") {
+      setGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          group.name === editingGroup
+            ? { ...group, name: editingValue.trim() }
+            : group
+        )
+      );
+    }
+    setEditingGroup(null);
+    setEditingValue("");
+  };
+
+  const handleInputChange = (e) => {
+    setEditingValue(e.target.value);
+  };
+
+  const handleInputKeyPress = (e) => {
+    if (e.key === "Enter") {
+      finishEditingGroup();
+    }
   };
 
   const handleSave = () => {
@@ -350,71 +387,84 @@ const GroupManagement = ({
           </Column>
           <Column>
             <ColumnHeader>Groups</ColumnHeader>
-            {groups.map((group) => (
-              <GroupContainer key={group.name}>
-                <GroupHeader>
-                  <GroupNameWrapper>
-                    <ExpandButton onClick={() => toggleGroup(group.name)}>
-                      <ToggleIcon isExpanded={expandedGroups[group.name]}>
-                        <FaChevronRight />
-                      </ToggleIcon>
-                    </ExpandButton>
-                    <GroupName
-                      value={group.name}
-                      onChange={(e) => renameGroup(group.name, e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </GroupNameWrapper>
-                  <GroupInfo>
-                    <MachineCount>({group.machines.length} 台)</MachineCount>
-                    <DeleteButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteGroup(group.name);
-                      }}
-                    >
-                      Delete
-                    </DeleteButton>
-                  </GroupInfo>
-                </GroupHeader>
-                <GroupContent isExpanded={expandedGroups[group.name]}>
-                  <Droppable droppableId={group.name}>
-                    {(provided) => (
-                      <DroppableArea
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
+            <GroupsWrapper>
+              {groups.map((group) => (
+                <GroupContainer key={group.name}>
+                  <GroupHeader>
+                    <GroupNameWrapper>
+                      <ExpandButton onClick={() => toggleGroup(group.name)}>
+                        <ToggleIcon isExpanded={expandedGroups[group.name]}>
+                          <FaChevronRight />
+                        </ToggleIcon>
+                      </ExpandButton>
+                      {editingGroup === group.name ? (
+                        <GroupName
+                          ref={inputRef}
+                          value={editingValue}
+                          onChange={handleInputChange}
+                          onBlur={finishEditingGroup}
+                          onKeyPress={handleInputKeyPress}
+                        />
+                      ) : (
+                        <GroupName
+                          as="div"
+                          onClick={() => startEditingGroup(group.name)}
+                        >
+                          {group.name}
+                        </GroupName>
+                      )}
+                    </GroupNameWrapper>
+                    <GroupInfo>
+                      <MachineCount>({group.machines.length} 台)</MachineCount>
+                      <DeleteButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteGroup(group.name);
+                        }}
                       >
-                        {group.machines.length > 0 ? (
-                          group.machines.map((machine, index) => (
-                            <Draggable
-                              key={machine.id}
-                              draggableId={machine.id}
-                              index={index}
-                            >
-                              {(provided, snapshot) => (
-                                <MachineItem
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  isDragging={snapshot.isDragging}
-                                >
-                                  <DraggableContent>
-                                    {machine.name}
-                                  </DraggableContent>
-                                </MachineItem>
-                              )}
-                            </Draggable>
-                          ))
-                        ) : (
-                          <EmptyState>This group is empty</EmptyState>
-                        )}
-                        {provided.placeholder}
-                      </DroppableArea>
-                    )}
-                  </Droppable>
-                </GroupContent>
-              </GroupContainer>
-            ))}
+                        Delete
+                      </DeleteButton>
+                    </GroupInfo>
+                  </GroupHeader>
+                  <GroupContent isExpanded={expandedGroups[group.name]}>
+                    <Droppable droppableId={group.name}>
+                      {(provided) => (
+                        <DroppableArea
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                        >
+                          {group.machines.length > 0 ? (
+                            group.machines.map((machine, index) => (
+                              <Draggable
+                                key={machine.id}
+                                draggableId={machine.id}
+                                index={index}
+                              >
+                                {(provided, snapshot) => (
+                                  <MachineItem
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    isDragging={snapshot.isDragging}
+                                  >
+                                    <DraggableContent>
+                                      {machine.name}
+                                    </DraggableContent>
+                                  </MachineItem>
+                                )}
+                              </Draggable>
+                            ))
+                          ) : (
+                            <EmptyState>This group is empty</EmptyState>
+                          )}
+                          {provided.placeholder}
+                        </DroppableArea>
+                      )}
+                    </Droppable>
+                  </GroupContent>
+                </GroupContainer>
+              ))}
+            </GroupsWrapper>
             <AddGroupButton onClick={addGroup}>Add Group</AddGroupButton>
           </Column>
         </DragDropContext>

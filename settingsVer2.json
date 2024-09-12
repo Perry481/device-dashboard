@@ -470,22 +470,10 @@
   "contractCapacity": 15,
   "machineGroups": [
     {
-      "name": "Group 1",
+      "name": "電表組1",
       "startIndex": 2,
       "endIndex": 7,
       "machines": [
-        {
-          "id": "Jetson_nano0_1",
-          "name": "射出機401"
-        },
-        {
-          "id": "Jetson_nano0_3",
-          "name": "射出機403電錶"
-        },
-        {
-          "id": "Jetson_nano0_7",
-          "name": "射出機407電錶"
-        },
         {
           "id": "Jetson_nano0_6",
           "name": "射出機406電錶"
@@ -493,11 +481,15 @@
       ]
     },
     {
-      "name": "2",
+      "name": "電表組2",
       "machines": [
         {
-          "id": "Jetson_nano0_5",
-          "name": "射出機405"
+          "id": "Jetson_nano0_7",
+          "name": "射出機407電錶"
+        },
+        {
+          "id": "Jetson_nano0_3",
+          "name": "射出機403電錶"
         }
       ]
     }
