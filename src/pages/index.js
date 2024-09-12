@@ -319,29 +319,144 @@ const getCurrentQuarterDates = () => {
   return { startDate, endDate };
 };
 
+const logQuarterData = (results, selectedOptions, machineGroups) => {
+  const quarterData = {};
+  const settingsGroupedData = {};
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+
+  // Create a map of machine IDs to their group names
+  const machineGroupMap = {};
+  machineGroups.forEach((group) => {
+    group.machines.forEach((machine) => {
+      machineGroupMap[machine.id] = group.name;
+    });
+  });
+
+  results.forEach((result, index) => {
+    const machineSN = selectedOptions[index];
+    const groupName = machineGroupMap[machineSN] || "Ungrouped";
+    const monthlyData = {};
+
+    if (Array.isArray(result)) {
+      result.forEach((item) => {
+        const { Key, Value } = item;
+        const [datePart, timePart] = Key.split(" ");
+        const [year, month, day] = datePart.split("/").map(Number);
+
+        if (!monthlyData[month]) {
+          monthlyData[month] = { totalEnergy: 0, quarterHourData: {} };
+        }
+
+        monthlyData[month].quarterHourData[`${day} ${timePart}`] = Value;
+        monthlyData[month].totalEnergy += Value;
+      });
+    }
+
+    quarterData[machineSN] = monthlyData;
+
+    // Aggregate data for groups
+    if (!settingsGroupedData[groupName]) {
+      settingsGroupedData[groupName] = {};
+    }
+    Object.entries(monthlyData).forEach(([month, data]) => {
+      if (!settingsGroupedData[groupName][month]) {
+        settingsGroupedData[groupName][month] = { totalEnergy: 0 };
+      }
+      settingsGroupedData[groupName][month].totalEnergy += data.totalEnergy;
+    });
+  });
+
+  console.log(`Current Month: ${currentMonth}`);
+  console.log("Quarter Data by Month and Group:");
+
+  // Log individual machine data
+  for (const [machineSN, monthlyData] of Object.entries(quarterData)) {
+    const groupName = machineGroupMap[machineSN] || "Ungrouped";
+    console.log(`Machine: ${machineSN} (Group: ${groupName})`);
+    for (const [month, data] of Object.entries(monthlyData)) {
+      console.log(
+        `  Month: ${month}, Total Energy: ${data.totalEnergy.toFixed(2)}`
+      );
+
+      if (parseInt(month) === currentMonth) {
+        console.log("  ** CURRENT MONTH **");
+      }
+    }
+  }
+
+  // Log grouped data
+  console.log("\nSettings Grouped Data:");
+  for (const [groupName, groupMonthlyData] of Object.entries(
+    settingsGroupedData
+  )) {
+    console.log(`Group: ${groupName}`);
+    for (const [month, data] of Object.entries(groupMonthlyData)) {
+      console.log(
+        `  Month: ${month}, Total Energy: ${data.totalEnergy.toFixed(2)}`
+      );
+
+      if (parseInt(month) === currentMonth) {
+        console.log("  ** CURRENT MONTH **");
+      }
+    }
+  }
+
+  return { quarterData, settingsGroupedData };
+};
+
 const HomePage = () => {
   const combinedEnergyChartRef = useRef(null);
   const dailyPeakDemandChartRef = useRef(null);
   const pieChartRef = useRef(null);
 
   const updatePieChart = () => {
-    if (pieChartRef.current) {
+    if (pieChartRef.current && Object.keys(settingsGroupedData).length > 0) {
       const pieChart = echarts.init(pieChartRef.current);
+
+      // Calculate total energy for the current month
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+
+      const pieData = Object.entries(settingsGroupedData).map(
+        ([groupName, monthlyData]) => {
+          const currentMonthData = monthlyData[currentMonth];
+          return {
+            name: groupName === "Ungrouped" ? "未分組" : groupName,
+            value: currentMonthData
+              ? Number(currentMonthData.totalEnergy.toFixed(2))
+              : 0,
+          };
+        }
+      );
+
       const pieOptions = {
-        title: { text: "用電估比", left: "center" },
-        tooltip: { trigger: "item" },
-        legend: { bottom: "0", left: "center" },
+        title: {
+          text: "用電估比",
+          left: "center",
+          textStyle: {
+            color: "#3ba272",
+            fontSize: 18,
+            fontWeight: "300",
+          },
+        },
+        tooltip: {
+          trigger: "item",
+          formatter: "{a} <br/>{b}: {c} kWh ({d}%)",
+        },
+        legend: {
+          orient: "vertical",
+          left: 20,
+          top: 20,
+          data: pieData.map((item) => item.name),
+        },
         series: [
           {
             name: "用電估比",
             type: "pie",
             radius: "50%",
-            data: [
-              { value: 40.57, name: "研發辦公室" },
-              { value: 29.54, name: "業務辦公室" },
-              { value: 29.88, name: "廠務辦公室" },
-              { value: 0.01, name: "(無群組)" },
-            ],
+            data: pieData,
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -352,11 +467,11 @@ const HomePage = () => {
           },
         ],
       };
+
       pieChart.setOption(pieOptions);
       return pieChart;
     }
   };
-
   const updateCombinedEnergyChart = () => {
     if (combinedEnergyChartRef.current && !isLoading) {
       const combinedEnergyChart = echarts.init(combinedEnergyChartRef.current);
@@ -623,7 +738,8 @@ const HomePage = () => {
   const [activePricingStandard, setActivePricingStandard] = useState(null);
   const [co2, setCO2] = useState(0);
   const [contractCapacity, setContractCapacity] = useState(0); // Default to 10 as a fallback
-
+  const [machineGroups, setMachineGroups] = useState([]);
+  const [settingsGroupedData, setSettingsGroupedData] = useState({});
   const fetchSettings = async () => {
     try {
       const response = await fetch("/api/settings");
@@ -636,6 +752,7 @@ const HomePage = () => {
       setCO2(savedSettings.CO2);
       setContractCapacity(savedSettings.contractCapacity);
       setActivePricingStandard(savedSettings.activePricingStandard);
+      setMachineGroups(savedSettings.machineGroups || []); // Add this line
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -686,7 +803,14 @@ const HomePage = () => {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [dataReady, isLoading, energyConsumptionData, priceData, co2]);
+  }, [
+    dataReady,
+    isLoading,
+    energyConsumptionData,
+    priceData,
+    co2,
+    settingsGroupedData,
+  ]);
 
   const fetchAllData = async () => {
     if (selectedOptions.length === 0) {
@@ -694,7 +818,7 @@ const HomePage = () => {
       return;
     }
 
-    // console.log("Starting data fetch for selected options:", selectedOptions);
+    console.log("Starting data fetch for selected options:", selectedOptions);
 
     const fetchPromises = selectedOptions.map(async (sn) => {
       // console.log(`Fetching quarter data for ${sn}...`);
@@ -703,21 +827,30 @@ const HomePage = () => {
         dateRange.startDate,
         dateRange.endDate
       );
+
       return result;
     });
 
     try {
       const results = await Promise.all(fetchPromises);
-      console.log("All data fetched. Processing data...");
+      console.log("All data fetched. Individual results:");
+      const { quarterData, settingsGroupedData } = logQuarterData(
+        results,
+        selectedOptions,
+        machineGroups
+      );
+      console.log("Quarter Data:", quarterData);
+      console.log("Settings Grouped Data:", settingsGroupedData);
+
+      setSettingsGroupedData(settingsGroupedData);
+
+      console.log("Processing data...");
 
       // Process the quarter data
       const { categorizedData, groupedData } = processQuarterData(
         results,
         timeRanges
       );
-
-      // console.log("Categorized Quarter Data:", categorizedData);
-      // console.log("Grouped Quarter Data:", groupedData);
 
       // Continue with your existing data processing for hourly data
       const processedHourlyData = results.map(processQuarterDataToHourly);
@@ -734,7 +867,6 @@ const HomePage = () => {
       setIsLoading(false);
     }
   };
-
   const fetchQuarterData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
@@ -931,7 +1063,6 @@ const HomePage = () => {
             <div className="col-lg-4 col-12 mb-4 d-flex">
               <div className="card text-center shadow-sm flex-fill">
                 <div className="card-body d-flex flex-column justify-content-center">
-                  <h5 className="card-title">用電估比</h5>
                   <div
                     ref={pieChartRef}
                     style={{ width: "100%", height: "250px" }}
