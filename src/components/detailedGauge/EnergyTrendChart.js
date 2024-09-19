@@ -56,15 +56,16 @@ const EnergyTrendChart = () => {
     startDate: oneWeekAgo,
     endDate: today,
   });
-  const [selectedMeters, setSelectedMeters] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState([]);
   const [chartData, setChartData] = useState({});
   const [options, setOptions] = useState([]);
+  const [machineGroups, setMachineGroups] = useState([]);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
-  const fetchTriggerRef = useRef({ date: null, meters: null });
+  const fetchTriggerRef = useRef({ date: null, options: null });
 
   const fetchData = useCallback(async () => {
-    if (selectedMeters.length === 0) return;
+    if (selectedOptions.length === 0) return;
 
     if (chartInstanceRef.current) {
       chartInstanceRef.current.showLoading();
@@ -73,19 +74,31 @@ const EnergyTrendChart = () => {
     const formattedStartDate = formatDate(dateRange.startDate);
     const formattedEndDate = formatDate(dateRange.endDate);
 
+    const expandedOptions = selectedOptions.flatMap((option) => {
+      const group = machineGroups.find((g) => g.name === option);
+      return group
+        ? group.machines.map((m) => ({ id: m.id, name: m.name }))
+        : [
+            {
+              id: option,
+              name: options.find((o) => o.value === option)?.label,
+            },
+          ];
+    });
+
     try {
-      const promises = selectedMeters.map((meter) =>
+      const promises = expandedOptions.map(({ id, name }) =>
         fetch(
-          `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${meter}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
+          `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
         ).then((response) => {
           if (!response.ok)
-            throw new Error(`Failed to fetch data for meter ${meter}`);
-          return response.json();
+            throw new Error(`Failed to fetch data for meter ${id}`);
+          return response.json().then((data) => ({ id, name, data }));
         })
       );
 
       const results = await Promise.all(promises);
-      processData(results, selectedMeters);
+      processData(results);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -93,15 +106,12 @@ const EnergyTrendChart = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedMeters, dateRange]);
+  }, [selectedOptions, dateRange, machineGroups, options]);
 
-  const processData = (data, meters) => {
+  const processData = (results) => {
     const processedData = {};
-    data.forEach((meterData, index) => {
-      const meterName =
-        options.find((option) => option.value === meters[index])?.label ||
-        meters[index];
-      processedData[meterName] = meterData.map((item) => {
+    results.forEach(({ id, name, data }) => {
+      processedData[name] = data.map((item) => {
         const [date, time] = item.Key.split(" ");
         return { date, time, value: item.Value };
       });
@@ -114,9 +124,9 @@ const EnergyTrendChart = () => {
     fetchTriggerRef.current.date = new Date();
   }, []);
 
-  const handleMeterSelection = useCallback((selectedMeters) => {
-    setSelectedMeters(selectedMeters);
-    fetchTriggerRef.current.meters = new Date();
+  const handleOptionSelection = useCallback((selectedOptions) => {
+    setSelectedOptions(selectedOptions);
+    fetchTriggerRef.current.options = new Date();
   }, []);
 
   useEffect(() => {
@@ -132,27 +142,39 @@ const EnergyTrendChart = () => {
           label: item.name,
         }));
         setOptions(formattedOptions);
-        if (formattedOptions.length >= 2) {
-          setSelectedMeters([formattedOptions[0].value]);
-          fetchTriggerRef.current.meters = new Date();
+        if (formattedOptions.length > 0) {
+          setSelectedOptions([formattedOptions[0].value]);
+          fetchTriggerRef.current.options = new Date();
         }
       } catch (error) {
         console.error("Error fetching options:", error);
       }
     };
 
+    const fetchMachineGroups = async () => {
+      try {
+        const response = await fetch("/api/settings");
+        if (!response.ok) throw new Error("Failed to fetch settings");
+        const data = await response.json();
+        setMachineGroups(data.machineGroups || []);
+      } catch (error) {
+        console.error("Error fetching machine groups:", error);
+      }
+    };
+
     fetchOptions();
+    fetchMachineGroups();
   }, []);
 
   useEffect(() => {
     const shouldFetch =
-      fetchTriggerRef.current.date || fetchTriggerRef.current.meters;
+      fetchTriggerRef.current.date || fetchTriggerRef.current.options;
 
-    if (shouldFetch && selectedMeters.length > 0) {
+    if (shouldFetch && selectedOptions.length > 0) {
       fetchData();
-      fetchTriggerRef.current = { date: null, meters: null };
+      fetchTriggerRef.current = { date: null, options: null };
     }
-  }, [selectedMeters, dateRange, fetchData]);
+  }, [selectedOptions, dateRange, fetchData]);
 
   useEffect(() => {
     if (chartRef.current && Object.keys(chartData).length > 0) {
@@ -193,7 +215,7 @@ const EnergyTrendChart = () => {
                 " " +
                 param.seriesName +
                 ": " +
-                param.value[1] +
+                param.value[1].toFixed(2) +
                 " kWh<br/>";
             });
             return result;
@@ -261,6 +283,7 @@ const EnergyTrendChart = () => {
       };
     }
   }, [chartData]);
+
   return (
     <div className="container-fluid">
       <RowContainer>
@@ -273,8 +296,9 @@ const EnergyTrendChart = () => {
         <HalfWidthContainer>
           <SelectionAndSend
             options={options}
-            onSend={handleMeterSelection}
-            defaultSelectedOptions={selectedMeters}
+            onSend={handleOptionSelection}
+            defaultSelectedOptions={selectedOptions}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

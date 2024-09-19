@@ -1,30 +1,11 @@
 import dynamic from "next/dynamic";
 import React, { useState, useEffect, useRef } from "react";
+import Select from "react-select";
 import "bootstrap/dist/css/bootstrap.min.css";
 import * as echarts from "echarts";
 import styled from "styled-components";
 import { debounce } from "lodash";
 
-const SpinnerCircle = styled.div`
-  color: #3ba272;
-`;
-
-const LoadingText = styled.div`
-  @keyframes pulse {
-    0% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
-
-  animation: pulse 1.5s infinite ease-in-out;
-  color: black;
-`;
 const formatDate = (date) => {
   const year = date.getFullYear();
   const month = `0${date.getMonth() + 1}`.slice(-2);
@@ -318,7 +299,42 @@ const getCurrentQuarterDates = () => {
 
   return { startDate, endDate };
 };
+const getGroupDetails = (groupName, quarterData, machineGroups) => {
+  const group = machineGroups.find((g) => g.name === groupName);
+  if (!group) {
+    return {
+      groupName: groupName,
+      machines: [],
+      totalEnergy: 0,
+    };
+  }
 
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+
+  const machineDetails = group.machines.map((machine) => {
+    const machineData = quarterData[machine.id];
+    const currentMonthData = machineData?.[currentMonth];
+    const totalEnergy = currentMonthData ? currentMonthData.totalEnergy : 0;
+
+    return {
+      id: machine.id,
+      name: machine.name,
+      totalEnergy: Number(totalEnergy.toFixed(2)),
+    };
+  });
+
+  const groupTotalEnergy = machineDetails.reduce(
+    (sum, machine) => sum + machine.totalEnergy,
+    0
+  );
+
+  return {
+    groupName: groupName,
+    machines: machineDetails,
+    totalEnergy: Number(groupTotalEnergy.toFixed(2)),
+  };
+};
 const logQuarterData = (results, selectedOptions, machineGroups) => {
   const quarterData = {};
   const settingsGroupedData = {};
@@ -356,7 +372,6 @@ const logQuarterData = (results, selectedOptions, machineGroups) => {
 
     quarterData[machineSN] = monthlyData;
 
-    // Aggregate data for groups
     if (!settingsGroupedData[groupName]) {
       settingsGroupedData[groupName] = {};
     }
@@ -368,39 +383,39 @@ const logQuarterData = (results, selectedOptions, machineGroups) => {
     });
   });
 
-  console.log(`Current Month: ${currentMonth}`);
-  console.log("Quarter Data by Month and Group:");
+  // console.log(`Current Month: ${currentMonth}`);
+  // console.log("Quarter Data by Month and Group:");
 
-  // Log individual machine data
-  for (const [machineSN, monthlyData] of Object.entries(quarterData)) {
-    const groupName = machineGroupMap[machineSN] || "Ungrouped";
-    console.log(`Machine: ${machineSN} (Group: ${groupName})`);
-    for (const [month, data] of Object.entries(monthlyData)) {
+  // Use the helper function to get detailed group information
+  const groupDetails = machineGroups.map((group) =>
+    getGroupDetails(group.name, quarterData, machineGroups)
+  );
+
+  // Log the detailed group information
+  groupDetails.forEach((group) => {
+    console.log(`Group: ${group.groupName}`);
+    console.log(`Total Energy: ${group.totalEnergy} kWh`);
+    console.log("Machines:");
+    group.machines.forEach((machine) => {
       console.log(
-        `  Month: ${month}, Total Energy: ${data.totalEnergy.toFixed(2)}`
+        `  ${machine.name} (${machine.id}): ${machine.totalEnergy} kWh`
       );
+    });
+    console.log("---");
+  });
 
-      if (parseInt(month) === currentMonth) {
-        console.log("  ** CURRENT MONTH **");
-      }
-    }
-  }
-
-  // Log grouped data
-  console.log("\nSettings Grouped Data:");
-  for (const [groupName, groupMonthlyData] of Object.entries(
-    settingsGroupedData
-  )) {
-    console.log(`Group: ${groupName}`);
-    for (const [month, data] of Object.entries(groupMonthlyData)) {
-      console.log(
-        `  Month: ${month}, Total Energy: ${data.totalEnergy.toFixed(2)}`
-      );
-
-      if (parseInt(month) === currentMonth) {
-        console.log("  ** CURRENT MONTH **");
-      }
-    }
+  // Also log the ungrouped machines
+  const ungroupedMachines = selectedOptions.filter(
+    (sn) => !machineGroupMap[sn]
+  );
+  if (ungroupedMachines.length > 0) {
+    console.log("Ungrouped Machines:");
+    ungroupedMachines.forEach((machineSN) => {
+      const machineData = quarterData[machineSN];
+      const currentMonthData = machineData?.[currentMonth];
+      const totalEnergy = currentMonthData ? currentMonthData.totalEnergy : 0;
+      console.log(`  ${machineSN}: ${totalEnergy.toFixed(2)} kWh`);
+    });
   }
 
   return { quarterData, settingsGroupedData };
@@ -412,28 +427,75 @@ const HomePage = () => {
   const pieChartRef = useRef(null);
 
   const updatePieChart = () => {
+    console.log("Updating Pie Chart");
+    console.log("settingsGroupedData:", settingsGroupedData);
+    console.log("quarterData:", quarterData);
+    console.log("selectedGroup:", selectedGroup);
+    console.log("machineGroups:", machineGroups);
+
     if (pieChartRef.current && Object.keys(settingsGroupedData).length > 0) {
       const pieChart = echarts.init(pieChartRef.current);
 
-      // Calculate total energy for the current month
+      if (isLoading || isSwitchingGroup) {
+        pieChart.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255, 0.8)",
+          zlevel: 0,
+        });
+        return pieChart;
+      }
+
+      pieChart.hideLoading();
+
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
+      console.log("Current Month:", currentMonth);
 
-      const pieData = Object.entries(settingsGroupedData).map(
-        ([groupName, monthlyData]) => {
-          const currentMonthData = monthlyData[currentMonth];
-          return {
-            name: groupName === "Ungrouped" ? "未分組" : groupName,
-            value: currentMonthData
-              ? Number(currentMonthData.totalEnergy.toFixed(2))
-              : 0,
-          };
+      let pieData;
+      if (selectedGroup === "all") {
+        // For "all" selection, show data for each group
+        pieData = Object.entries(settingsGroupedData).map(
+          ([groupName, monthlyData]) => {
+            const currentMonthData = monthlyData[currentMonth];
+            return {
+              name: groupName === "Ungrouped" ? "未分組" : groupName,
+              value: currentMonthData
+                ? Number(currentMonthData.totalEnergy.toFixed(2))
+                : 0,
+            };
+          }
+        );
+      } else {
+        // For a specific group, use the settingsGroupedData
+        const groupData = settingsGroupedData[selectedGroup];
+        if (groupData && groupData[currentMonth]) {
+          const selectedGroupMachines =
+            machineGroups.find((g) => g.name === selectedGroup)?.machines || [];
+          pieData = selectedGroupMachines.map((machine) => {
+            const machineData = quarterData[machine.id];
+            const currentMonthData = machineData?.[currentMonth];
+            return {
+              name: machine.name,
+              value: currentMonthData
+                ? Number(currentMonthData.totalEnergy.toFixed(2))
+                : 0,
+            };
+          });
+        } else {
+          pieData = [{ name: selectedGroup, value: 0 }];
         }
-      );
+      }
+
+      console.log("Final Pie Data:", pieData);
 
       const pieOptions = {
         title: {
-          text: "用電估比",
+          text:
+            selectedGroup === "all"
+              ? "用電估比 (全部)"
+              : `用電估比 (${selectedGroup})`,
           left: "center",
           textStyle: {
             color: "#3ba272",
@@ -444,12 +506,6 @@ const HomePage = () => {
         tooltip: {
           trigger: "item",
           formatter: "{a} <br/>{b}: {c} kWh ({d}%)",
-        },
-        legend: {
-          orient: "vertical",
-          left: 20,
-          top: 20,
-          data: pieData.map((item) => item.name),
         },
         series: [
           {
@@ -470,6 +526,14 @@ const HomePage = () => {
 
       pieChart.setOption(pieOptions);
       return pieChart;
+    } else {
+      console.log("Conditions not met for updating pie chart");
+      console.log("pieChartRef.current:", pieChartRef.current);
+      console.log(
+        "settingsGroupedData keys:",
+        Object.keys(settingsGroupedData)
+      );
+      return null;
     }
   };
   const updateCombinedEnergyChart = () => {
@@ -489,14 +553,14 @@ const HomePage = () => {
       const totalEnergyConsumptionData = new Array(daysInMonth).fill(0);
       const averagePowerData = new Array(daysInMonth).fill(0);
 
-      console.log("Energy Consumption Data:", energyConsumptionData);
+      // console.log("Energy Consumption Data:", energyConsumptionData);
 
       Object.keys(energyConsumptionData).forEach((date) => {
         const [month, day] = date.split("/").map(Number);
         if (month === currentMonth) {
           const dayIndex = day - 1;
           const dayData = energyConsumptionData[date];
-          console.log(`Processing date: ${date}, Data:`, dayData);
+          // console.log(`Processing date: ${date}, Data:`, dayData);
 
           const peakValue = parseFloat(dayData.peak) || 0;
           const offPeakValue = parseFloat(dayData.offPeak) || 0;
@@ -505,13 +569,13 @@ const HomePage = () => {
           totalEnergyConsumptionData[dayIndex] =
             peakValue + offPeakValue + halfPeakValue;
 
-          console.log(
-            `Date: ${date}, Total Energy: ${totalEnergyConsumptionData[dayIndex]}`
-          );
+          // console.log(
+          //   `Date: ${date}, Total Energy: ${totalEnergyConsumptionData[dayIndex]}`
+          // );
         }
       });
 
-      console.log("Grouped Data:", groupedData);
+      // console.log("Grouped Data:", groupedData);
 
       Object.keys(groupedData).forEach((date) => {
         const [month, day] = date.split("/").map(Number);
@@ -519,17 +583,17 @@ const HomePage = () => {
           const dayIndex = day - 1;
           const dayData = groupedData[date];
           averagePowerData[dayIndex] = calculateAveragePower(dayData);
-          console.log(
-            `Date: ${date}, Average Power: ${averagePowerData[dayIndex]}`
-          );
+          // console.log(
+          //   `Date: ${date}, Average Power: ${averagePowerData[dayIndex]}`
+          // );
         }
       });
 
-      console.log(
-        "Final Total Energy Consumption Data:",
-        totalEnergyConsumptionData
-      );
-      console.log("Final Average Power Data:", averagePowerData);
+      // console.log(
+      //   "Final Total Energy Consumption Data:",
+      //   totalEnergyConsumptionData
+      // );
+      // console.log("Final Average Power Data:", averagePowerData);
 
       const combinedEnergyOptions = {
         title: {
@@ -636,7 +700,7 @@ const HomePage = () => {
         }
       });
 
-      console.log("Final peakDemandData:", peakDemandData);
+      // console.log("Final peakDemandData:", peakDemandData);
       // Use contractCapacity instead of hardcoded value
       const markLineValue = contractCapacity;
       const dailyPeakDemandOptions = {
@@ -740,6 +804,8 @@ const HomePage = () => {
   const [contractCapacity, setContractCapacity] = useState(0); // Default to 10 as a fallback
   const [machineGroups, setMachineGroups] = useState([]);
   const [settingsGroupedData, setSettingsGroupedData] = useState({});
+  const [selectedGroup, setSelectedGroup] = useState("all");
+  const [isSwitchingGroup, setIsSwitchingGroup] = useState(false);
   const fetchSettings = async () => {
     try {
       const response = await fetch("/api/settings");
@@ -806,65 +872,72 @@ const HomePage = () => {
   }, [
     dataReady,
     isLoading,
+    isSwitchingGroup,
     energyConsumptionData,
     priceData,
     co2,
     settingsGroupedData,
+    selectedGroup,
   ]);
-
   const fetchAllData = async () => {
     if (selectedOptions.length === 0) {
       console.error("No options selected");
       return;
     }
 
-    console.log("Starting data fetch for selected options:", selectedOptions);
+    setIsLoading(true);
+    setIsSwitchingGroup(true);
 
-    const fetchPromises = selectedOptions.map(async (sn) => {
-      // console.log(`Fetching quarter data for ${sn}...`);
+    let filteredOptions = selectedOptions;
+    if (selectedGroup !== "all") {
+      const group = machineGroups.find((g) => g.name === selectedGroup);
+      if (group) {
+        filteredOptions = group.machines.map((machine) => machine.id);
+      }
+    }
+
+    const fetchPromises = filteredOptions.map(async (sn) => {
       const result = await fetchQuarterData(
         sn,
         dateRange.startDate,
         dateRange.endDate
       );
-
-      return result;
+      return { sn, data: result };
     });
 
     try {
       const results = await Promise.all(fetchPromises);
-      console.log("All data fetched. Individual results:");
       const { quarterData, settingsGroupedData } = logQuarterData(
-        results,
-        selectedOptions,
+        results.map((r) => r.data),
+        results.map((r) => r.sn),
         machineGroups
       );
-      console.log("Quarter Data:", quarterData);
-      console.log("Settings Grouped Data:", settingsGroupedData);
 
       setSettingsGroupedData(settingsGroupedData);
+      setQuarterData(quarterData);
 
       console.log("Processing data...");
 
       // Process the quarter data
       const { categorizedData, groupedData } = processQuarterData(
-        results,
+        results.map((r) => r.data),
         timeRanges
       );
 
       // Continue with your existing data processing for hourly data
-      const processedHourlyData = results.map(processQuarterDataToHourly);
+      const processedHourlyData = results.map((r) =>
+        processQuarterDataToHourly(r.data)
+      );
       const aggregatedHourlyData = aggregateFetchedData(processedHourlyData);
       processAndSetData(aggregatedHourlyData, timeRanges);
 
-      setQuarterData({ categorizedData, groupedData });
       setQuarterGroupedData(groupedData);
-
+      setIsSwitchingGroup(false);
       setIsLoading(false);
+      setDataReady(true);
       console.log("Data processing complete.");
     } catch (error) {
       console.error("Error fetching data:", error);
-      setIsLoading(false);
     }
   };
   const fetchQuarterData = async (sn, startDate, endDate) => {
@@ -965,11 +1038,21 @@ const HomePage = () => {
     setIsLoading(false);
   };
 
+  const handleGroupChange = (newGroup) => {
+    setIsSwitchingGroup(true);
+    setSelectedGroup(newGroup);
+  };
+
   useEffect(() => {
     if (initialized && selectedOptions.length > 0 && timeRanges) {
-      fetchAllData();
+      setIsLoading(true);
+      setIsSwitchingGroup(true);
+      fetchAllData().finally(() => {
+        setIsLoading(false);
+        setIsSwitchingGroup(false);
+      });
     }
-  }, [initialized, selectedOptions, timeRanges, dateRange]);
+  }, [initialized, selectedOptions, timeRanges, dateRange, selectedGroup]);
 
   // Calculate the total energy consumption, total price, and total CO2 emission for the info cards
   const totalEnergyConsumption = Object.values(energyConsumptionData)
@@ -1028,18 +1111,27 @@ const HomePage = () => {
     parseFloat(currentMonthEnergyConsumption) * co2
   ).toFixed(2);
 
-  console.log("Total Energy Consumption:", totalEnergyConsumption, "kWh");
-  console.log("Total Price:", totalPrice, "NT$");
-  console.log("Total CO2 Emission:", totalCO2Emission, "kg");
-  console.log(
-    "Current Month Energy Consumption:",
-    currentMonthEnergyConsumption,
-    "kWh"
-  );
-  console.log("Current Month Price:", currentMonthPrice, "NT$");
-  console.log("Current Month CO2 Emission:", currentMonthCO2Emission, "kg");
+  // console.log("Total Energy Consumption:", totalEnergyConsumption, "kWh");
+  // console.log("Total Price:", totalPrice, "NT$");
+  // console.log("Total CO2 Emission:", totalCO2Emission, "kg");
+  // console.log(
+  //   "Current Month Energy Consumption:",
+  //   currentMonthEnergyConsumption,
+  //   "kWh"
+  // );
+  // console.log("Current Month Price:", currentMonthPrice, "NT$");
+  // console.log("Current Month CO2 Emission:", currentMonthCO2Emission, "kg");
   return (
     <div className="container-fluid min-vh-100 d-flex flex-column">
+      <div className="row mb-3">
+        <div className="col-12">
+          <GroupSelector
+            groups={machineGroups}
+            selectedGroup={selectedGroup}
+            onGroupChange={handleGroupChange}
+          />
+        </div>
+      </div>
       {/* Top 50% section (charts) */}
       <div className="row flex-grow-1" style={{ minHeight: "50%" }}>
         <div className="col-12">
@@ -1048,11 +1140,13 @@ const HomePage = () => {
               ref={combinedEnergyChartRef}
               height="100%"
               isLoading={isLoading}
+              isSwitchingGroup={isSwitchingGroup}
             />
             <ChartCard
               ref={dailyPeakDemandChartRef}
               height="100%"
               isLoading={isLoading}
+              isSwitchingGroup={isSwitchingGroup}
             />
           </div>
         </div>
@@ -1063,10 +1157,14 @@ const HomePage = () => {
             <div className="col-lg-4 col-12 mb-4 d-flex">
               <div className="card text-center shadow-sm flex-fill">
                 <div className="card-body d-flex flex-column justify-content-center">
-                  <div
-                    ref={pieChartRef}
-                    style={{ width: "100%", height: "250px" }}
-                  ></div>
+                  {isLoading || isSwitchingGroup ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <div
+                      ref={pieChartRef}
+                      style={{ width: "100%", height: "250px" }}
+                    ></div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1077,6 +1175,7 @@ const HomePage = () => {
                   value={`${totalEnergyConsumption} kWh`}
                   monthlyValue={`當月 ${currentMonthEnergyConsumption} kWh`}
                   isLoading={isLoading}
+                  isSwitchingGroup={isSwitchingGroup}
                   quarter={currentQuarter}
                 />
                 <InfoCard
@@ -1084,6 +1183,7 @@ const HomePage = () => {
                   value={`NT$${totalPrice}`}
                   monthlyValue={`當月 NT$${currentMonthPrice}`}
                   isLoading={isLoading}
+                  isSwitchingGroup={isSwitchingGroup}
                   quarter={currentQuarter}
                 />
                 <InfoCard
@@ -1091,6 +1191,7 @@ const HomePage = () => {
                   value={`${totalCO2Emission} kg`}
                   monthlyValue={`當月 ${currentMonthCO2Emission} kg`}
                   isLoading={isLoading}
+                  isSwitchingGroup={isSwitchingGroup}
                   quarter={currentQuarter}
                 />
               </div>
@@ -1124,14 +1225,40 @@ const CardValue = styled.h3`
 const MonthlyValue = styled.p`
   margin-bottom: 0;
 `;
-
-const InfoCard = ({ title, value, monthlyValue, isLoading, quarter }) => (
+const ChartCard = React.forwardRef(({ isLoading, isSwitchingGroup }, ref) => (
+  <div className="col-lg-6 col-12 mb-4 d-flex">
+    <div className="card shadow-sm flex-fill">
+      <div
+        className="card-body d-flex flex-column justify-content-center p-0"
+        style={{ height: "300px" }}
+      >
+        {isLoading || isSwitchingGroup ? (
+          <LoadingSpinner />
+        ) : (
+          <div ref={ref} style={{ width: "100%", height: "100%" }}></div>
+        )}
+      </div>
+    </div>
+  </div>
+));
+const InfoCard = ({
+  title,
+  value,
+  monthlyValue,
+  isLoading,
+  isSwitchingGroup,
+  quarter,
+}) => (
   <div className="col-lg-4 col-md-6 col-12 mb-4">
     <div className="card text-center shadow-sm h-100">
       <div className="card-body d-flex flex-column justify-content-center">
         <CardTitle>{title}</CardTitle>
-        {isLoading ? (
-          <LoadingSpinner />
+        {isLoading || isSwitchingGroup ? (
+          <div style={{ height: "100px" }}>
+            {" "}
+            {/* Adjust this height as needed */}
+            <LoadingSpinner />
+          </div>
         ) : (
           <>
             <CardValue>
@@ -1145,31 +1272,103 @@ const InfoCard = ({ title, value, monthlyValue, isLoading, quarter }) => (
   </div>
 );
 
-const ChartCard = React.forwardRef(({ isLoading }, ref) => (
-  <div className="col-lg-6 col-12 mb-4 d-flex">
-    <div className="card shadow-sm flex-fill">
-      <div className="card-body d-flex flex-column justify-content-center p-0">
-        {isLoading ? (
-          <div
-            className="d-flex justify-content-center align-items-center"
-            style={{ height: "300px" }}
-          >
-            <LoadingSpinner />
-          </div>
-        ) : (
-          <div ref={ref} style={{ width: "100%", height: "300px" }}></div>
-        )}
-      </div>
-    </div>
-  </div>
-));
+const SpinnerContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+`;
+
+const SpinnerCircle = styled.div`
+  color: #3ba272;
+`;
+
+const LoadingText = styled.div`
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  animation: pulse 1.5s infinite ease-in-out;
+  color: black;
+  margin-top: 10px;
+`;
+
 const LoadingSpinner = () => (
-  <div className="d-flex flex-column align-items-center">
-    <SpinnerCircle className="spinner-border mb-2" role="status">
+  <SpinnerContainer>
+    <SpinnerCircle className="spinner-border" role="status">
       <span className="visually-hidden">Loading...</span>
     </SpinnerCircle>
     <LoadingText>Loading...</LoadingText>
-  </div>
+  </SpinnerContainer>
 );
+const SelectWrapper = styled.div`
+  width: 100%;
+  max-width: 300px;
+  margin: 20px auto 10px;
+`;
+
+const customStyles = {
+  control: (provided, state) => ({
+    ...provided,
+    borderColor: state.isFocused ? "#2a7d54" : "#3ba272",
+    boxShadow: state.isFocused ? "0 0 0 1px #2a7d54" : null,
+    "&:hover": {
+      borderColor: "#2a7d54",
+    },
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? "#3ba272"
+      : state.isFocused
+      ? "#e6f3ed"
+      : "white",
+    color: state.isSelected ? "white" : "#333",
+    "&:active": {
+      backgroundColor: "#3ba272",
+    },
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: "#333",
+  }),
+  menu: (provided) => ({
+    ...provided,
+    borderColor: "#3ba272",
+  }),
+};
+
+const GroupSelector = ({ groups, selectedGroup, onGroupChange }) => {
+  const options = [
+    { value: "all", label: "全部設備" },
+    ...groups.map((group) => ({ value: group.name, label: group.name })),
+  ];
+
+  const selectedOption = options.find(
+    (option) => option.value === selectedGroup
+  );
+
+  return (
+    <SelectWrapper>
+      <Select
+        value={selectedOption}
+        onChange={(option) => onGroupChange(option.value)}
+        options={options}
+        styles={customStyles}
+        isSearchable={false}
+        placeholder="選擇設備組"
+      />
+    </SelectWrapper>
+  );
+};
 
 export default HomePage;

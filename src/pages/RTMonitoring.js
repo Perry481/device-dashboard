@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import Select from "react-select";
+import styled, { createGlobalStyle } from "styled-components";
+
 import GaugeSettingsPopup from "../components/GaugeSettingsPopup";
 import "bootstrap/dist/css/bootstrap.min.css";
-import styled, { createGlobalStyle } from "styled-components";
 import {
   FaCog,
   FaArrowLeft,
@@ -50,12 +52,10 @@ const CombinedCard = ({
       case "總功率因數":
         return details.totalPowerFactor;
       default:
-        // Check if the text matches any property in the details.items array
         const item = details.items.find((item) => item.label === text);
         if (item) {
           return item.value;
         }
-        // If not found in items, check if it's a direct property of details
         return details[text] || "N/A";
     }
   };
@@ -119,50 +119,11 @@ const filterPhaseItems = (items) => {
   );
   return items.filter((item) => {
     if (is3P) {
-      return true; // Show all items for 3P
+      return true;
     } else {
-      // For 1P, only show 'A' phase items and non-phase items
       return !item.label.includes("B") && !item.label.includes("C");
     }
   });
-};
-const CardSettingsPopup = ({ cardSettings, onSave }) => {
-  const [localSettings, setLocalSettings] = useState(cardSettings);
-
-  const handleSettingChange = (index, value) => {
-    const newSettings = [...localSettings.defaultSettings.summaryTexts];
-    newSettings[index] = value;
-    setLocalSettings({
-      ...localSettings,
-      defaultSettings: {
-        ...localSettings.defaultSettings,
-        summaryTexts: newSettings,
-      },
-    });
-  };
-
-  const handleSave = () => {
-    onSave(localSettings);
-  };
-
-  return (
-    <RTMSettingsContainer>
-      <RTMHeaderRow>
-        <h2>Card Settings</h2>
-        <RTMSaveButton onClick={handleSave}>Save Card Settings</RTMSaveButton>
-      </RTMHeaderRow>
-      <RTMSettingsContent>
-        {localSettings.defaultSettings.summaryTexts.map((text, index) => (
-          <RTMSettingInput
-            key={index}
-            type="text"
-            value={text}
-            onChange={(e) => handleSettingChange(index, e.target.value)}
-          />
-        ))}
-      </RTMSettingsContent>
-    </RTMSettingsContainer>
-  );
 };
 
 const MonitorPage = () => {
@@ -179,17 +140,18 @@ const MonitorPage = () => {
   const [highlightTimer, setHighlightTimer] = useState(null);
   const [showCardSettings, setShowCardSettings] = useState(false);
   const [cardSettings, setCardSettings] = useState(null);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [filteredMeters, setFilteredMeters] = useState([]);
   const metersPerPage = 8;
 
   const fetchDataAndOrder = async () => {
     try {
-      // Fetch meter data
       const meterResponse = await fetch(
         "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
       );
       const meterData = await meterResponse.json();
 
-      // Format meter data
       const formattedMeterData = meterData.map((item) => {
         const lastData = JSON.parse(item.last_data);
         return {
@@ -214,18 +176,9 @@ const MonitorPage = () => {
               { label: "Model", value: lastData.Brand_model || "Unknown" },
               { label: "ID", value: lastData.MeterMachineID || "Unknown" },
               { label: "Machine", value: lastData.Name_Machine || "Unknown" },
-              {
-                label: "線電壓A",
-                value: `${lastData.A_phase_voltage || 0} V`,
-              },
-              {
-                label: "線電壓B",
-                value: `${lastData.B_phase_voltage || 0} V`,
-              },
-              {
-                label: "線電壓C",
-                value: `${lastData.C_phase_voltage || 0} V`,
-              },
+              { label: "線電壓A", value: `${lastData.A_phase_voltage || 0} V` },
+              { label: "線電壓B", value: `${lastData.B_phase_voltage || 0} V` },
+              { label: "線電壓C", value: `${lastData.C_phase_voltage || 0} V` },
               { label: "電流A", value: `${lastData.A_phase_current || 0} A` },
               { label: "電流B", value: `${lastData.B_phase_current || 0} A` },
               { label: "電流C", value: `${lastData.C_phase_current || 0} A` },
@@ -262,11 +215,9 @@ const MonitorPage = () => {
         };
       });
 
-      // Fetch order
       const orderResponse = await fetch("/api/machineorder");
       let orderData = await orderResponse.json();
 
-      // Check for new machines and update order if necessary
       const newMachines = formattedMeterData.filter(
         (meter) => !orderData.includes(meter.title)
       );
@@ -274,7 +225,6 @@ const MonitorPage = () => {
       if (newMachines.length > 0) {
         orderData = [...orderData, ...newMachines.map((meter) => meter.title)];
 
-        // Update the machine order in the JSON file
         await fetch("/api/machineorder", {
           method: "POST",
           headers: {
@@ -284,10 +234,7 @@ const MonitorPage = () => {
         });
       }
 
-      // Set meter data
       setMeterData(formattedMeterData);
-
-      // Set order and create ordered meters
       setOrder(orderData);
       const orderedMeters = orderData
         .map((machineName) =>
@@ -295,14 +242,26 @@ const MonitorPage = () => {
         )
         .filter((meter) => meter !== undefined);
 
-      // Set ordered meters
       setOrderedMeters(orderedMeters);
       setDraggableOrder(orderData);
-      console.log("Fetched data:", formattedMeterData);
+
+      // Fetch groups
+      const groupsResponse = await fetch("/api/settings");
+      const groupsData = await groupsResponse.json();
+      const machineGroups = groupsData.machineGroups || [];
+      setGroups([
+        { value: "all", label: "全部設備" },
+        ...machineGroups.map((group) => ({
+          value: group.name,
+          label: group.name,
+          machines: group.machines,
+        })),
+      ]);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
+
   useEffect(() => {
     fetchDataAndOrder();
 
@@ -313,7 +272,7 @@ const MonitorPage = () => {
 
     const countdownInterval = setInterval(() => {
       setCountdown((prevCountdown) =>
-        prevCountdown > 0 ? prevCountdown - 1 : 10
+        prevCountdown > 0 ? prevCountdown - 1 : 5
       );
     }, 1000);
 
@@ -322,6 +281,7 @@ const MonitorPage = () => {
       clearInterval(countdownInterval);
     };
   }, []);
+
   useEffect(() => {
     const fetchCardSettings = async () => {
       try {
@@ -331,7 +291,6 @@ const MonitorPage = () => {
         setCardSettings(data);
       } catch (error) {
         console.error("Error fetching card settings:", error);
-        // Set default card settings if fetch fails
         setCardSettings({
           defaultSettings: {
             summaryTexts: [
@@ -381,6 +340,21 @@ const MonitorPage = () => {
       }
     };
   }, [highlightTimer]);
+
+  useEffect(() => {
+    if (selectedGroup && selectedGroup.value !== "all") {
+      const group = groups.find((g) => g.value === selectedGroup.value);
+      if (group) {
+        const groupMachines = group.machines.map((machine) => machine.name);
+        setFilteredMeters(
+          orderedMeters.filter((meter) => groupMachines.includes(meter.title))
+        );
+      }
+    } else {
+      setFilteredMeters(orderedMeters);
+    }
+  }, [selectedGroup, orderedMeters, groups]);
+
   const handleSaveSettings = async () => {
     try {
       await fetch("/api/machineorder", {
@@ -409,7 +383,7 @@ const MonitorPage = () => {
       const filteredResults = orderedMeters.filter((meter) =>
         meter.title.toLowerCase().includes(value.toLowerCase())
       );
-      setSearchResults(filteredResults.slice(0, 5)); // Limit to top 5 results
+      setSearchResults(filteredResults.slice(0, 5));
     } else {
       setSearchResults([]);
     }
@@ -433,12 +407,10 @@ const MonitorPage = () => {
     setSearchTerm("");
     setSearchResults([]);
 
-    // Clear any existing timer
     if (highlightTimer) {
       clearTimeout(highlightTimer);
     }
 
-    // Set a new timer
     const timer = setTimeout(() => {
       const gaugeElement = document.getElementById(`gauge-${gauge.title}`);
       if (gaugeElement) {
@@ -448,7 +420,6 @@ const MonitorPage = () => {
         console.log("Gauge element not found in DOM");
       }
 
-      // Remove highlight after scrolling and waiting
       setTimeout(() => {
         console.log("Removing highlight from:", gauge.title);
         setHighlightedGauge(null);
@@ -457,6 +428,7 @@ const MonitorPage = () => {
 
     setHighlightTimer(timer);
   };
+
   const handleDragEnd = (result) => {
     if (!result.destination) return;
 
@@ -494,9 +466,10 @@ const MonitorPage = () => {
       console.error("Error saving card settings:", error);
     }
   };
+
   const handleNextPage = () => {
     setPage((prev) =>
-      Math.min(prev + 1, Math.ceil(orderedMeters.length / metersPerPage))
+      Math.min(prev + 1, Math.ceil(filteredMeters.length / metersPerPage))
     );
   };
 
@@ -504,7 +477,7 @@ const MonitorPage = () => {
     setPage((prev) => Math.max(prev - 1, 1));
   };
 
-  const currentMeters = orderedMeters.slice(
+  const currentMeters = filteredMeters.slice(
     (page - 1) * metersPerPage,
     page * metersPerPage
   );
@@ -514,39 +487,50 @@ const MonitorPage = () => {
       <ComponentGlobalStyle />
       <div className="container-fluid min-vh-100 d-flex flex-column">
         <RTMTopNavigation>
-          <RTMSearchContainer className="search-container">
-            <RTMSearchInput
-              type="text"
-              placeholder="搜尋電錶..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
-            {searchResults.length > 0 && (
-              <RTMSearchResults>
-                {searchResults.map((result, index) => (
-                  <RTMSearchResultItem
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectGauge(result);
-                    }}
-                  >
-                    {result.title}
-                  </RTMSearchResultItem>
-                ))}
-              </RTMSearchResults>
-            )}
-          </RTMSearchContainer>
-          <div>
-            <RTMCountdownText>下次更新: {countdown}s</RTMCountdownText>
-            <RTMSettingsButton onClick={() => setShowSettings(true)}>
-              <FaCog size={20} />
-            </RTMSettingsButton>
-            <RTMSettingsButton onClick={() => setShowCardSettings(true)}>
-              <FaList size={20} />
-            </RTMSettingsButton>
-          </div>
+          <RTMTopNavigationContent>
+            <RTMSearchContainer className="search-container">
+              <RTMSearchInput
+                type="text"
+                placeholder="搜尋電錶..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              {searchResults.length > 0 && (
+                <RTMSearchResults>
+                  {searchResults.map((result, index) => (
+                    <RTMSearchResultItem
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectGauge(result);
+                      }}
+                    >
+                      {result.title}
+                    </RTMSearchResultItem>
+                  ))}
+                </RTMSearchResults>
+              )}
+            </RTMSearchContainer>
+            <RTMGroupSelect>
+              <Select
+                options={groups}
+                value={selectedGroup}
+                onChange={setSelectedGroup}
+                placeholder="選擇分組"
+                styles={customSelectStyles}
+              />
+            </RTMGroupSelect>
+            <RTMControlsContainer>
+              <RTMCountdownText>下次更新: {countdown}s</RTMCountdownText>
+              <RTMSettingsButton onClick={() => setShowSettings(true)}>
+                <FaCog size={20} />
+              </RTMSettingsButton>
+              <RTMSettingsButton onClick={() => setShowCardSettings(true)}>
+                <FaList size={20} />
+              </RTMSettingsButton>
+            </RTMControlsContainer>
+          </RTMTopNavigationContent>
         </RTMTopNavigation>
         <div className="row flex-grow-1">
           {currentMeters.map((meter, index) => {
@@ -575,7 +559,7 @@ const MonitorPage = () => {
               className="btn btn-primary"
               onClick={handleNextPage}
               disabled={
-                page === Math.ceil(orderedMeters.length / metersPerPage)
+                page === Math.ceil(filteredMeters.length / metersPerPage)
               }
             >
               Next
@@ -677,6 +661,87 @@ const ComponentGlobalStyle = createGlobalStyle`
 ;
 
 `;
+
+const RTMTopNavigation = styled.div`
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 10px 0;
+`;
+
+const RTMTopNavigationContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const RTMSearchContainer = styled.div`
+  position: relative;
+  width: 300px;
+  flex: 1;
+  min-width: 200px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+`;
+
+const RTMGroupSelect = styled.div`
+  width: 200px;
+  margin-left: 20px;
+  flex: 1;
+  min-width: 200px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 10px;
+  }
+`;
+
+const RTMControlsContainer = styled.div`
+  display: flex;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const RTMCountdownText = styled.span`
+  margin-right: 10px;
+`;
+
+const RTMSettingsButton = styled.button`
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  margin-left: 10px;
+  &:hover {
+    color: #0056b3;
+  }
+`;
+
+const customSelectStyles = {
+  control: (provided) => ({
+    ...provided,
+    minHeight: "38px",
+  }),
+  menu: (provided) => ({
+    ...provided,
+    zIndex: 9999,
+  }),
+};
 
 const RTMCardContainer = styled.div`
   position: relative;
@@ -854,21 +919,6 @@ const RTMPaginationButton = styled.button`
   margin-right: 0.5rem;
 `;
 
-const RTMCountdownText = styled.span`
-  margin-left: 0.5rem;
-`;
-
-const RTMSettingsButton = styled.button`
-  background: none;
-  border: none;
-  color: #007bff;
-  cursor: pointer;
-  margin-left: 10px;
-  &:hover {
-    color: #0056b3;
-  }
-`;
-
 const RTMPopupContent = styled.div`
   background: white;
   border-radius: 8px;
@@ -904,20 +954,6 @@ const RTMHeaderRow = styled.div`
   h2 {
     margin: 0;
   }
-`;
-
-const RTMTopNavigation = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-`;
-
-const RTMSearchContainer = styled.div`
-  position: relative;
-  width: 300px;
 `;
 
 const RTMSearchInput = styled.input`

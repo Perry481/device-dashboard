@@ -230,10 +230,10 @@ const SettingsPage = () => {
   return (
     <SettingsContainer>
       <Section>
-        <SectionTitle>Basic Settings</SectionTitle>
+        <SectionTitle>基本設定</SectionTitle>
         <form onSubmit={handleBasicSettingsSubmit}>
           <FormGroup>
-            <Label htmlFor="co2">CO2 Emission Factor:</Label>
+            <Label htmlFor="co2">碳排係數:</Label>
             <Input
               id="co2"
               type="number"
@@ -243,7 +243,7 @@ const SettingsPage = () => {
             />
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="contractCapacity">Contract Capacity (kW):</Label>
+            <Label htmlFor="contractCapacity">契約容量 (kW):</Label>
             <Input
               id="contractCapacity"
               type="number"
@@ -253,9 +253,7 @@ const SettingsPage = () => {
             />
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="activePricingStandard">
-              Global Default Pricing Standard:
-            </Label>
+            <Label htmlFor="activePricingStandard">全局預設電價標準:</Label>
             <Select
               id="activePricingStandard"
               options={standardOptions}
@@ -268,7 +266,7 @@ const SettingsPage = () => {
         </form>
       </Section>
       <Section>
-        <SectionTitle>Grouping Settings</SectionTitle>
+        <SectionTitle>電表組設定</SectionTitle>
         {isLoading ? (
           <div>Loading...</div>
         ) : (
@@ -280,7 +278,7 @@ const SettingsPage = () => {
         )}
       </Section>
       <Section>
-        <SectionTitle>Price Settings</SectionTitle>
+        <SectionTitle>電價設定</SectionTitle>
         <PriceTable
           onPricesUpdate={handlePriceTableUpdate}
           triggerHandleSend={handlePriceTableUpdate}

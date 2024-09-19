@@ -41,6 +41,7 @@ const ChartContainer = styled.div`
   height: 600px;
   margin-top: 20px;
 `;
+
 const formatDate = (date) => {
   const year = date.getFullYear();
   const month = `0${date.getMonth() + 1}`.slice(-2);
@@ -60,19 +61,20 @@ const PowerHeatmap = () => {
     startDate: oneWeekAgo,
     endDate: today,
   });
-  const [selectedMeters, setSelectedMeters] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState([]);
   const [chartData, setChartData] = useState({
     data: [],
     minKwh: 0,
     maxKwh: 0,
   });
   const [options, setOptions] = useState([]);
+  const [machineGroups, setMachineGroups] = useState([]);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
-  const fetchTriggerRef = useRef({ date: null, meters: null });
+  const fetchTriggerRef = useRef({ date: null, options: null });
 
   const fetchData = useCallback(async () => {
-    if (selectedMeters.length === 0) return;
+    if (selectedOptions.length === 0) return;
 
     if (chartInstanceRef.current) {
       chartInstanceRef.current.showLoading();
@@ -81,13 +83,25 @@ const PowerHeatmap = () => {
     const formattedStartDate = formatDate(dateRange.startDate);
     const formattedEndDate = formatDate(dateRange.endDate);
 
+    const expandedOptions = selectedOptions.flatMap((option) => {
+      const group = machineGroups.find((g) => g.name === option);
+      return group
+        ? group.machines.map((m) => ({ id: m.id, name: m.name }))
+        : [
+            {
+              id: option,
+              name: options.find((o) => o.value === option)?.label,
+            },
+          ];
+    });
+
     try {
-      const promises = selectedMeters.map((meter) =>
+      const promises = expandedOptions.map(({ id }) =>
         fetch(
-          `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${meter}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
+          `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
         ).then((response) => {
           if (!response.ok)
-            throw new Error(`Failed to fetch data for meter ${meter}`);
+            throw new Error(`Failed to fetch data for meter ${id}`);
           return response.json();
         })
       );
@@ -101,7 +115,7 @@ const PowerHeatmap = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedMeters, dateRange]);
+  }, [selectedOptions, dateRange, machineGroups, options]);
 
   const processData = (dataArray) => {
     const combinedData = {};
@@ -141,9 +155,9 @@ const PowerHeatmap = () => {
     fetchTriggerRef.current.date = new Date();
   }, []);
 
-  const handleMeterSelection = useCallback((selectedMeters) => {
-    setSelectedMeters(selectedMeters);
-    fetchTriggerRef.current.meters = new Date();
+  const handleOptionSelection = useCallback((selectedOptions) => {
+    setSelectedOptions(selectedOptions);
+    fetchTriggerRef.current.options = new Date();
   }, []);
 
   useEffect(() => {
@@ -160,26 +174,38 @@ const PowerHeatmap = () => {
         }));
         setOptions(formattedOptions);
         if (formattedOptions.length > 0) {
-          setSelectedMeters([formattedOptions[0].value]);
-          fetchTriggerRef.current.meters = new Date();
+          setSelectedOptions([formattedOptions[0].value]);
+          fetchTriggerRef.current.options = new Date();
         }
       } catch (error) {
         console.error("Error fetching options:", error);
       }
     };
 
+    const fetchMachineGroups = async () => {
+      try {
+        const response = await fetch("/api/settings");
+        if (!response.ok) throw new Error("Failed to fetch settings");
+        const data = await response.json();
+        setMachineGroups(data.machineGroups || []);
+      } catch (error) {
+        console.error("Error fetching machine groups:", error);
+      }
+    };
+
     fetchOptions();
+    fetchMachineGroups();
   }, []);
 
   useEffect(() => {
     const shouldFetch =
-      fetchTriggerRef.current.date || fetchTriggerRef.current.meters;
+      fetchTriggerRef.current.date || fetchTriggerRef.current.options;
 
-    if (shouldFetch && selectedMeters.length > 0) {
+    if (shouldFetch && selectedOptions.length > 0) {
       fetchData();
-      fetchTriggerRef.current = { date: null, meters: null };
+      fetchTriggerRef.current = { date: null, options: null };
     }
-  }, [selectedMeters, dateRange, fetchData]);
+  }, [selectedOptions, dateRange, fetchData]);
 
   useEffect(() => {
     if (chartRef.current && chartData.data.length > 0) {
@@ -331,6 +357,7 @@ const PowerHeatmap = () => {
       };
     }
   }, [chartData]);
+
   return (
     <div className="container-fluid">
       <RowContainer>
@@ -343,8 +370,9 @@ const PowerHeatmap = () => {
         <HalfWidthContainer>
           <SelectionAndSend
             options={options}
-            onSend={handleMeterSelection}
-            defaultSelectedOptions={selectedMeters}
+            onSend={handleOptionSelection}
+            defaultSelectedOptions={selectedOptions}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

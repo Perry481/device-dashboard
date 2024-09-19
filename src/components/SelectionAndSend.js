@@ -98,12 +98,14 @@ const SelectionAndSend = ({
   showPricingStandard = false,
   pricingStandards = {},
   activePricingStandard = "",
+  machineGroups = [],
 }) => {
   const [options, setOptions] = useState([]);
   const [selectedOptions, setSelectedOptions] = useState(
     singleSelection ? null : []
   );
   const [selectedStandard, setSelectedStandard] = useState(null);
+  const [standardOptions, setStandardOptions] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,8 +117,18 @@ const SelectionAndSend = ({
         const formattedOptions = data.map((item) => ({
           value: item.sn,
           label: item.name,
+          isIndividualMachine: true,
         }));
-        setOptions(formattedOptions);
+
+        // Add group options
+        const groupOptions = machineGroups.map((group) => ({
+          value: group.name,
+          label: group.name,
+          isGroup: true,
+          machines: group.machines,
+        }));
+
+        setOptions([...groupOptions, ...formattedOptions]);
 
         if (formattedOptions.length > 0) {
           setSelectedOptions(
@@ -129,18 +141,24 @@ const SelectionAndSend = ({
     };
 
     fetchData();
-  }, [singleSelection]);
+  }, [singleSelection, machineGroups]);
 
   useEffect(() => {
-    if (
-      showPricingStandard &&
-      Object.keys(pricingStandards).length > 0 &&
-      activePricingStandard
-    ) {
-      setSelectedStandard({
-        value: activePricingStandard,
-        label: pricingStandards[activePricingStandard].name,
-      });
+    if (showPricingStandard && Object.keys(pricingStandards).length > 0) {
+      const newStandardOptions = Object.entries(pricingStandards).map(
+        ([key, value]) => ({
+          value: key,
+          label: value.name,
+        })
+      );
+      setStandardOptions(newStandardOptions);
+
+      if (activePricingStandard) {
+        setSelectedStandard({
+          value: activePricingStandard,
+          label: pricingStandards[activePricingStandard].name,
+        });
+      }
     }
   }, [showPricingStandard, pricingStandards, activePricingStandard]);
 
@@ -153,9 +171,17 @@ const SelectionAndSend = ({
   };
 
   const handleSend = () => {
-    const selectedSn = singleSelection
-      ? selectedOptions.value
-      : selectedOptions.map((option) => option.value);
+    let selectedSn = singleSelection
+      ? [selectedOptions.value]
+      : selectedOptions.flatMap((option) =>
+          option.isGroup
+            ? option.machines.map((machine) => machine.id)
+            : [option.value]
+        );
+
+    // Remove duplicates
+    selectedSn = [...new Set(selectedSn)];
+
     console.log("Selected options:", selectedSn);
     if (showPricingStandard && selectedStandard) {
       console.log("Selected standard:", selectedStandard.value);
@@ -164,13 +190,6 @@ const SelectionAndSend = ({
       onSend(selectedSn);
     }
   };
-
-  const standardOptions = Object.entries(pricingStandards).map(
-    ([key, value]) => ({
-      value: key,
-      label: value.name,
-    })
-  );
 
   return (
     <Card $showPricingStandard={showPricingStandard}>

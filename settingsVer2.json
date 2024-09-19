@@ -477,12 +477,28 @@
         {
           "id": "Jetson_nano0_6",
           "name": "射出機406電錶"
+        },
+        {
+          "id": "Jetson_nano0_2",
+          "name": "射出機402"
+        },
+        {
+          "id": "Jetson_nano0_1",
+          "name": "射出機401"
         }
       ]
     },
     {
       "name": "電表組2",
       "machines": [
+        {
+          "id": "Jetson_nano0_4",
+          "name": "射出機404"
+        },
+        {
+          "id": "Jetson_nano0_5",
+          "name": "射出機405"
+        },
         {
           "id": "Jetson_nano0_7",
           "name": "射出機407電錶"

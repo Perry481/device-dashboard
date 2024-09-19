@@ -203,7 +203,7 @@ const EnergyPriceAnalysis = () => {
   });
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
-
+  const [machineGroups, setMachineGroups] = useState([]);
   const [pricingStandards, setPricingStandards] = useState({});
   const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
   const [activePricingStandard, setActivePricingStandard] = useState("");
@@ -223,6 +223,7 @@ const EnergyPriceAnalysis = () => {
         savedSettings.pricingStandards[savedSettings.activePricingStandard];
       setPrices(activePricingStandardData.prices);
       setTimeRanges(activePricingStandardData.timeRanges);
+      setMachineGroups(savedSettings.machineGroups || []);
       setInitialized(true);
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -608,6 +609,7 @@ const EnergyPriceAnalysis = () => {
             showPricingStandard={true}
             pricingStandards={pricingStandards}
             activePricingStandard={activePricingStandard}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

@@ -60,7 +60,9 @@ const DailyUsageChart = () => {
   });
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
+  const [machineGroups, setMachineGroups] = useState([]);
   const [hourlyData, setHourlyData] = useState([]);
+
   useEffect(() => {
     const fetchOptions = async () => {
       try {
@@ -82,8 +84,21 @@ const DailyUsageChart = () => {
       }
     };
 
+    const fetchMachineGroups = async () => {
+      try {
+        const response = await fetch("/api/settings");
+        if (!response.ok) throw new Error("Failed to fetch settings");
+        const data = await response.json();
+        setMachineGroups(data.machineGroups || []);
+      } catch (error) {
+        console.error("Error fetching machine groups:", error);
+      }
+    };
+
     fetchOptions();
+    fetchMachineGroups();
   }, []);
+
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
     fetchTriggerRef.current.date = new Date();
@@ -99,9 +114,14 @@ const DailyUsageChart = () => {
     const formattedStartDate = formatDate(dateRange.startDate);
     const formattedEndDate = formatDate(dateRange.endDate);
 
+    const expandedOptions = selectedOptions.flatMap((option) => {
+      const group = machineGroups.find((g) => g.name === option);
+      return group ? group.machines.map((m) => m.id) : [option];
+    });
+
     try {
       const results = await Promise.all(
-        selectedOptions.map(async (sn) => {
+        expandedOptions.map(async (sn) => {
           const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
           const response = await fetch(url);
           if (!response.ok) throw new Error(`Failed to fetch data for ${sn}`);
@@ -130,10 +150,10 @@ const DailyUsageChart = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange]);
+  }, [selectedOptions, dateRange, machineGroups]);
 
   const renderChart = useCallback(() => {
-    if (chartRef.current) {
+    if (chartRef.current && hourlyData.length > 0) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.dispose();
       }
@@ -257,6 +277,7 @@ const DailyUsageChart = () => {
             options={options}
             onSend={handleSend}
             defaultSelectedOptions={selectedOptions}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

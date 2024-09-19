@@ -55,15 +55,15 @@ const IntervalUsageChart = () => {
     startDate: today,
     endDate: today,
   });
-  const [selectedMeter, setSelectedMeter] = useState(null);
-  const [chartData, setChartData] = useState([]);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [chartData, setChartData] = useState({});
   const [options, setOptions] = useState([]);
+  const [machineGroups, setMachineGroups] = useState([]);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
-  const fetchTriggerRef = useRef({ date: null, meter: null });
-
+  const fetchTriggerRef = useRef({ date: null, option: null });
   const fetchData = useCallback(async () => {
-    if (!selectedMeter) return;
+    if (!selectedOption) return;
 
     if (chartInstanceRef.current) {
       chartInstanceRef.current.showLoading();
@@ -71,21 +71,47 @@ const IntervalUsageChart = () => {
 
     const formattedStartDate = formatDate(dateRange.startDate);
     const formattedEndDate = formatDate(dateRange.endDate);
-    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${selectedMeter}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+
+    const group = machineGroups.find((g) => g.name === selectedOption);
+    const metersToFetch = group
+      ? group.machines
+      : [
+          {
+            id: selectedOption,
+            name: options.find((o) => o.value === selectedOption)?.label,
+          },
+        ];
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to fetch data");
-      const data = await response.json();
-      processData(data);
+      const results = await Promise.all(
+        metersToFetch.map(async (meter) => {
+          const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${meter.id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+          const response = await fetch(url);
+          if (!response.ok)
+            throw new Error(`Failed to fetch data for ${meter.id}`);
+          const data = await response.json();
+          return { meter: meter.id, name: meter.name, data };
+        })
+      );
+
+      const processedData = results.reduce((acc, { meter, name, data }) => {
+        const processedMeterData = processData(data);
+        if (Object.keys(processedMeterData).length > 0) {
+          acc[meter] = { name, data: processedMeterData };
+        }
+        return acc;
+      }, {});
+
+      setChartData(processedData);
     } catch (error) {
       console.error("Error fetching data:", error);
+      setChartData({}); // Set empty object in case of error
     } finally {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedMeter, dateRange]);
+  }, [selectedOption, dateRange, machineGroups, options]);
 
   const processData = (data) => {
     const processedData = {};
@@ -96,7 +122,7 @@ const IntervalUsageChart = () => {
       }
       processedData[date].push({ time, value: item.Value });
     });
-    setChartData(processedData);
+    return processedData;
   };
 
   const handleDateChange = useCallback((newDateRange) => {
@@ -104,9 +130,9 @@ const IntervalUsageChart = () => {
     fetchTriggerRef.current.date = new Date();
   }, []);
 
-  const handleMeterSelection = useCallback((selectedMeter) => {
-    setSelectedMeter(selectedMeter);
-    fetchTriggerRef.current.meter = new Date();
+  const handleOptionSelection = useCallback((selectedOptions) => {
+    setSelectedOption(selectedOptions[0]);
+    fetchTriggerRef.current.option = new Date();
   }, []);
 
   useEffect(() => {
@@ -123,26 +149,38 @@ const IntervalUsageChart = () => {
         }));
         setOptions(formattedOptions);
         if (formattedOptions.length > 0) {
-          setSelectedMeter(formattedOptions[0].value);
-          fetchTriggerRef.current.meter = new Date();
+          setSelectedOption(formattedOptions[0].value);
+          fetchTriggerRef.current.option = new Date();
         }
       } catch (error) {
         console.error("Error fetching options:", error);
       }
     };
 
+    const fetchMachineGroups = async () => {
+      try {
+        const response = await fetch("/api/settings");
+        if (!response.ok) throw new Error("Failed to fetch settings");
+        const data = await response.json();
+        setMachineGroups(data.machineGroups || []);
+      } catch (error) {
+        console.error("Error fetching machine groups:", error);
+      }
+    };
+
     fetchOptions();
+    fetchMachineGroups();
   }, []);
 
   useEffect(() => {
     const shouldFetch =
-      fetchTriggerRef.current.date || fetchTriggerRef.current.meter;
+      fetchTriggerRef.current.date || fetchTriggerRef.current.option;
 
-    if (shouldFetch && selectedMeter) {
+    if (shouldFetch && selectedOption) {
       fetchData();
-      fetchTriggerRef.current = { date: null, meter: null };
+      fetchTriggerRef.current = { date: null, option: null };
     }
-  }, [selectedMeter, dateRange, fetchData]);
+  }, [selectedOption, dateRange, fetchData]);
 
   useEffect(() => {
     if (chartRef.current && Object.keys(chartData).length > 0) {
@@ -153,11 +191,19 @@ const IntervalUsageChart = () => {
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
 
-      const series = Object.entries(chartData).map(([date, values]) => ({
-        name: date,
-        type: "line",
-        data: values.map((v) => [v.time, v.value]),
-      }));
+      const series = Object.entries(chartData)
+        .flatMap(([meter, { name, data }]) => {
+          if (!data || typeof data !== "object") {
+            console.warn(`Invalid data for meter ${meter}:`, data);
+            return [];
+          }
+          return Object.entries(data).map(([date, values]) => ({
+            name: `${name} - ${date}`,
+            type: "line",
+            data: values.map((v) => [v.time, v.value]),
+          }));
+        })
+        .filter((series) => series.data && series.data.length > 0);
 
       const allTimes = [
         ...new Set(series.flatMap((s) => s.data.map((d) => d[0]))),
@@ -173,7 +219,7 @@ const IntervalUsageChart = () => {
         },
         legend: {
           type: "scroll",
-          data: Object.keys(chartData),
+          data: series.map((s) => s.name),
           top: 30,
           left: "center",
           right: "center",
@@ -221,9 +267,10 @@ const IntervalUsageChart = () => {
         <HalfWidthContainer>
           <SelectionAndSend
             options={options}
-            onSend={handleMeterSelection}
-            defaultSelectedOptions={[selectedMeter]}
+            onSend={handleOptionSelection}
+            defaultSelectedOptions={[selectedOption]}
             singleSelection={true}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

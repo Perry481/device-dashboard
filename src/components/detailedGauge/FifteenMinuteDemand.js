@@ -63,6 +63,7 @@ const FifteenMinuteDemand = () => {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
   const [quarterData, setQuarterData] = useState([]);
+  const [machineGroups, setMachineGroups] = useState([]);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -85,8 +86,21 @@ const FifteenMinuteDemand = () => {
       }
     };
 
+    const fetchMachineGroups = async () => {
+      try {
+        const response = await fetch("/api/settings");
+        if (!response.ok) throw new Error("Failed to fetch settings");
+        const data = await response.json();
+        setMachineGroups(data.machineGroups || []);
+      } catch (error) {
+        console.error("Error fetching machine groups:", error);
+      }
+    };
+
     fetchOptions();
+    fetchMachineGroups();
   }, []);
+
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
     fetchTriggerRef.current.date = new Date();
@@ -247,10 +261,17 @@ const FifteenMinuteDemand = () => {
     renderChart();
   }, [renderChart]);
 
-  const handleSend = useCallback((newSelectedOptions) => {
-    setSelectedOptions(newSelectedOptions);
-    fetchTriggerRef.current.options = new Date();
-  }, []);
+  const handleSend = useCallback(
+    (newSelectedOptions) => {
+      const expandedOptions = newSelectedOptions.flatMap((option) => {
+        const group = machineGroups.find((g) => g.name === option);
+        return group ? group.machines.map((m) => m.id) : [option];
+      });
+      setSelectedOptions(expandedOptions);
+      fetchTriggerRef.current.options = new Date();
+    },
+    [machineGroups]
+  );
 
   useEffect(() => {
     const shouldFetch =
@@ -276,6 +297,7 @@ const FifteenMinuteDemand = () => {
             options={options}
             onSend={handleSend}
             defaultSelectedOptions={selectedOptions}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

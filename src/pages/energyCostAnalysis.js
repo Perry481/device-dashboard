@@ -206,7 +206,7 @@ const EnergyCostAnalysis = () => {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [options, setOptions] = useState([]);
   const [pricingStandards, setPricingStandards] = useState({});
-
+  const [machineGroups, setMachineGroups] = useState([]);
   const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
   const [activePricingStandard, setActivePricingStandard] = useState("");
 
@@ -229,6 +229,7 @@ const EnergyCostAnalysis = () => {
       const activePricingStandardData =
         savedSettings.pricingStandards[savedSettings.activePricingStandard];
       setTimeRanges(activePricingStandardData.timeRanges);
+      setMachineGroups(savedSettings.machineGroups || []);
       const optionsData = await optionsResponse.json();
       const formattedOptions = optionsData.map((item) => ({
         value: item.sn,
@@ -249,30 +250,6 @@ const EnergyCostAnalysis = () => {
   useEffect(() => {
     fetchSettingsAndOptions();
   }, []);
-
-  useEffect(() => {
-    if (!isLoading && timeRanges && selectedOptions.length > 0) {
-      handleDataFetch(selectedOptions, dateRange);
-    }
-  }, [isLoading, timeRanges, dateRange]);
-
-  const fetchData = async (sn, startDate, endDate) => {
-    console.log("fetchData called");
-    const formattedStartDate = formatDate(new Date(startDate));
-    const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Failed to fetch data");
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(`Error fetching data for ${sn}:`, error);
-      return null;
-    }
-  };
   const handleDataFetch = useCallback(
     async (selectedOptions, dateRange, timeRanges) => {
       if (!timeRanges) return;
@@ -300,6 +277,30 @@ const EnergyCostAnalysis = () => {
     },
     []
   );
+  useEffect(() => {
+    if (!isLoading && timeRanges && selectedOptions.length > 0) {
+      handleDataFetch(selectedOptions, dateRange);
+    }
+  }, [isLoading, timeRanges, dateRange]);
+
+  const fetchData = async (sn, startDate, endDate) => {
+    console.log("fetchData called");
+    const formattedStartDate = formatDate(new Date(startDate));
+    const formattedEndDate = formatDate(new Date(endDate));
+    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching data for ${sn}:`, error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const shouldFetch =
       fetchTriggerRef.current.date ||
@@ -534,6 +535,7 @@ const EnergyCostAnalysis = () => {
             showPricingStandard={true}
             pricingStandards={pricingStandards}
             activePricingStandard={activePricingStandard}
+            machineGroups={machineGroups}
           />
         </HalfWidthContainer>
       </RowContainer>

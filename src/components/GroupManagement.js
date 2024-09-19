@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { FaChevronRight } from "react-icons/fa";
-
+import { FaChevronRight, FaPlus, FaTimes, FaBars } from "react-icons/fa";
 const SplitContainer = styled.div`
   display: flex;
+  flex-direction: column;
   height: 600px;
   overflow: hidden;
-  flex-direction: column;
 `;
 
 const ColumnsContainer = styled.div`
@@ -16,6 +15,60 @@ const ColumnsContainer = styled.div`
   overflow: hidden;
 `;
 
+const LeftColumn = styled.div`
+  flex: 0 0 auto;
+  width: 300px;
+  margin: 0 10px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+
+  @media (max-width: 768px) {
+    width: 80px;
+  }
+`;
+
+const RightColumn = styled.div`
+  flex: 1;
+  margin: 0 10px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
+const RightColumnWrapper = styled.div`
+  flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
+const DraggableContent = styled.div`
+  display: flex;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    ${({ isUngrouped }) =>
+      isUngrouped &&
+      `
+      &::before {
+        content: attr(data-number);
+      }
+      > span {
+        display: none;
+      }
+    `}
+  }
+`;
 const Column = styled.div`
   flex: 1;
   margin: 0 10px;
@@ -23,7 +76,6 @@ const Column = styled.div`
   background-color: #fff;
   border-radius: 4px;
   border: 1px solid #ddd;
-  min-height: 200px;
   display: flex;
   flex-direction: column;
 `;
@@ -32,11 +84,20 @@ const ColumnHeader = styled.h3`
   margin-bottom: 10px;
   padding-bottom: 10px;
   border-bottom: 1px solid #ddd;
+  font-size: 1.2rem;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 `;
 
-const GroupsWrapper = styled.div`
+const ListWrapper = styled.div`
   flex: 1;
   overflow-y: auto;
+  max-height: 450px;
 `;
 
 const DroppableArea = styled.div`
@@ -56,13 +117,6 @@ const MachineItem = styled.div`
   border: 1px solid #ddd;
   border-radius: 4px;
   user-select: none;
-  -ms-user-select: none;
-  -moz-user-select: none;
-`;
-
-const DraggableContent = styled.div`
-  display: flex;
-  align-items: center;
 `;
 
 const GroupContainer = styled.div`
@@ -284,7 +338,7 @@ const GroupManagement = ({
   };
 
   const addGroup = () => {
-    const newGroupName = prompt("Enter new group name:");
+    const newGroupName = prompt("輸入新分組名:");
     if (newGroupName) {
       setGroups((prevGroups) => [
         ...prevGroups,
@@ -346,48 +400,63 @@ const GroupManagement = ({
     onSave(groups, ungroupedMachines);
   };
 
+  const getNumberFromMachineName = (name) => {
+    const match = name.match(/\d+/);
+    return match ? match[0] : "";
+  };
+
   return (
     <SplitContainer>
       <ColumnsContainer>
         <DragDropContext onDragEnd={onDragEnd}>
-          <Column>
-            <ColumnHeader>Ungrouped Machines</ColumnHeader>
-            <Droppable droppableId="ungrouped">
-              {(provided) => (
-                <DroppableArea
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                >
-                  {ungroupedMachines.length > 0 ? (
-                    ungroupedMachines.map((machine, index) => (
-                      <Draggable
-                        key={machine.id}
-                        draggableId={machine.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <MachineItem
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            isDragging={snapshot.isDragging}
-                          >
-                            <DraggableContent>{machine.name}</DraggableContent>
-                          </MachineItem>
-                        )}
-                      </Draggable>
-                    ))
-                  ) : (
-                    <EmptyState>No ungrouped machines</EmptyState>
-                  )}
-                  {provided.placeholder}
-                </DroppableArea>
-              )}
-            </Droppable>
-          </Column>
-          <Column>
-            <ColumnHeader>Groups</ColumnHeader>
-            <GroupsWrapper>
+          <LeftColumn>
+            <ColumnHeader>未分組機器</ColumnHeader>
+            <ListWrapper>
+              <Droppable droppableId="ungrouped">
+                {(provided) => (
+                  <DroppableArea
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                  >
+                    {ungroupedMachines.length > 0 ? (
+                      ungroupedMachines.map((machine, index) => (
+                        <Draggable
+                          key={machine.id}
+                          draggableId={machine.id}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <MachineItem
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              isDragging={snapshot.isDragging}
+                            >
+                              <DraggableContent
+                                isUngrouped={true}
+                                data-number={getNumberFromMachineName(
+                                  machine.name
+                                )}
+                              >
+                                <span>{machine.name}</span>
+                              </DraggableContent>
+                            </MachineItem>
+                          )}
+                        </Draggable>
+                      ))
+                    ) : (
+                      <EmptyState>沒有未分組的機器</EmptyState>
+                    )}
+                    {provided.placeholder}
+                  </DroppableArea>
+                )}
+              </Droppable>
+            </ListWrapper>
+          </LeftColumn>
+
+          <RightColumn>
+            <ColumnHeader>電表組</ColumnHeader>
+            <ListWrapper>
               {groups.map((group) => (
                 <GroupContainer key={group.name}>
                   <GroupHeader>
@@ -422,7 +491,7 @@ const GroupManagement = ({
                           deleteGroup(group.name);
                         }}
                       >
-                        Delete
+                        刪除
                       </DeleteButton>
                     </GroupInfo>
                   </GroupHeader>
@@ -447,7 +516,7 @@ const GroupManagement = ({
                                     {...provided.dragHandleProps}
                                     isDragging={snapshot.isDragging}
                                   >
-                                    <DraggableContent>
+                                    <DraggableContent isUngrouped={false}>
                                       {machine.name}
                                     </DraggableContent>
                                   </MachineItem>
@@ -455,7 +524,7 @@ const GroupManagement = ({
                               </Draggable>
                             ))
                           ) : (
-                            <EmptyState>This group is empty</EmptyState>
+                            <EmptyState>此分組為空</EmptyState>
                           )}
                           {provided.placeholder}
                         </DroppableArea>
@@ -464,14 +533,15 @@ const GroupManagement = ({
                   </GroupContent>
                 </GroupContainer>
               ))}
-            </GroupsWrapper>
-            <AddGroupButton onClick={addGroup}>Add Group</AddGroupButton>
-          </Column>
+            </ListWrapper>
+            <AddGroupButton onClick={addGroup}>
+              <FaPlus /> 新增分組
+            </AddGroupButton>
+          </RightColumn>
         </DragDropContext>
       </ColumnsContainer>
-      <SaveButton onClick={handleSave}>Save Group Settings</SaveButton>
+      <SaveButton onClick={handleSave}>儲存分組設定</SaveButton>
     </SplitContainer>
   );
 };
-
 export default GroupManagement;
