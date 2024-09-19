@@ -262,7 +262,7 @@ const SettingsPage = () => {
               styles={customSelectStyles}
             />
           </FormGroup>
-          <Button type="submit">Save Basic Settings</Button>
+          <Button type="submit">保存基本設定</Button>
         </form>
       </Section>
       <Section>
