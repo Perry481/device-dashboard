@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
+import { FaQuestionCircle } from "react-icons/fa";
+import InstructionModal from "./InstructionModal";
 
 const Nav = styled.nav`
   background-color: #ffffff;
@@ -32,15 +34,13 @@ const NavLink = styled.a`
   }
 
   &.active {
-    /* background-color: #007bff; */
-    color: #ffffff;
+    color: #007bff;
   }
 `;
 
 const DropdownToggle = styled(NavLink)`
   &.active {
-    /* background-color: #007bff; */
-    color: #ffffff;
+    color: #007bff;
   }
 `;
 
@@ -65,7 +65,30 @@ const DropdownItem = styled.a`
   }
 `;
 
+const QuestionButton = styled.button`
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-left: 15px;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #0056b3;
+  }
+`;
+
 const TopNavigation = ({ onPageChange, selectedPage }) => {
+  const [showInstructions, setShowInstructions] = useState(false);
+
+  const toggleInstructions = () => {
+    setShowInstructions(!showInstructions);
+  };
+
   return (
     <Nav className="main-header navbar navbar-expand-md navbar-light">
       <div className="container">
@@ -149,7 +172,6 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                 </NavLink>
               </Link>
             </NavItem>
-
             <NavItem
               className={`nav-item dropdown ${
                 selectedPage === "electricMeterDetails" ? "active" : ""
@@ -247,7 +269,15 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
             </NavItem>
           </ul>
         </div>
+        <QuestionButton onClick={toggleInstructions}>
+          <FaQuestionCircle />
+        </QuestionButton>
       </div>
+      <InstructionModal
+        show={showInstructions}
+        onClose={toggleInstructions}
+        currentPage={selectedPage}
+      />
     </Nav>
   );
 };
