@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
+import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -50,6 +57,7 @@ const formatDate = (date) => {
 };
 
 const IntervalUsageChart = () => {
+  const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const [dateRange, setDateRange] = useState({
     startDate: today,
@@ -62,6 +70,7 @@ const IntervalUsageChart = () => {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const fetchTriggerRef = useRef({ date: null, option: null });
+
   const fetchData = useCallback(async () => {
     if (!selectedOption) return;
 
@@ -85,7 +94,7 @@ const IntervalUsageChart = () => {
     try {
       const results = await Promise.all(
         metersToFetch.map(async (meter) => {
-          const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${meter.id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+          const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${meter.id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
           const response = await fetch(url);
           if (!response.ok)
             throw new Error(`Failed to fetch data for ${meter.id}`);
@@ -111,7 +120,7 @@ const IntervalUsageChart = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOption, dateRange, machineGroups, options]);
+  }, [selectedOption, dateRange, machineGroups, options, companyName]);
 
   const processData = (data) => {
     const processedData = {};
@@ -139,7 +148,7 @@ const IntervalUsageChart = () => {
     const fetchOptions = async () => {
       try {
         const response = await fetch(
-          "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
         );
         if (!response.ok) throw new Error("Failed to fetch options");
         const data = await response.json();
@@ -170,7 +179,7 @@ const IntervalUsageChart = () => {
 
     fetchOptions();
     fetchMachineGroups();
-  }, []);
+  }, [companyName]);
 
   useEffect(() => {
     const shouldFetch =

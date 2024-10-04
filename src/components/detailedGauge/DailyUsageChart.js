@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useContext,
+} from "react";
+import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
 import DateRangePicker from "../DateRangePicker";
 import SelectionAndSend from "../SelectionAndSend";
 import styled from "styled-components";
@@ -50,6 +57,7 @@ const formatDate = (date) => {
 };
 
 const DailyUsageChart = () => {
+  const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -67,7 +75,7 @@ const DailyUsageChart = () => {
     const fetchOptions = async () => {
       try {
         const response = await fetch(
-          "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
         );
         if (!response.ok) throw new Error("Failed to fetch options");
         const data = await response.json();
@@ -97,7 +105,7 @@ const DailyUsageChart = () => {
 
     fetchOptions();
     fetchMachineGroups();
-  }, []);
+  }, [companyName]);
 
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
@@ -122,7 +130,7 @@ const DailyUsageChart = () => {
     try {
       const results = await Promise.all(
         expandedOptions.map(async (sn) => {
-          const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+          const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
           const response = await fetch(url);
           if (!response.ok) throw new Error(`Failed to fetch data for ${sn}`);
           return await response.json();
@@ -150,7 +158,7 @@ const DailyUsageChart = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups]);
+  }, [selectedOptions, dateRange, machineGroups, companyName]);
 
   const renderChart = useCallback(() => {
     if (chartRef.current && hourlyData.length > 0) {

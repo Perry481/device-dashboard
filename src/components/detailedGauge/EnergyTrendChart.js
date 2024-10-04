@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
+import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -50,6 +57,7 @@ const formatDate = (date) => {
 };
 
 const EnergyTrendChart = () => {
+  const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
   const [dateRange, setDateRange] = useState({
@@ -89,7 +97,7 @@ const EnergyTrendChart = () => {
     try {
       const promises = expandedOptions.map(({ id, name }) =>
         fetch(
-          `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
         ).then((response) => {
           if (!response.ok)
             throw new Error(`Failed to fetch data for meter ${id}`);
@@ -106,7 +114,7 @@ const EnergyTrendChart = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups, options]);
+  }, [selectedOptions, dateRange, machineGroups, options, companyName]);
 
   const processData = (results) => {
     const processedData = {};
@@ -133,7 +141,7 @@ const EnergyTrendChart = () => {
     const fetchOptions = async () => {
       try {
         const response = await fetch(
-          "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
         );
         if (!response.ok) throw new Error("Failed to fetch options");
         const data = await response.json();
@@ -164,7 +172,7 @@ const EnergyTrendChart = () => {
 
     fetchOptions();
     fetchMachineGroups();
-  }, []);
+  }, [companyName]);
 
   useEffect(() => {
     const shouldFetch =

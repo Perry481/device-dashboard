@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
+import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -55,6 +62,7 @@ const formatDateWithoutYear = (dateString) => {
 };
 
 const PowerHeatmap = () => {
+  const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
   const [dateRange, setDateRange] = useState({
@@ -98,7 +106,7 @@ const PowerHeatmap = () => {
     try {
       const promises = expandedOptions.map(({ id }) =>
         fetch(
-          `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
         ).then((response) => {
           if (!response.ok)
             throw new Error(`Failed to fetch data for meter ${id}`);
@@ -115,7 +123,7 @@ const PowerHeatmap = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups, options]);
+  }, [selectedOptions, dateRange, machineGroups, options, companyName]);
 
   const processData = (dataArray) => {
     const combinedData = {};
@@ -164,7 +172,7 @@ const PowerHeatmap = () => {
     const fetchOptions = async () => {
       try {
         const response = await fetch(
-          "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
         );
         if (!response.ok) throw new Error("Failed to fetch options");
         const data = await response.json();
@@ -195,7 +203,7 @@ const PowerHeatmap = () => {
 
     fetchOptions();
     fetchMachineGroups();
-  }, []);
+  }, [companyName]);
 
   useEffect(() => {
     const shouldFetch =
