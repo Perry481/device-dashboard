@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import IframeLayout from "../components/IframeLayout";
 import MainLayout from "../components/MainLayout";
 import { useRouter } from "next/router";
+import { CompanyProvider } from "../contexts/CompanyContext";
 
 const App = ({ Component, pageProps }) => {
   const [selectedPage, setSelectedPage] = useState("Index");
@@ -43,60 +44,63 @@ const App = ({ Component, pageProps }) => {
     }
   }, [router.pathname]);
 
-  if (isIframe) {
-    return (
-      <IframeLayout>
-        <Component {...pageProps} />
-      </IframeLayout>
-    );
-  }
-
   return (
-    <>
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>設備儀錶板</title>
-        <style>{`
-          html, body, #__next {
-            height: 100%;
-          }
-          .wrapper {
-            min-height: 80%;
-            display: flex;
-            flex-direction: column;
-          }
-          .content-wrapper {
-            flex: 1 0 auto;
-            display: flex;
-            flex-direction: column;
-          }
-          .navbar-light .navbar-nav .active > .nav-link, 
-          .navbar-light .navbar-nav .nav-link.active, 
-          .navbar-light .navbar-nav .nav-link.show, 
-          .navbar-light .navbar-nav .show > .nav-link {
-            color: rgba(0, 0, 0, 0.9);
-            font-weight: bold;
-          }
-          .chart-container {
-            height: 400px;
-          }
-        `}</style>
-      </Head>
-      <div className="wrapper">
-        <TopNavigation
-          onPageChange={handlePageChange}
-          selectedPage={selectedPage}
-        />
-        <div className="content-wrapper">
-          <div className="container-fluid h-100">
-            <MainLayout>
-              <Component {...pageProps} isIframe={isIframe} />
-            </MainLayout>
+    <CompanyProvider>
+      {isIframe ? (
+        <IframeLayout>
+          <Component {...pageProps} />
+        </IframeLayout>
+      ) : (
+        <>
+          <Head>
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1"
+            />
+            <title>設備儀錶板</title>
+            <style>{`
+              html, body, #__next {
+                height: 100%;
+              }
+              .wrapper {
+                min-height: 80%;
+                display: flex;
+                flex-direction: column;
+              }
+              .content-wrapper {
+                flex: 1 0 auto;
+                display: flex;
+                flex-direction: column;
+              }
+              .navbar-light .navbar-nav .active > .nav-link, 
+              .navbar-light .navbar-nav .nav-link.active, 
+              .navbar-light .navbar-nav .nav-link.show, 
+              .navbar-light .navbar-nav .show > .nav-link {
+                color: rgba(0, 0, 0, 0.9);
+                font-weight: bold;
+              }
+              .chart-container {
+                height: 400px;
+              }
+            `}</style>
+          </Head>
+          <div className="wrapper">
+            <TopNavigation
+              onPageChange={handlePageChange}
+              selectedPage={selectedPage}
+            />
+            <div className="content-wrapper">
+              <div className="container-fluid h-100">
+                <MainLayout>
+                  <Component {...pageProps} isIframe={isIframe} />
+                </MainLayout>
+              </div>
+            </div>
+            {/* <Footer /> */}
           </div>
-        </div>
-        {/* <Footer /> */}
-      </div>
-    </>
+        </>
+      )}
+    </CompanyProvider>
   );
 };
 
