@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useContext,
+} from "react";
+import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
 import DateRangePicker from "../DateRangePicker";
 import SelectionAndSend from "../SelectionAndSend";
 import styled from "styled-components";
@@ -50,6 +57,7 @@ const formatDate = (date) => {
 };
 
 const FifteenMinuteDemand = () => {
+  const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -69,7 +77,7 @@ const FifteenMinuteDemand = () => {
     const fetchOptions = async () => {
       try {
         const response = await fetch(
-          "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
         );
         if (!response.ok) throw new Error("Failed to fetch options");
         const data = await response.json();
@@ -99,7 +107,7 @@ const FifteenMinuteDemand = () => {
 
     fetchOptions();
     fetchMachineGroups();
-  }, []);
+  }, [companyName]);
 
   const handleDateChange = useCallback((newDateRange) => {
     setDateRange(newDateRange);
@@ -119,7 +127,7 @@ const FifteenMinuteDemand = () => {
     try {
       const results = await Promise.all(
         selectedOptions.map(async (sn) => {
-          const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
+          const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
           const response = await fetch(url);
           if (!response.ok) throw new Error(`Failed to fetch data for ${sn}`);
           return await response.json();
@@ -151,7 +159,7 @@ const FifteenMinuteDemand = () => {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange]);
+  }, [selectedOptions, dateRange, companyName]);
 
   const renderChart = useCallback(() => {
     if (chartRef.current) {
