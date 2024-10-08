@@ -5,44 +5,104 @@
       "timeRanges": {
         "夏月": {
           "weekdays": {
-            "peak": [[16, 22]],
-            "halfpeak": [
-              [9, 16],
-              [22, 24]
+            "peak": [
+              [
+                16,
+                22
+              ]
             ],
-            "offpeak": [[0, 9]]
+            "halfpeak": [
+              [
+                9,
+                16
+              ],
+              [
+                22,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                9
+              ]
+            ]
           },
           "saturday": {
-            "halfpeak": [[9, 24]],
-            "offpeak": [[0, 9]]
+            "halfpeak": [
+              [
+                9,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                9
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         },
         "非夏月": {
           "weekdays": {
             "halfpeak": [
-              [6, 11],
-              [14, 24]
+              [
+                6,
+                11
+              ],
+              [
+                14,
+                24
+              ]
             ],
             "offpeak": [
-              [0, 6],
-              [11, 14]
+              [
+                0,
+                6
+              ],
+              [
+                11,
+                14
+              ]
             ]
           },
           "saturday": {
             "halfpeak": [
-              [6, 11],
-              [14, 24]
+              [
+                6,
+                11
+              ],
+              [
+                14,
+                24
+              ]
             ],
             "offpeak": [
-              [0, 6],
-              [11, 14]
+              [
+                0,
+                6
+              ],
+              [
+                11,
+                14
+              ]
             ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         }
       },
@@ -91,28 +151,78 @@
       "timeRanges": {
         "夏月": {
           "weekdays": {
-            "peak": [[9, 24]],
-            "offpeak": [[0, 9]]
+            "peak": [
+              [
+                9,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                9
+              ]
+            ]
           },
           "saturday": {
-            "halfpeak": [[9, 24]],
-            "offpeak": [[0, 9]]
+            "halfpeak": [
+              [
+                9,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                9
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         },
         "非夏月": {
           "weekdays": {
-            "peak": [[6, 24]],
-            "offpeak": [[0, 6]]
+            "peak": [
+              [
+                6,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                6
+              ]
+            ]
           },
           "saturday": {
-            "halfpeak": [[6, 24]],
-            "offpeak": [[0, 6]]
+            "halfpeak": [
+              [
+                6,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                6
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         }
       },
@@ -158,36 +268,84 @@
       "timeRanges": {
         "夏月": {
           "weekdays": {
-            "peak": [[16, 22]],
-            "halfpeak": [
-              [9, 16],
-              [22, 24]
+            "peak": [
+              [
+                16,
+                22
+              ]
             ],
-            "offpeak": [[0, 9]]
+            "halfpeak": [
+              [
+                9,
+                16
+              ],
+              [
+                22,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                9
+              ]
+            ]
           },
           "saturday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         },
         "非夏月": {
           "weekdays": {
             "halfpeak": [
-              [6, 11],
-              [14, 24]
+              [
+                6,
+                11
+              ],
+              [
+                14,
+                24
+              ]
             ],
             "offpeak": [
-              [0, 6],
-              [11, 14]
+              [
+                0,
+                6
+              ],
+              [
+                11,
+                14
+              ]
             ]
           },
           "saturday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         }
       },
@@ -217,32 +375,74 @@
       "timeRanges": {
         "夏月": {
           "weekdays": {
-            "peak": [[9, 24]],
-            "offpeak": [[0, 9]]
+            "peak": [
+              [
+                9,
+                24
+              ]
+            ],
+            "offpeak": [
+              [
+                0,
+                9
+              ]
+            ]
           },
           "saturday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         },
         "非夏月": {
           "weekdays": {
             "peak": [
-              [6, 11],
-              [14, 24]
+              [
+                6,
+                11
+              ],
+              [
+                14,
+                24
+              ]
             ],
             "offpeak": [
-              [0, 6],
-              [11, 14]
+              [
+                0,
+                6
+              ],
+              [
+                11,
+                14
+              ]
             ]
           },
           "saturday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           },
           "sunday": {
-            "offpeak": [[0, 24]]
+            "offpeak": [
+              [
+                0,
+                24
+              ]
+            ]
           }
         }
       },
@@ -271,20 +471,14 @@
   "machineGroups": [
     {
       "name": "電表組1",
-      "startIndex": 2,
-      "endIndex": 7,
       "machines": [
+        {
+          "id": "Jetson_nano0_7",
+          "name": "射出機407電錶"
+        },
         {
           "id": "Jetson_nano0_6",
           "name": "射出機406電錶"
-        },
-        {
-          "id": "Jetson_nano0_2",
-          "name": "射出機402"
-        },
-        {
-          "id": "Jetson_nano0_1",
-          "name": "射出機401"
         }
       ]
     },
@@ -296,16 +490,16 @@
           "name": "射出機404"
         },
         {
-          "id": "Jetson_nano0_5",
-          "name": "射出機405"
-        },
-        {
-          "id": "Jetson_nano0_7",
-          "name": "射出機407電錶"
+          "id": "Jetson_nano0_2",
+          "name": "射出機402"
         },
         {
           "id": "Jetson_nano0_3",
           "name": "射出機403電錶"
+        },
+        {
+          "id": "Jetson_nano0_1",
+          "name": "射出機401"
         }
       ]
     }

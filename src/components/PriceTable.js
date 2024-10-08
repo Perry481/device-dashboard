@@ -134,6 +134,7 @@ const PriceTable = ({
   triggerHandleSend,
   disableEdit = false,
   selectedPricingStandard,
+  companyName,
 }) => {
   console.log("PriceTable - selectedPricingStandard:", selectedPricingStandard);
   const [isClient, setIsClient] = useState(false);
@@ -146,7 +147,7 @@ const PriceTable = ({
   useEffect(() => {
     setIsClient(true);
     fetchSettings();
-  }, []);
+  }, [companyName]);
 
   useEffect(() => {
     if (selectedPricingStandard) {
@@ -162,7 +163,7 @@ const PriceTable = ({
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings");
+      const response = await fetch(`/api/settings/${companyName}`);
       if (!response.ok) {
         throw new Error("Failed to fetch settings");
       }
@@ -177,6 +178,39 @@ const PriceTable = ({
     } catch (error) {
       console.error("Error fetching settings:", error);
     }
+  };
+
+  const handleEditMode = async () => {
+    if (editMode) {
+      try {
+        const updatedPricingStandards = {
+          ...pricingStandards,
+          [selectedStandard]: {
+            ...pricingStandards[selectedStandard],
+            timeRanges: tempTimeRanges,
+          },
+        };
+
+        const response = await fetch(`/api/settings/${companyName}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pricingStandards: updatedPricingStandards,
+          }),
+        });
+
+        if (!response.ok) throw new Error("Failed to save settings");
+
+        console.log("Settings saved successfully");
+        await fetchSettings(); // Refetch settings but keep the selected standard
+        triggerHandleSend();
+      } catch (error) {
+        console.error("Error saving settings:", error);
+      }
+    } else {
+      setTempTimeRanges(pricingStandards[selectedStandard].timeRanges);
+    }
+    setEditMode(!editMode);
   };
 
   const handleStandardChange = (e) => {
@@ -198,39 +232,6 @@ const PriceTable = ({
         },
       },
     }));
-  };
-
-  const handleEditMode = async () => {
-    if (editMode) {
-      try {
-        const updatedPricingStandards = {
-          ...pricingStandards,
-          [selectedStandard]: {
-            ...pricingStandards[selectedStandard],
-            timeRanges: tempTimeRanges,
-          },
-        };
-
-        const response = await fetch("/api/settings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pricingStandards: updatedPricingStandards,
-          }),
-        });
-
-        if (!response.ok) throw new Error("Failed to save settings");
-
-        console.log("Settings saved successfully");
-        await fetchSettings(); // Refetch settings but keep the selected standard
-        triggerHandleSend();
-      } catch (error) {
-        console.error("Error saving settings:", error);
-      }
-    } else {
-      setTempTimeRanges(pricingStandards[selectedStandard].timeRanges);
-    }
-    setEditMode(!editMode);
   };
 
   const handleTimeRangeChange = (season, dayType, type, index, part, value) => {

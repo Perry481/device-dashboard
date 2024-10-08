@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import styled from "styled-components";
 import Select from "react-select";
 import PriceTable from "../components/PriceTable";
 import GroupManagement from "../components/GroupManagement";
+import { CompanyContext } from "../contexts/CompanyContext";
 
 const SettingsContainer = styled.div`
   width: 100%;
@@ -60,6 +61,23 @@ const Button = styled.button`
   }
 `;
 
+const ErrorMessage = styled.div`
+  color: #dc3545;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+`;
+
+const LoadingSpinner = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  font-size: 24px;
+`;
+
 const customSelectStyles = {
   control: (provided) => ({
     ...provided,
@@ -86,6 +104,7 @@ const customSelectStyles = {
 };
 
 const SettingsPage = () => {
+  const { companyName } = useContext(CompanyContext);
   const [settings, setSettings] = useState(null);
   const [co2, setCO2] = useState(0);
   const [contractCapacity, setContractCapacity] = useState(0);
@@ -95,21 +114,28 @@ const SettingsPage = () => {
   const [groups, setGroups] = useState([]);
   const [ungroupedMachines, setUngroupedMachines] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchMachines();
-  }, []);
+  }, [companyName]);
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/settings");
-      if (!response.ok) throw new Error("Failed to fetch settings");
+      const response = await fetch(`/api/settings/${companyName}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log(`Settings for company ${companyName} not found. Using defaults.`);
+          return {}; // Return empty object to use defaults
+        }
+        throw new Error("Failed to fetch settings");
+      }
       const data = await response.json();
       setSettings(data);
-      setCO2(data.CO2);
-      setContractCapacity(data.contractCapacity);
+      setCO2(data.CO2 || 0);
+      setContractCapacity(data.contractCapacity || 0);
 
-      const options = Object.keys(data.pricingStandards).map((key) => ({
+      const options = Object.keys(data.pricingStandards || {}).map((key) => ({
         value: key,
         label: data.pricingStandards[key].name,
       }));
@@ -123,15 +149,17 @@ const SettingsPage = () => {
       return data.machineGroups || [];
     } catch (error) {
       console.error("Error fetching settings:", error);
+      setError("Failed to load settings. Please try again later.");
       return [];
     }
   };
 
   const fetchMachines = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const [machinesResponse, fetchedGroups] = await Promise.all([
-        fetch("https://iot.jtmes.net/ebc/api/equipment/powermeter_list"),
+        fetch(`https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`),
         fetchSettings(),
       ]);
 
@@ -144,9 +172,10 @@ const SettingsPage = () => {
       setAllMachines(formattedMachines);
 
       updateMachineDistribution(formattedMachines, fetchedGroups);
-      setIsLoading(false);
     } catch (error) {
-      console.error("Error fetching machines:", error);
+      console.error("Error fetching data:", error);
+      setError("Failed to load data. Please try again later.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -181,7 +210,7 @@ const SettingsPage = () => {
         activePricingStandard: selectedStandard.value,
       };
 
-      const response = await fetch("/api/settings", {
+      const response = await fetch(`/api/settings/${companyName}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -193,7 +222,7 @@ const SettingsPage = () => {
       fetchSettings();
     } catch (error) {
       console.error("Error updating basic settings:", error);
-      alert("Failed to update basic settings");
+      alert("Failed to update basic settings. Please try again.");
     }
   };
 
@@ -203,7 +232,7 @@ const SettingsPage = () => {
         machineGroups: newGroups,
       };
 
-      const response = await fetch("/api/settings", {
+      const response = await fetch(`/api/settings/${companyName}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -217,7 +246,7 @@ const SettingsPage = () => {
       fetchSettings();
     } catch (error) {
       console.error("Error updating group settings:", error);
-      alert("Failed to update group settings");
+      alert("Failed to update group settings. Please try again.");
     }
   };
 
@@ -225,7 +254,9 @@ const SettingsPage = () => {
     fetchSettings();
   };
 
-  if (!settings) return <div>Loading...</div>;
+  if (isLoading) return <LoadingSpinner>Loading...</LoadingSpinner>;
+  if (error) return <ErrorMessage>{error}</ErrorMessage>;
+  if (!settings) return <ErrorMessage>No settings found for this company.</ErrorMessage>;
 
   return (
     <SettingsContainer>
@@ -267,21 +298,19 @@ const SettingsPage = () => {
       </Section>
       <Section>
         <SectionTitle>電表組設定</SectionTitle>
-        {isLoading ? (
-          <div>Loading...</div>
-        ) : (
-          <GroupManagement
-            initialGroups={groups}
-            initialUngroupedMachines={ungroupedMachines}
-            onSave={handleGroupSettingsSubmit}
-          />
-        )}
+        <GroupManagement
+          initialGroups={groups}
+          initialUngroupedMachines={ungroupedMachines}
+          onSave={handleGroupSettingsSubmit}
+          companyName={companyName}
+        />
       </Section>
       <Section>
         <SectionTitle>電價設定</SectionTitle>
         <PriceTable
           onPricesUpdate={handlePriceTableUpdate}
           triggerHandleSend={handlePriceTableUpdate}
+          companyName={companyName}
         />
       </Section>
     </SettingsContainer>
