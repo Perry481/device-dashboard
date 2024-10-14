@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import styled from "styled-components";
 import Select from "react-select";
 import CustomValueContainer from "./CustomValueContainer";
+import { CompanyContext } from "../contexts/CompanyContext";
 
 const Card = styled.div`
   border: 1px solid #484848;
@@ -106,12 +107,12 @@ const SelectionAndSend = ({
   );
   const [selectedStandard, setSelectedStandard] = useState(null);
   const [standardOptions, setStandardOptions] = useState([]);
-
+  const { companyName } = useContext(CompanyContext);
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
         );
         const data = await response.json();
         const formattedOptions = data.map((item) => ({

@@ -502,6 +502,15 @@
           "name": "射出機401"
         }
       ]
+    },
+    {
+      "name": "group3",
+      "machines": [
+        {
+          "id": "Jetson_nano0_5",
+          "name": "射出機405"
+        }
+      ]
     }
   ]
 }

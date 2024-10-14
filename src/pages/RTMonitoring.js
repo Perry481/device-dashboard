@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import Select from "react-select";
 import styled, { createGlobalStyle } from "styled-components";
-
+import { CompanyContext } from "../contexts/CompanyContext";
 import GaugeSettingsPopup from "../components/GaugeSettingsPopup";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -144,11 +144,12 @@ const MonitorPage = () => {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [filteredMeters, setFilteredMeters] = useState([]);
   const metersPerPage = 8;
+  const { companyName } = useContext(CompanyContext);
 
   const fetchDataAndOrder = async () => {
     try {
       const meterResponse = await fetch(
-        "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+        `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
       );
       const meterData = await meterResponse.json();
 
@@ -215,7 +216,7 @@ const MonitorPage = () => {
         };
       });
 
-      const orderResponse = await fetch("/api/machineorder");
+      const orderResponse = await fetch(`/api/machineOrder/${companyName}`);
       let orderData = await orderResponse.json();
 
       const newMachines = formattedMeterData.filter(
@@ -225,7 +226,7 @@ const MonitorPage = () => {
       if (newMachines.length > 0) {
         orderData = [...orderData, ...newMachines.map((meter) => meter.title)];
 
-        await fetch("/api/machineorder", {
+        await fetch(`/api/machineOrder/${companyName}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -246,7 +247,7 @@ const MonitorPage = () => {
       setDraggableOrder(orderData);
 
       // Fetch groups
-      const groupsResponse = await fetch("/api/settings");
+      const groupsResponse = await fetch(`/api/settings/${companyName}`);
       const groupsData = await groupsResponse.json();
       const machineGroups = groupsData.machineGroups || [];
       setGroups([
@@ -285,7 +286,7 @@ const MonitorPage = () => {
   useEffect(() => {
     const fetchCardSettings = async () => {
       try {
-        const response = await fetch("/api/cardSettings");
+        const response = await fetch(`/api/cardSettings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch card settings");
         const data = await response.json();
         setCardSettings(data);
@@ -355,27 +356,27 @@ const MonitorPage = () => {
     }
   }, [selectedGroup, orderedMeters, groups]);
 
-  const handleSaveSettings = async () => {
-    try {
-      await fetch("/api/machineorder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draggableOrder),
-      });
+  // const handleSaveSettings = async () => {
+  //   try {
+  //     await fetch("/api/machineorder", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(draggableOrder),
+  //     });
 
-      await fetch("/api/cardSettings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cardSettings),
-      });
+  //     await fetch("/api/cardSettings", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(cardSettings),
+  //     });
 
-      setShowSettings(false);
-      setShowCardSettings(false);
-      fetchDataAndOrder();
-    } catch (error) {
-      console.error("Error saving settings:", error);
-    }
-  };
+  //     setShowSettings(false);
+  //     setShowCardSettings(false);
+  //     fetchDataAndOrder();
+  //   } catch (error) {
+  //     console.error("Error saving settings:", error);
+  //   }
+  // };
 
   const handleSearch = (value) => {
     setSearchTerm(value);
@@ -441,7 +442,7 @@ const MonitorPage = () => {
 
   const handleSaveOrder = async () => {
     try {
-      await fetch("/api/machineorder", {
+      await fetch(`/api/machineOrder/${companyName}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draggableOrder),
@@ -455,7 +456,7 @@ const MonitorPage = () => {
 
   const handleSaveCardSettings = async (newSettings) => {
     try {
-      await fetch("/api/cardSettings", {
+      await fetch(`/api/cardSettings/${companyName}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newSettings),

@@ -1,11 +1,18 @@
 import dynamic from "next/dynamic";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import * as echarts from "echarts";
 import DataTableComponent from "../components/DataTableComponent";
 import DetailCard from "../components/DetailCard";
 import DateRangePicker from "../components/DateRangePicker";
 import styled from "styled-components";
+import { CompanyContext } from "../contexts/CompanyContext";
 
 const SelectionAndSend = dynamic(
   () => import("../components/SelectionAndSend"),
@@ -209,13 +216,16 @@ const EnergyCostAnalysis = () => {
   const [machineGroups, setMachineGroups] = useState([]);
   const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
   const [activePricingStandard, setActivePricingStandard] = useState("");
+  const { companyName } = useContext(CompanyContext);
 
   const fetchSettingsAndOptions = async () => {
     setIsLoading(true);
     try {
       const [settingsResponse, optionsResponse] = await Promise.all([
-        fetch("/api/settings"),
-        fetch("https://iot.jtmes.net/ebc/api/equipment/powermeter_list"),
+        fetch(`/api/settings/${companyName}`),
+        fetch(
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+        ),
       ]);
 
       if (!settingsResponse.ok || !optionsResponse.ok) {
@@ -287,7 +297,7 @@ const EnergyCostAnalysis = () => {
     console.log("fetchData called");
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
 
     try {
       const response = await fetch(url);

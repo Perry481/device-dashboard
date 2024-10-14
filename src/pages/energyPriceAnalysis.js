@@ -5,6 +5,7 @@ import React, {
   useRef,
   useCallback,
   useMemo,
+  useContext,
 } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import * as echarts from "echarts";
@@ -15,7 +16,7 @@ import DateRangePicker from "../components/DateRangePicker";
 import styled from "styled-components";
 import { debounce } from "lodash";
 import isEqual from "lodash/isEqual";
-
+import { CompanyContext } from "../contexts/CompanyContext";
 const SelectionAndSend = dynamic(
   () => import("../components/SelectionAndSend"),
   { ssr: false }
@@ -207,12 +208,14 @@ const EnergyPriceAnalysis = () => {
   const [pricingStandards, setPricingStandards] = useState({});
   const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
   const [activePricingStandard, setActivePricingStandard] = useState("");
-
+  const { companyName } = useContext(CompanyContext);
+  const [error, setError] = useState(null);
   const fetchSettings = useCallback(async () => {
     try {
-      const response = await fetch("/api/settings");
+      const response = await fetch(`/api/settings/${companyName}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch settings");
+        setError(`Failed to fetch data for company ${companyName}`);
+        throw new Error("Failed to fetch data");
       }
       const savedSettings = await response.json();
       console.log("Settings fetched successfully:", savedSettings);
@@ -231,15 +234,16 @@ const EnergyPriceAnalysis = () => {
       setPrices({});
       setTimeRanges({});
     }
-  }, []);
+  }, [companyName]);
 
   const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch(
-        "https://iot.jtmes.net/ebc/api/equipment/powermeter_list"
+        `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch options");
+        setError(`Failed to fetch option for company ${companyName}`);
+        throw new Error("Failed to fetch option");
       }
       const data = await response.json();
       const formattedOptions = data.map((item) => ({
@@ -254,20 +258,21 @@ const EnergyPriceAnalysis = () => {
     } catch (error) {
       console.error("Error fetching options:", error);
     }
-  }, []);
+  }, [companyName]);
 
   useEffect(() => {
     fetchSettings();
     fetchOptions();
-  }, [fetchOptions, fetchSettings]);
+  }, [fetchOptions, fetchSettings, companyName]);
 
   const fetchData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/ebc/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
     try {
       const response = await fetch(url);
       if (!response.ok) {
+        setError(`Failed to fetch data for company ${companyName}`);
         throw new Error("Failed to fetch data");
       }
       return await response.json();
@@ -362,7 +367,13 @@ const EnergyPriceAnalysis = () => {
   const handleExitEditMode = useCallback(async () => {
     await fetchSettings();
     handleSelectionAndSend(selectedOptions, timeRanges);
-  }, [fetchSettings, handleSelectionAndSend, selectedOptions, timeRanges]);
+  }, [
+    fetchSettings,
+    handleSelectionAndSend,
+    selectedOptions,
+    timeRanges,
+    companyName,
+  ]);
 
   useEffect(() => {
     if (initialized && selectedOptions.length > 0 && timeRanges) {
@@ -637,6 +648,7 @@ const EnergyPriceAnalysis = () => {
             triggerHandleSend={handleExitEditMode}
             disableEdit={true}
             selectedPricingStandard={selectedPricingStandard}
+            companyName={companyName}
           />
         </div>
       </div>
