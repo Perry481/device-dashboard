@@ -29,7 +29,6 @@ const CombinedCard = ({
   const handleToggleDetails = () => {
     setShowDetails((prev) => !prev);
   };
-
   const summaryTexts = cardSettings?.gaugeSettings?.[title]?.summaryTexts ||
     cardSettings?.defaultSettings?.summaryTexts || [
       "總累計電耗",
@@ -148,11 +147,13 @@ const MonitorPage = () => {
 
   const fetchDataAndOrder = async () => {
     try {
+      // Fetch meter data
       const meterResponse = await fetch(
         `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
       );
       const meterData = await meterResponse.json();
 
+      // Format meter data
       const formattedMeterData = meterData.map((item) => {
         const lastData = JSON.parse(item.last_data);
         return {
@@ -216,16 +217,44 @@ const MonitorPage = () => {
         };
       });
 
+      // Fetch machine order
       const orderResponse = await fetch(`/api/machineOrder/${companyName}`);
       let orderData = await orderResponse.json();
 
-      const newMachines = formattedMeterData.filter(
-        (meter) => !orderData.includes(meter.title)
-      );
+      let isOrderChanged = false;
 
-      if (newMachines.length > 0) {
-        orderData = [...orderData, ...newMachines.map((meter) => meter.title)];
+      // If orderData is empty, use the order from formattedMeterData
+      if (orderData.length === 0) {
+        orderData = formattedMeterData.map((meter) => meter.title);
+        isOrderChanged = true;
+      } else {
+        const currentMachines = new Set(
+          formattedMeterData.map((meter) => meter.title)
+        );
+        const oldOrderSet = new Set(orderData);
 
+        // Add new machines
+        const newMachines = formattedMeterData.filter(
+          (meter) => !oldOrderSet.has(meter.title)
+        );
+        if (newMachines.length > 0) {
+          orderData = [
+            ...orderData,
+            ...newMachines.map((meter) => meter.title),
+          ];
+          isOrderChanged = true;
+        }
+
+        // Remove non-existent machines
+        const initialLength = orderData.length;
+        orderData = orderData.filter((name) => currentMachines.has(name));
+        if (orderData.length !== initialLength) {
+          isOrderChanged = true;
+        }
+      }
+
+      // Update the machine order on the server only if there's a change
+      if (isOrderChanged) {
         await fetch(`/api/machineOrder/${companyName}`, {
           method: "POST",
           headers: {
@@ -235,8 +264,10 @@ const MonitorPage = () => {
         });
       }
 
+      // Set state
       setMeterData(formattedMeterData);
       setOrder(orderData);
+
       const orderedMeters = orderData
         .map((machineName) =>
           formattedMeterData.find((meter) => meter.title === machineName)

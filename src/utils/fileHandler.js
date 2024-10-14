@@ -1,4 +1,3 @@
-// src/utils/fileHandler.js
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -6,19 +5,25 @@ const COMPANY_SETTINGS_DIR = path.resolve(process.cwd(), "company_settings");
 const DEFAULT_SETTINGS_DIR = path.resolve(process.cwd(), "default_settings");
 
 export async function getCompanyFile(fileType, companyName) {
-  const fileName = `${fileType}_${companyName}.json`;
-  const filePath = path.join(COMPANY_SETTINGS_DIR, fileName);
+  const fileName = `${fileType}.json`;
+  const companyDir = path.join(COMPANY_SETTINGS_DIR, companyName);
+  const filePath = path.join(companyDir, fileName);
+
+  try {
+    await fs.access(companyDir);
+  } catch {
+    await fs.mkdir(companyDir, { recursive: true });
+  }
 
   try {
     await fs.access(filePath);
     return filePath;
   } catch {
-    // File doesn't exist, create it from default
     const defaultFilePath = path.join(
       DEFAULT_SETTINGS_DIR,
       `default_${fileType}.json`
     );
-    const newFilePath = path.join(COMPANY_SETTINGS_DIR, fileName);
+    const newFilePath = path.join(companyDir, fileName);
 
     try {
       const defaultData = await fs.readFile(defaultFilePath, "utf-8");
