@@ -264,11 +264,10 @@ const EnergyPriceAnalysis = () => {
     fetchSettings();
     fetchOptions();
   }, [fetchOptions, fetchSettings, companyName]);
-
   const fetchData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+    const url = `http://61.216.62.9:8081/${companyName}/api/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -281,7 +280,6 @@ const EnergyPriceAnalysis = () => {
       return null;
     }
   };
-
   const handleDataFetch = useCallback(
     debounce(async (selectedOptions, dateRange, timeRanges) => {
       if (!initialized) {

@@ -292,12 +292,11 @@ const EnergyCostAnalysis = () => {
       handleDataFetch(selectedOptions, dateRange);
     }
   }, [isLoading, timeRanges, dateRange]);
-
   const fetchData = async (sn, startDate, endDate) => {
     console.log("fetchData called");
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+    const url = `http://61.216.62.9:8081/${companyName}/api/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
 
     try {
       const response = await fetch(url);

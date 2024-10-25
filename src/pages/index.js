@@ -945,7 +945,7 @@ const HomePage = () => {
   const fetchQuarterData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
+    const url = `http://61.216.62.9:8081/${companyName}/api/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
 
     try {
       const response = await fetch(url);

@@ -130,7 +130,7 @@ const DailyUsageChart = () => {
     try {
       const results = await Promise.all(
         expandedOptions.map(async (sn) => {
-          const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+          const url = `http://61.216.62.9:8081/${companyName}/api/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
           const response = await fetch(url);
           if (!response.ok) throw new Error(`Failed to fetch data for ${sn}`);
           return await response.json();
