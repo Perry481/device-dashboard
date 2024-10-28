@@ -125,7 +125,9 @@ const SettingsPage = () => {
       const response = await fetch(`/api/settings/${companyName}`);
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`Settings for company ${companyName} not found. Using defaults.`);
+          console.log(
+            `Settings for company ${companyName} not found. Using defaults.`
+          );
           return {}; // Return empty object to use defaults
         }
         throw new Error("Failed to fetch settings");
@@ -159,7 +161,7 @@ const SettingsPage = () => {
     setError(null);
     try {
       const [machinesResponse, fetchedGroups] = await Promise.all([
-        fetch(`https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`),
+        fetch(`http://61.216.62.9:8081/${companyName}/api/powermeter_list`),
         fetchSettings(),
       ]);
 
@@ -256,7 +258,8 @@ const SettingsPage = () => {
 
   if (isLoading) return <LoadingSpinner>Loading...</LoadingSpinner>;
   if (error) return <ErrorMessage>{error}</ErrorMessage>;
-  if (!settings) return <ErrorMessage>No settings found for this company.</ErrorMessage>;
+  if (!settings)
+    return <ErrorMessage>No settings found for this company.</ErrorMessage>;
 
   return (
     <SettingsContainer>

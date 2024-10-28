@@ -112,7 +112,7 @@ const SelectionAndSend = ({
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+          `http://61.216.62.9:8081/${companyName}/api/powermeter_list`
         );
         const data = await response.json();
         const formattedOptions = data.map((item) => ({

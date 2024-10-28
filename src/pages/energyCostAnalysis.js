@@ -223,9 +223,7 @@ const EnergyCostAnalysis = () => {
     try {
       const [settingsResponse, optionsResponse] = await Promise.all([
         fetch(`/api/settings/${companyName}`),
-        fetch(
-          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
-        ),
+        fetch(`http://61.216.62.9:8081/${companyName}/api/powermeter_list`),
       ]);
 
       if (!settingsResponse.ok || !optionsResponse.ok) {

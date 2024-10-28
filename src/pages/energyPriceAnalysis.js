@@ -239,7 +239,7 @@ const EnergyPriceAnalysis = () => {
   const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch(
-        `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+        `http://61.216.62.9:8081/${companyName}/api/powermeter_list`
       );
       if (!response.ok) {
         setError(`Failed to fetch option for company ${companyName}`);
