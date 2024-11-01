@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { FaChevronRight, FaPlus, FaTimes, FaBars } from "react-icons/fa";
+
 const SplitContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -46,12 +47,6 @@ const RightColumn = styled.div`
   -webkit-overflow-scrolling: touch;
 `;
 
-const RightColumnWrapper = styled.div`
-  flex: 1;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
 const DraggableContent = styled.div`
   display: flex;
   align-items: center;
@@ -69,6 +64,7 @@ const DraggableContent = styled.div`
     `}
   }
 `;
+
 const Column = styled.div`
   flex: 1;
   margin: 0 10px;
@@ -108,6 +104,11 @@ const EmptyState = styled.div`
   padding: 20px;
   text-align: center;
   color: #999;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+    padding: 10px;
+  }
 `;
 
 const MachineItem = styled.div`
@@ -117,6 +118,11 @@ const MachineItem = styled.div`
   border: 1px solid #ddd;
   border-radius: 4px;
   user-select: none;
+
+  @media (max-width: 768px) {
+    padding: 8px;
+    font-size: 12px;
+  }
 `;
 
 const GroupContainer = styled.div`
@@ -133,6 +139,10 @@ const GroupHeader = styled.div`
   padding: 10px 15px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
+
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+  }
 `;
 
 const GroupNameWrapper = styled.div`
@@ -141,6 +151,10 @@ const GroupNameWrapper = styled.div`
   flex: 1;
   min-width: 0;
   margin-right: 15px;
+
+  @media (max-width: 768px) {
+    margin-right: 8px;
+  }
 `;
 
 const GroupName = styled.input`
@@ -161,18 +175,31 @@ const GroupName = styled.input`
     border-color: #80bdff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
   }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 4px 8px;
+  }
 `;
 
 const GroupInfo = styled.div`
   display: flex;
   align-items: center;
   flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    margin-left: 8px;
+  }
 `;
 
 const MachineCount = styled.span`
   margin-right: 15px;
   color: #6c757d;
   white-space: nowrap;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const DeleteButton = styled.button`
@@ -183,8 +210,20 @@ const DeleteButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   &:hover {
     background-color: #c82333;
+  }
+
+  @media (max-width: 768px) {
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    font-size: 12px;
   }
 `;
 
@@ -195,6 +234,11 @@ const ToggleIcon = styled.span`
   transition: transform 0.2s;
   transform: ${(props) => (props.isExpanded ? "rotate(90deg)" : "rotate(0)")};
   flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    margin-right: 8px;
+    font-size: 16px;
+  }
 `;
 
 const ExpandButton = styled.button`
@@ -222,9 +266,25 @@ const AddGroupButton = styled.button`
   transition: background-color 0.2s;
   margin-top: 10px;
   align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
   &:hover {
     background-color: #0056b3;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px;
+    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    justify-content: center;
+
+    span {
+      display: none;
+    }
   }
 `;
 
@@ -243,6 +303,12 @@ const SaveButton = styled.button`
   &:hover {
     background-color: #218838;
   }
+
+  @media (max-width: 768px) {
+    padding: 8px 16px;
+    font-size: 14px;
+    margin-top: 16px;
+  }
 `;
 
 const GroupManagement = ({
@@ -257,7 +323,19 @@ const GroupManagement = ({
   const [expandedGroups, setExpandedGroups] = useState({});
   const [editingGroup, setEditingGroup] = useState(null);
   const [editingValue, setEditingValue] = useState("");
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 769
+  );
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (editingGroup !== null && inputRef.current) {
@@ -273,7 +351,6 @@ const GroupManagement = ({
     }
 
     if (source.droppableId === destination.droppableId) {
-      // Reordering within the same list
       const listName = source.droppableId;
       const items =
         listName === "ungrouped"
@@ -293,7 +370,6 @@ const GroupManagement = ({
         );
       }
     } else {
-      // Moving between lists
       const sourceItems =
         source.droppableId === "ungrouped"
           ? Array.from(ungroupedMachines)
@@ -491,7 +567,7 @@ const GroupManagement = ({
                           deleteGroup(group.name);
                         }}
                       >
-                        刪除
+                        {windowWidth <= 768 ? <FaTimes /> : "刪除"}
                       </DeleteButton>
                     </GroupInfo>
                   </GroupHeader>
@@ -535,7 +611,8 @@ const GroupManagement = ({
               ))}
             </ListWrapper>
             <AddGroupButton onClick={addGroup}>
-              <FaPlus /> 新增分組
+              <FaPlus />
+              <span>新增分組</span>
             </AddGroupButton>
           </RightColumn>
         </DragDropContext>
@@ -544,4 +621,5 @@ const GroupManagement = ({
     </SplitContainer>
   );
 };
+
 export default GroupManagement;
