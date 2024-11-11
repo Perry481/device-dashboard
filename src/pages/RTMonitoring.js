@@ -172,7 +172,7 @@ const MonitorPage = () => {
               { label: "機器名稱", value: item.name },
               {
                 label: "總累計電耗",
-                value: `${lastData.Total_active_power || 0}W`,
+                value: `${lastData.Total_accumulation_power || 0}W`,
               },
               { label: "Brand", value: lastData.Brand || "Unknown" },
               { label: "Model", value: lastData.Brand_model || "Unknown" },
