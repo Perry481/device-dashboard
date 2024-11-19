@@ -6,6 +6,8 @@ import React, {
   useContext,
 } from "react";
 import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
+import { useTranslation } from "../../hooks/useTranslation";
+import { useRouter } from "next/router";
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -57,6 +59,9 @@ const formatDate = (date) => {
 };
 
 const EnergyTrendChart = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { locale } = router;
   const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -68,6 +73,7 @@ const EnergyTrendChart = () => {
   const [chartData, setChartData] = useState({});
   const [options, setOptions] = useState([]);
   const [machineGroups, setMachineGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const fetchTriggerRef = useRef({ date: null, options: null });
@@ -75,8 +81,14 @@ const EnergyTrendChart = () => {
   const fetchData = useCallback(async () => {
     if (selectedOptions.length === 0) return;
 
+    setIsLoading(true);
     if (chartInstanceRef.current) {
-      chartInstanceRef.current.showLoading();
+      chartInstanceRef.current.showLoading({
+        text: t("loading"),
+        maskColor: "rgba(255, 255, 255, 1)",
+        textColor: "#000",
+        zlevel: 10,
+      });
     }
 
     const formattedStartDate = formatDate(dateRange.startDate);
@@ -110,11 +122,12 @@ const EnergyTrendChart = () => {
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
+      setIsLoading(false);
       if (chartInstanceRef.current) {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups, options, companyName]);
+  }, [selectedOptions, dateRange, machineGroups, options, companyName, t]);
 
   const processData = (results) => {
     const processedData = {};
@@ -139,6 +152,7 @@ const EnergyTrendChart = () => {
 
   useEffect(() => {
     const fetchOptions = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(
           `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
@@ -156,12 +170,14 @@ const EnergyTrendChart = () => {
         }
       } catch (error) {
         console.error("Error fetching options:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const fetchMachineGroups = async () => {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`/api/settings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch settings");
         const data = await response.json();
         setMachineGroups(data.machineGroups || []);
@@ -174,17 +190,7 @@ const EnergyTrendChart = () => {
     fetchMachineGroups();
   }, [companyName]);
 
-  useEffect(() => {
-    const shouldFetch =
-      fetchTriggerRef.current.date || fetchTriggerRef.current.options;
-
-    if (shouldFetch && selectedOptions.length > 0) {
-      fetchData();
-      fetchTriggerRef.current = { date: null, options: null };
-    }
-  }, [selectedOptions, dateRange, fetchData]);
-
-  useEffect(() => {
+  const renderChart = useCallback(() => {
     if (chartRef.current && Object.keys(chartData).length > 0) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.dispose();
@@ -192,6 +198,18 @@ const EnergyTrendChart = () => {
 
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
+
+      if (isLoading) {
+        chart.showLoading({
+          text: t("loading"),
+          maskColor: "rgba(255, 255, 255, 1)",
+          textColor: "#000",
+          zlevel: 10,
+        });
+        return chart;
+      }
+
+      chart.hideLoading();
 
       const series = Object.entries(chartData).map(([meterName, values]) => ({
         name: meterName,
@@ -209,7 +227,7 @@ const EnergyTrendChart = () => {
 
       const option = {
         title: {
-          text: "能耗趨勢圖",
+          text: t("charts.energyTrendChart.title"),
           left: "center",
         },
         tooltip: {
@@ -224,7 +242,7 @@ const EnergyTrendChart = () => {
                 param.seriesName +
                 ": " +
                 param.value[1].toFixed(2) +
-                " kWh<br/>";
+                ` ${t("charts.energyTrendChart.yAxisLabel")}<br/>`;
             });
             return result;
           },
@@ -242,7 +260,7 @@ const EnergyTrendChart = () => {
         },
         xAxis: {
           type: "category",
-          name: "日期時間",
+          name: t("charts.energyTrendChart.dateTime"),
           data: allDates,
           axisLabel: {
             formatter: (value) => {
@@ -260,7 +278,7 @@ const EnergyTrendChart = () => {
         },
         yAxis: {
           type: "value",
-          name: "kWh",
+          name: t("charts.energyTrendChart.yAxisLabel"),
         },
         series: series,
         dataZoom: [
@@ -290,7 +308,21 @@ const EnergyTrendChart = () => {
         chart.dispose();
       };
     }
-  }, [chartData]);
+  }, [chartData, isLoading, t, locale]);
+
+  useEffect(() => {
+    renderChart();
+  }, [renderChart]);
+
+  useEffect(() => {
+    const shouldFetch =
+      fetchTriggerRef.current.date || fetchTriggerRef.current.options;
+
+    if (shouldFetch && selectedOptions.length > 0) {
+      fetchData();
+      fetchTriggerRef.current = { date: null, options: null };
+    }
+  }, [selectedOptions, dateRange, fetchData]);
 
   return (
     <div className="container-fluid">

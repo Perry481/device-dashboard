@@ -5,7 +5,9 @@ import React, {
   useRef,
   useContext,
 } from "react";
-import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
+import { CompanyContext } from "../../contexts/CompanyContext";
+import { useTranslation } from "../../hooks/useTranslation";
+import { useRouter } from "next/router";
 import DateRangePicker from "../DateRangePicker";
 import SelectionAndSend from "../SelectionAndSend";
 import styled from "styled-components";
@@ -57,6 +59,9 @@ const formatDate = (date) => {
 };
 
 const FifteenMinuteDemand = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { locale } = router;
   const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -96,7 +101,7 @@ const FifteenMinuteDemand = () => {
 
     const fetchMachineGroups = async () => {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`/api/settings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch settings");
         const data = await response.json();
         setMachineGroups(data.machineGroups || []);
@@ -118,7 +123,12 @@ const FifteenMinuteDemand = () => {
     if (selectedOptions.length === 0) return;
 
     if (chartInstanceRef.current) {
-      chartInstanceRef.current.showLoading();
+      chartInstanceRef.current.showLoading({
+        text: "Loading...",
+        maskColor: "rgba(255, 255, 255, 1)", // Fully opaque white background
+        textColor: "#000", // Black text
+        zlevel: 10,
+      });
     }
 
     const formattedStartDate = formatDate(dateRange.startDate);
@@ -172,7 +182,7 @@ const FifteenMinuteDemand = () => {
 
       const option = {
         title: {
-          text: "每十五分鐘需量",
+          text: t("charts.fifteenMinuteDemand.title"),
           left: "center",
         },
         tooltip: {
@@ -191,9 +201,9 @@ const FifteenMinuteDemand = () => {
               .getMinutes()
               .toString()
               .padStart(2, "0")}`;
-            return `${formattedDate}<br />需量: ${params[0].value[1].toFixed(
-              2
-            )} kW`;
+            return `${formattedDate}<br />${t(
+              "charts.fifteenMinuteDemand.demand"
+            )}: ${params[0].value[1].toFixed(2)} kW`;
           },
         },
         xAxis: {
@@ -221,11 +231,11 @@ const FifteenMinuteDemand = () => {
         },
         yAxis: {
           type: "value",
-          name: "需量 (kW)",
+          name: t("charts.fifteenMinuteDemand.yAxisLabel"),
         },
         series: [
           {
-            name: "Demand",
+            name: t("charts.fifteenMinuteDemand.demand"),
             type: "line",
             smooth: true,
             data: quarterData.map((item) => [new Date(item.Key), item.Value]),
@@ -263,7 +273,7 @@ const FifteenMinuteDemand = () => {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [quarterData]);
+  }, [quarterData, t, locale]); // Added t and locale dependencies
 
   useEffect(() => {
     renderChart();

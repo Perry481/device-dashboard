@@ -7,7 +7,7 @@ import IframeLayout from "../components/IframeLayout";
 import MainLayout from "../components/MainLayout";
 import { useRouter } from "next/router";
 import { CompanyProvider } from "../contexts/CompanyContext";
-
+import { LanguageProvider } from "../contexts/LanguageContext";
 const App = ({ Component, pageProps }) => {
   const [selectedPage, setSelectedPage] = useState("Index");
   const router = useRouter();
@@ -45,20 +45,21 @@ const App = ({ Component, pageProps }) => {
   }, [router.pathname]);
 
   return (
-    <CompanyProvider>
-      {isIframe ? (
-        <IframeLayout>
-          <Component {...pageProps} />
-        </IframeLayout>
-      ) : (
-        <>
-          <Head>
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1"
-            />
-            <title>設備儀錶板</title>
-            <style>{`
+    <LanguageProvider>
+      <CompanyProvider>
+        {isIframe ? (
+          <IframeLayout>
+            <Component {...pageProps} />
+          </IframeLayout>
+        ) : (
+          <>
+            <Head>
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1"
+              />
+              <title>設備儀錶板</title>
+              <style>{`
               html, body, #__next {
                 height: 100%;
               }
@@ -83,24 +84,25 @@ const App = ({ Component, pageProps }) => {
                 height: 400px;
               }
             `}</style>
-          </Head>
-          <div className="wrapper">
-            <TopNavigation
-              onPageChange={handlePageChange}
-              selectedPage={selectedPage}
-            />
-            <div className="content-wrapper">
-              <div className="container-fluid h-100">
-                <MainLayout>
-                  <Component {...pageProps} isIframe={isIframe} />
-                </MainLayout>
+            </Head>
+            <div className="wrapper">
+              <TopNavigation
+                onPageChange={handlePageChange}
+                selectedPage={selectedPage}
+              />
+              <div className="content-wrapper">
+                <div className="container-fluid h-100">
+                  <MainLayout>
+                    <Component {...pageProps} isIframe={isIframe} />
+                  </MainLayout>
+                </div>
               </div>
+              {/* <Footer /> */}
             </div>
-            {/* <Footer /> */}
-          </div>
-        </>
-      )}
-    </CompanyProvider>
+          </>
+        )}
+      </CompanyProvider>
+    </LanguageProvider>
   );
 };
 

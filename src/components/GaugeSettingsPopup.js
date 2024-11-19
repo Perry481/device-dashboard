@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { FaCog, FaArrowLeft, FaPlus, FaTimes, FaBars } from "react-icons/fa";
-
+import { useTranslation } from "../hooks/useTranslation";
 const GaugeSettingsPopup = ({ cardSettings, gauges, onSave }) => {
   const [selectedGauge, setSelectedGauge] = useState(null);
   const [localSettings, setLocalSettings] = useState(cardSettings);
-
+  const { t } = useTranslation();
+  const translateLabel = (label) => {
+    return t(`rtMonitoring.meterDetails.labels.${label}`, label);
+  };
   useEffect(() => {
     if (gauges.length > 0 && !selectedGauge) {
       handleGaugeSelect(gauges[0]);
@@ -91,10 +94,12 @@ const GaugeSettingsPopup = ({ cardSettings, gauges, onSave }) => {
     <GSPopupContainer>
       <GSPanelHeader>
         <GSHeaderTitle>
-          <FaCog /> Gauge Settings
+          <FaCog /> {t("rtMonitoring.gaugeSettings.title")}
         </GSHeaderTitle>
         <GSButtonGroup>
-          <GSSaveButton onClick={handleSave}>Save</GSSaveButton>
+          <GSSaveButton onClick={handleSave}>
+            {t("rtMonitoring.gaugeSettings.save")}
+          </GSSaveButton>
           <GSExitButton onClick={() => onSave(cardSettings)}>
             <FaTimes />
           </GSExitButton>
@@ -121,7 +126,8 @@ const GaugeSettingsPopup = ({ cardSettings, gauges, onSave }) => {
                 <GSBackButton onClick={() => setSelectedGauge(null)}>
                   <FaArrowLeft />
                 </GSBackButton>
-                {selectedGauge.title} Summary Texts
+                {selectedGauge.title}{" "}
+                {t("rtMonitoring.gaugeSettings.summaryTexts")}
               </GSSubHeader>
               <GSSummaryTextConfig>
                 <DragDropContext onDragEnd={handleDragEnd}>
@@ -148,7 +154,8 @@ const GaugeSettingsPopup = ({ cardSettings, gauges, onSave }) => {
                                 <GSDragHandle {...provided.dragHandleProps}>
                                   <FaBars />
                                 </GSDragHandle>
-                                {text}
+                                {translateLabel(text)}{" "}
+                                {/* Apply translation here */}
                                 <GSRemoveButton
                                   onClick={() => handleRemoveItem(index)}
                                 >
@@ -181,8 +188,11 @@ const GaugeSettingsPopup = ({ cardSettings, gauges, onSave }) => {
 };
 
 const AddItemDropdown = ({ gauge, currentItems, onAdd }) => {
+  const { t } = useTranslation();
   const [showDropdown, setShowDropdown] = useState(false);
-
+  const translateLabel = (label) => {
+    return t(`rtMonitoring.meterDetails.labels.${label}`, label);
+  };
   const availableItems =
     gauge.details && gauge.details.items
       ? filterPhaseItems(
@@ -190,11 +200,10 @@ const AddItemDropdown = ({ gauge, currentItems, onAdd }) => {
           gauge.details.brandModel === "3P"
         ).filter((item) => !currentItems.includes(item.label))
       : [];
-
   return (
     <GSAddItemContainer>
       <GSAddButton onClick={() => setShowDropdown(!showDropdown)}>
-        <FaPlus /> Add Item
+        <FaPlus /> {t("rtMonitoring.gaugeSettings.addItem")}
       </GSAddButton>
       {showDropdown && (
         <GSDropdown>
@@ -206,7 +215,7 @@ const AddItemDropdown = ({ gauge, currentItems, onAdd }) => {
                 setShowDropdown(false);
               }}
             >
-              {item.label}
+              {translateLabel(item.label)}
             </GSDropdownItem>
           ))}
         </GSDropdown>
@@ -258,7 +267,7 @@ const GSPanelHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 12px 16px;
   background-color: #f1f3f5;
   border-bottom: 1px solid #dee2e6;
 
@@ -269,10 +278,12 @@ const GSPanelHeader = styled.div`
 
 const GSHeaderTitle = styled.h3`
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #495057;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-grow: 1;
 
   @media (max-width: 480px) {
@@ -287,7 +298,7 @@ const GSButtonGroup = styled.div`
 `;
 
 const GSSaveButton = styled.button`
-  padding: 8px 16px;
+  padding: 6px 12px;
   background-color: #28a745;
   color: white;
   border: none;
@@ -295,7 +306,7 @@ const GSSaveButton = styled.button`
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
   font-weight: bold;
-
+  font-size: 0.875rem;
   &:hover {
     background-color: #218838;
     transform: translateY(-1px);

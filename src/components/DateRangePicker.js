@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import styled from "styled-components";
-
+import { useTranslation } from "../hooks/useTranslation";
 const Card = styled.div`
   border: 1px solid #484848;
   border-radius: 4px;
@@ -72,6 +72,7 @@ const CustomButton = styled.button`
 `;
 
 const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
+  const { t } = useTranslation();
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -187,30 +188,29 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
         $toggled={selectedRange === range && useCustomEndDate}
         onClick={() => handlePredefinedRange(range)}
       >
-        {range.charAt(0).toUpperCase() + range.slice(1)}
+        {t(`datePicker.ranges.${range}`)}
       </CustomButton>
     ));
   };
-
   return (
     <Card>
-      <CardHeader>選擇日期範圍</CardHeader>
+      <CardHeader>{t("datePicker.title")}</CardHeader>
       <CardBody>
         <DatePickersContainer>
           <DatePickerWrapper>
-            <Label>開始日期</Label>
+            <Label>{t("datePicker.startDate")}</Label>
             <StyledDatePicker
               selected={startDate}
               onChange={handleStartDateChange}
             />
           </DatePickerWrapper>
           <DatePickerWrapper>
-            <Label>結束日期</Label>
+            <Label>{t("datePicker.endDate")}</Label>
             <StyledDatePicker
               selected={endDate}
               onChange={handleEndDateChange}
               disabled={!useCustomEndDate}
-              placeholderText="Select End Date"
+              placeholderText={t("datePicker.endDate")}
             />
           </DatePickerWrapper>
         </DatePickersContainer>

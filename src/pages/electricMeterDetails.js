@@ -6,10 +6,25 @@ import IntervalUsageChart from "../components/detailedGauge/IntervalUsageChart";
 import EnergyTrendChart from "../components/detailedGauge/EnergyTrendChart";
 import CumulativeEnergyChart from "../components/detailedGauge/CumulativeEnergyChart";
 import PowerHeatmap from "../components/detailedGauge/PowerHeatmap";
+import { useTranslation } from "../hooks/useTranslation";
 
 const ElectricMeterDetails = () => {
   const router = useRouter();
   const { view } = router.query;
+  const { t } = useTranslation();
+
+  if (!router.isReady) {
+    return <div>Loading...</div>;
+  }
+
+  if (!view) {
+    return (
+      <div>
+        <h1>{t("navigation.meterDetails.title")}</h1>
+        <p>{t("electricMeterDetails.selectView")}</p>
+      </div>
+    );
+  }
 
   const renderComponent = () => {
     switch (view) {
@@ -26,16 +41,10 @@ const ElectricMeterDetails = () => {
       case "powerHeatmap":
         return <PowerHeatmap />;
       default:
-        return <div>Please select a view from the dropdown menu.</div>;
+        return <div>{t("electricMeterDetails.invalidView")}</div>;
     }
   };
 
-  return (
-    <div>
-      {/* <h1>電表詳細資訊</h1> */}
-      {renderComponent()}
-    </div>
-  );
+  return <div>{renderComponent()}</div>;
 };
-
 export default ElectricMeterDetails;

@@ -6,6 +6,8 @@ import React, {
   useContext,
 } from "react";
 import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
+import { useTranslation } from "../../hooks/useTranslation";
+import { useRouter } from "next/router";
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -57,6 +59,9 @@ const formatDate = (date) => {
 };
 
 const CumulativeEnergyChart = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { locale } = router;
   const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -71,10 +76,12 @@ const CumulativeEnergyChart = () => {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const fetchTriggerRef = useRef({ date: null, options: null });
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (selectedOptions.length === 0) return;
 
+    setIsLoading(true);
     if (chartInstanceRef.current) {
       chartInstanceRef.current.showLoading();
     }
@@ -110,11 +117,12 @@ const CumulativeEnergyChart = () => {
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
+      setIsLoading(false);
       if (chartInstanceRef.current) {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups, options, companyName]);
+  }, [selectedOptions, dateRange, machineGroups, options, companyName, t]);
 
   const processData = (results) => {
     const processedData = {};
@@ -141,6 +149,7 @@ const CumulativeEnergyChart = () => {
 
   useEffect(() => {
     const fetchOptions = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(
           `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
@@ -158,12 +167,14 @@ const CumulativeEnergyChart = () => {
         }
       } catch (error) {
         console.error("Error fetching options:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const fetchMachineGroups = async () => {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`/api/settings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch settings");
         const data = await response.json();
         setMachineGroups(data.machineGroups || []);
@@ -186,7 +197,7 @@ const CumulativeEnergyChart = () => {
     }
   }, [selectedOptions, dateRange, fetchData]);
 
-  useEffect(() => {
+  const renderChart = useCallback(() => {
     if (chartRef.current && Object.keys(chartData).length > 0) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.dispose();
@@ -194,6 +205,18 @@ const CumulativeEnergyChart = () => {
 
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
+
+      if (isLoading) {
+        chart.showLoading({
+          text: "Loading...",
+          maskColor: "rgba(255, 255, 255, 1)", // Fully opaque white background
+          textColor: "#000", // Black text
+          zlevel: 10,
+        });
+        return chart;
+      }
+
+      chart.hideLoading();
 
       const series = Object.entries(chartData).map(([meterName, values]) => ({
         name: meterName,
@@ -213,7 +236,7 @@ const CumulativeEnergyChart = () => {
 
       const option = {
         title: {
-          text: "累積能耗圖",
+          text: t("charts.cumulativeEnergyChart.title"),
           left: "center",
         },
         tooltip: {
@@ -228,7 +251,9 @@ const CumulativeEnergyChart = () => {
                 param.seriesName +
                 ": " +
                 param.value[1].toFixed(2) +
-                " kWh<br/>";
+                " " +
+                t("charts.cumulativeEnergyChart.tooltipUnit") +
+                "<br/>";
             });
             return result;
           },
@@ -246,7 +271,7 @@ const CumulativeEnergyChart = () => {
         },
         xAxis: {
           type: "category",
-          name: "日期時間",
+          name: t("charts.cumulativeEnergyChart.dateTime"),
           data: allDates,
           axisLabel: {
             formatter: (value) => {
@@ -264,7 +289,7 @@ const CumulativeEnergyChart = () => {
         },
         yAxis: {
           type: "value",
-          name: "累積 kWh",
+          name: t("charts.cumulativeEnergyChart.yAxisLabel"),
         },
         series: series,
         dataZoom: [
@@ -294,7 +319,11 @@ const CumulativeEnergyChart = () => {
         chart.dispose();
       };
     }
-  }, [chartData]);
+  }, [chartData, isLoading, t, locale]);
+
+  useEffect(() => {
+    renderChart();
+  }, [renderChart]);
 
   return (
     <div className="container-fluid">

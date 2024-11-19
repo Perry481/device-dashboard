@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { FaChevronRight, FaPlus, FaTimes, FaBars } from "react-icons/fa";
-
+import { useTranslation } from "../hooks/useTranslation";
 const SplitContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -29,6 +29,9 @@ const LeftColumn = styled.div`
   overflow-y: auto;
 
   @media (max-width: 768px) {
+    width: 100px;
+  }
+  @media (max-width: 576px) {
     width: 80px;
   }
 `;
@@ -316,6 +319,7 @@ const GroupManagement = ({
   initialUngroupedMachines,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [groups, setGroups] = useState(initialGroups);
   const [ungroupedMachines, setUngroupedMachines] = useState(
     initialUngroupedMachines
@@ -414,7 +418,7 @@ const GroupManagement = ({
   };
 
   const addGroup = () => {
-    const newGroupName = prompt("輸入新分組名:");
+    const newGroupName = prompt(t("groupSettings.newGroupPrompt"));
     if (newGroupName) {
       setGroups((prevGroups) => [
         ...prevGroups,
@@ -486,7 +490,7 @@ const GroupManagement = ({
       <ColumnsContainer>
         <DragDropContext onDragEnd={onDragEnd}>
           <LeftColumn>
-            <ColumnHeader>未分組機器</ColumnHeader>
+            <ColumnHeader>{t("groupSettings.ungroupedMachines")}</ColumnHeader>
             <ListWrapper>
               <Droppable droppableId="ungrouped">
                 {(provided) => (
@@ -521,7 +525,9 @@ const GroupManagement = ({
                         </Draggable>
                       ))
                     ) : (
-                      <EmptyState>沒有未分組的機器</EmptyState>
+                      <EmptyState>
+                        {t("groupSettings.noUngroupedMachines")}
+                      </EmptyState>
                     )}
                     {provided.placeholder}
                   </DroppableArea>
@@ -531,7 +537,7 @@ const GroupManagement = ({
           </LeftColumn>
 
           <RightColumn>
-            <ColumnHeader>電表組</ColumnHeader>
+            <ColumnHeader>{t("groupSettings.meterGroups")}</ColumnHeader>
             <ListWrapper>
               {groups.map((group) => (
                 <GroupContainer key={group.name}>
@@ -560,14 +566,24 @@ const GroupManagement = ({
                       )}
                     </GroupNameWrapper>
                     <GroupInfo>
-                      <MachineCount>({group.machines.length} 台)</MachineCount>
+                      <MachineCount>
+                        (
+                        {t("groupSettings.machineCount", {
+                          count: group.machines.length,
+                        })}
+                        )
+                      </MachineCount>
                       <DeleteButton
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteGroup(group.name);
                         }}
                       >
-                        {windowWidth <= 768 ? <FaTimes /> : "刪除"}
+                        {windowWidth <= 768 ? (
+                          <FaTimes />
+                        ) : (
+                          t("groupSettings.deleteGroup")
+                        )}
                       </DeleteButton>
                     </GroupInfo>
                   </GroupHeader>
@@ -600,7 +616,9 @@ const GroupManagement = ({
                               </Draggable>
                             ))
                           ) : (
-                            <EmptyState>此分組為空</EmptyState>
+                            <EmptyState>
+                              {t("groupSettings.emptyGroup")}
+                            </EmptyState>
                           )}
                           {provided.placeholder}
                         </DroppableArea>
@@ -612,12 +630,14 @@ const GroupManagement = ({
             </ListWrapper>
             <AddGroupButton onClick={addGroup}>
               <FaPlus />
-              <span>新增分組</span>
+              <span>{t("groupSettings.addGroup")}</span>
             </AddGroupButton>
           </RightColumn>
         </DragDropContext>
       </ColumnsContainer>
-      <SaveButton onClick={handleSave}>儲存分組設定</SaveButton>
+      <SaveButton onClick={handleSave}>
+        {t("groupSettings.saveButton")}
+      </SaveButton>
     </SplitContainer>
   );
 };

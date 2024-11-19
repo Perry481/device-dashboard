@@ -13,7 +13,7 @@ import DetailCard from "../components/DetailCard";
 import DateRangePicker from "../components/DateRangePicker";
 import styled from "styled-components";
 import { CompanyContext } from "../contexts/CompanyContext";
-
+import { useTranslation } from "../hooks/useTranslation";
 const SelectionAndSend = dynamic(
   () => import("../components/SelectionAndSend"),
   { ssr: false }
@@ -217,7 +217,7 @@ const EnergyCostAnalysis = () => {
   const [selectedPricingStandard, setSelectedPricingStandard] = useState("");
   const [activePricingStandard, setActivePricingStandard] = useState("");
   const { companyName } = useContext(CompanyContext);
-
+  const { t } = useTranslation();
   const fetchSettingsAndOptions = async () => {
     setIsLoading(true);
     try {
@@ -364,7 +364,7 @@ const EnergyCostAnalysis = () => {
       const barChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
         title: {
-          text: "能耗尖離峰分析",
+          text: t("energyCostAnalysis.charts.peakAnalysis.title"),
           left: "center",
           top: 0,
           textStyle: {
@@ -398,13 +398,15 @@ const EnergyCostAnalysis = () => {
         },
         series: [
           {
-            name: "尖峰",
+            name: t("energyCostAnalysis.charts.peakAnalysis.peakTypes.peak"),
             type: "bar",
             stack: "total",
             data: dates.map((date) => parseFloat(aggregatedData[date].peak)),
           },
           {
-            name: "半尖峰",
+            name: t(
+              "energyCostAnalysis.charts.peakAnalysis.peakTypes.halfPeak"
+            ),
             type: "bar",
             stack: "total",
             data: dates.map((date) =>
@@ -412,7 +414,7 @@ const EnergyCostAnalysis = () => {
             ),
           },
           {
-            name: "離峰",
+            name: t("energyCostAnalysis.charts.peakAnalysis.peakTypes.offPeak"),
             type: "bar",
             stack: "total",
             data: dates.map((date) => parseFloat(aggregatedData[date].offpeak)),
@@ -459,8 +461,7 @@ const EnergyCostAnalysis = () => {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [aggregatedData]);
-
+  }, [aggregatedData, t]);
   useEffect(() => {
     if (pieChartRef.current && Object.keys(aggregatedData).length > 0) {
       const totalPeak = Object.values(aggregatedData).reduce(
@@ -480,7 +481,7 @@ const EnergyCostAnalysis = () => {
       const pieChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
         title: {
-          text: "尖離峰能耗分布",
+          text: t("energyCostAnalysis.charts.distribution.title"),
           left: "center",
         },
         tooltip: {
@@ -493,7 +494,7 @@ const EnergyCostAnalysis = () => {
         },
         series: [
           {
-            name: "能耗分布",
+            name: t("energyCostAnalysis.charts.distribution.series"),
             type: "pie",
             radius: ["50%", "70%"],
             avoidLabelOverlap: false,
@@ -512,13 +513,29 @@ const EnergyCostAnalysis = () => {
               show: false,
             },
             data: [
-              { value: totalPeak, name: "尖峰" },
-              { value: totalHalfpeak, name: "半尖峰" },
-              { value: totalOffpeak, name: "離峰" },
+              {
+                value: totalPeak,
+                name: t(
+                  "energyCostAnalysis.charts.peakAnalysis.peakTypes.peak"
+                ),
+              },
+              {
+                value: totalHalfpeak,
+                name: t(
+                  "energyCostAnalysis.charts.peakAnalysis.peakTypes.halfPeak"
+                ),
+              },
+              {
+                value: totalOffpeak,
+                name: t(
+                  "energyCostAnalysis.charts.peakAnalysis.peakTypes.offPeak"
+                ),
+              },
             ],
           },
         ],
       };
+
       pieChart.setOption(pieChartOptions);
 
       const handleResize = () => {
@@ -531,7 +548,7 @@ const EnergyCostAnalysis = () => {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [aggregatedData]);
+  }, [aggregatedData, t]);
   return (
     <div className="container-fluid">
       <RowContainer>

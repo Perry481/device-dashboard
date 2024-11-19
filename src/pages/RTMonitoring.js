@@ -14,7 +14,7 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-
+import { useTranslation } from "../hooks/useTranslation";
 const CombinedCard = ({
   id,
   title,
@@ -25,7 +25,7 @@ const CombinedCard = ({
   cardSettings,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
-
+  const { t } = useTranslation();
   const handleToggleDetails = () => {
     setShowDetails((prev) => !prev);
   };
@@ -79,7 +79,8 @@ const CombinedCard = ({
           <RTMSummaryColumn className="col-6">
             {summaryTexts.map((text, index) => (
               <RTMSummaryText key={index} className="card-text">
-                {text}: {getSummaryValue(text)}
+                {t(`rtMonitoring.meterDetails.labels.${text}`)}:{" "}
+                {getSummaryValue(text)}
               </RTMSummaryText>
             ))}
           </RTMSummaryColumn>
@@ -100,7 +101,9 @@ const CombinedCard = ({
             <RTMDetailsContent>
               {filterPhaseItems(details.items).map((item, index) => (
                 <RTMDetailItem key={index}>
-                  <RTMDetailLabel>{item.label}:</RTMDetailLabel>
+                  <RTMDetailLabel>
+                    {t(`rtMonitoring.meterDetails.labels.${item.label}`)}:
+                  </RTMDetailLabel>
                   <RTMDetailValue>{item.value}</RTMDetailValue>
                 </RTMDetailItem>
               ))}
@@ -144,7 +147,7 @@ const MonitorPage = () => {
   const [filteredMeters, setFilteredMeters] = useState([]);
   const metersPerPage = 8;
   const { companyName } = useContext(CompanyContext);
-
+  const { t } = useTranslation();
   const fetchDataAndOrder = async () => {
     try {
       // Fetch meter data
@@ -282,7 +285,7 @@ const MonitorPage = () => {
       const groupsData = await groupsResponse.json();
       const machineGroups = groupsData.machineGroups || [];
       setGroups([
-        { value: "all", label: "全部設備" },
+        { value: "all", label: t("rtMonitoring.groups.allDevices") },
         ...machineGroups.map((group) => ({
           value: group.name,
           label: group.name,
@@ -523,7 +526,7 @@ const MonitorPage = () => {
             <RTMSearchContainer className="search-container">
               <RTMSearchInput
                 type="text"
-                placeholder="搜尋電錶..."
+                placeholder={t("rtMonitoring.search.placeholder")}
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -549,12 +552,14 @@ const MonitorPage = () => {
                 options={groups}
                 value={selectedGroup}
                 onChange={setSelectedGroup}
-                placeholder="選擇分組"
+                placeholder={t("rtMonitoring.groups.selectGroup")}
                 styles={customSelectStyles}
               />
             </RTMGroupSelect>
             <RTMControlsContainer>
-              <RTMCountdownText>下次更新: {countdown}s</RTMCountdownText>
+              <RTMCountdownText>
+                {t("rtMonitoring.nextUpdate", { seconds: countdown })}
+              </RTMCountdownText>
               <RTMSettingsButton onClick={() => setShowSettings(true)}>
                 <FaCog size={20} />
               </RTMSettingsButton>
@@ -603,10 +608,10 @@ const MonitorPage = () => {
             <RTMPopupContainer onClick={(e) => e.stopPropagation()}>
               <RTMPanelHeader>
                 <RTMHeaderTitle>
-                  <FaCog /> Reorder Machines
+                  <FaCog /> {t("rtMonitoring.settings.reorderMachines")}
                 </RTMHeaderTitle>
                 <RTMSaveButton onClick={handleSaveOrder}>
-                  Save Order
+                  {t("rtMonitoring.settings.saveOrder")}
                 </RTMSaveButton>
                 <RTMExitButton onClick={() => setShowSettings(false)}>
                   <FaTimes />
@@ -647,7 +652,7 @@ const MonitorPage = () => {
                     </Droppable>
                   </DragDropContext>
                 ) : (
-                  <p>No machines to reorder. Please fetch data first.</p>
+                  <p>{t("rtMonitoring.settings.noMachines")}</p>
                 )}
               </RTMContentArea>
             </RTMPopupContainer>
@@ -1069,43 +1074,37 @@ const RTMPopupContainer = styled.div`
 
 const RTMPanelHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 15px 20px;
+  padding: 12px 16px; // Reduced padding
   background-color: #f1f3f5;
   border-bottom: 1px solid #dee2e6;
 `;
 
 const RTMHeaderTitle = styled.h3`
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1rem; // Reduced font size
   display: flex;
   align-items: center;
-  gap: 10px;
-`;
-
-const RTMExitButton = styled.button`
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0;
-  margin-left: auto;
-  &:hover {
-    color: #343a40;
+  gap: 8px; // Reduced gap
+  color: #495057; // Darker text color
+  font-weight: 400;
+  flex-grow: 1;
+  svg {
+    font-size: 0.9rem; // Smaller icon
   }
 `;
-
 const RTMSaveButton = styled.button`
-  padding: 8px 16px;
+  padding: 6px 12px; // Reduced padding
   background-color: #28a745;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
-  font-weight: bold;
+  transition: all 0.2s ease;
+  font-size: 0.875rem; // Smaller font
+  font-weight: 500;
+  margin: 0 8px; // Added margin
 
   &:hover {
     background-color: #218838;
@@ -1114,6 +1113,29 @@ const RTMSaveButton = styled.button`
 
   &:active {
     transform: translateY(1px);
+  }
+`;
+
+const RTMExitButton = styled.button`
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #343a40;
+    background-color: rgba(108, 117, 125, 0.1);
+  }
+
+  svg {
+    font-size: 0.9rem; // Smaller icon
   }
 `;
 

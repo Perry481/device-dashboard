@@ -4,6 +4,7 @@ import Select from "react-select";
 import PriceTable from "../components/PriceTable";
 import GroupManagement from "../components/GroupManagement";
 import { CompanyContext } from "../contexts/CompanyContext";
+import { useTranslation } from "../hooks/useTranslation";
 
 const SettingsContainer = styled.div`
   width: 100%;
@@ -105,6 +106,7 @@ const customSelectStyles = {
 
 const SettingsPage = () => {
   const { companyName } = useContext(CompanyContext);
+  const { t } = useTranslation();
   const [settings, setSettings] = useState(null);
   const [co2, setCO2] = useState(0);
   const [contractCapacity, setContractCapacity] = useState(0);
@@ -125,7 +127,9 @@ const SettingsPage = () => {
       const response = await fetch(`/api/settings/${companyName}`);
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`Settings for company ${companyName} not found. Using defaults.`);
+          console.log(
+            `Settings for company ${companyName} not found. Using defaults.`
+          );
           return {}; // Return empty object to use defaults
         }
         throw new Error("Failed to fetch settings");
@@ -159,7 +163,9 @@ const SettingsPage = () => {
     setError(null);
     try {
       const [machinesResponse, fetchedGroups] = await Promise.all([
-        fetch(`https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`),
+        fetch(
+          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+        ),
         fetchSettings(),
       ]);
 
@@ -200,7 +206,6 @@ const SettingsPage = () => {
     }));
     setGroups(updatedGroups);
   };
-
   const handleBasicSettingsSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -218,11 +223,11 @@ const SettingsPage = () => {
 
       if (!response.ok) throw new Error("Failed to update settings");
 
-      alert("Basic settings updated successfully");
+      alert(t("groupSettings.updateSuccess"));
       fetchSettings();
     } catch (error) {
       console.error("Error updating basic settings:", error);
-      alert("Failed to update basic settings. Please try again.");
+      alert(t("groupSettings.updateError"));
     }
   };
 
@@ -254,17 +259,19 @@ const SettingsPage = () => {
     fetchSettings();
   };
 
-  if (isLoading) return <LoadingSpinner>Loading...</LoadingSpinner>;
+  if (isLoading)
+    return <LoadingSpinner>{t("groupSettings.loadingText")}</LoadingSpinner>;
   if (error) return <ErrorMessage>{error}</ErrorMessage>;
-  if (!settings) return <ErrorMessage>No settings found for this company.</ErrorMessage>;
+  if (!settings)
+    return <ErrorMessage>{t("groupSettings.noSettingsFound")}</ErrorMessage>;
 
   return (
     <SettingsContainer>
       <Section>
-        <SectionTitle>基本設定</SectionTitle>
+        <SectionTitle>{t("basicSettings.title")}</SectionTitle>
         <form onSubmit={handleBasicSettingsSubmit}>
           <FormGroup>
-            <Label htmlFor="co2">碳排係數:</Label>
+            <Label htmlFor="co2">{t("basicSettings.co2Factor")}</Label>
             <Input
               id="co2"
               type="number"
@@ -274,7 +281,9 @@ const SettingsPage = () => {
             />
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="contractCapacity">契約容量 (kW):</Label>
+            <Label htmlFor="contractCapacity">
+              {t("basicSettings.contractCapacity")}
+            </Label>
             <Input
               id="contractCapacity"
               type="number"
@@ -284,7 +293,9 @@ const SettingsPage = () => {
             />
           </FormGroup>
           <FormGroup>
-            <Label htmlFor="activePricingStandard">全局預設電價標準:</Label>
+            <Label htmlFor="activePricingStandard">
+              {t("basicSettings.defaultPricing")}
+            </Label>
             <Select
               id="activePricingStandard"
               options={standardOptions}
@@ -293,11 +304,11 @@ const SettingsPage = () => {
               styles={customSelectStyles}
             />
           </FormGroup>
-          <Button type="submit">保存基本設定</Button>
+          <Button type="submit">{t("basicSettings.saveButton")}</Button>
         </form>
       </Section>
       <Section>
-        <SectionTitle>電表組設定</SectionTitle>
+        <SectionTitle>{t("groupSettings.title")}</SectionTitle>
         <GroupManagement
           initialGroups={groups}
           initialUngroupedMachines={ungroupedMachines}
@@ -306,7 +317,7 @@ const SettingsPage = () => {
         />
       </Section>
       <Section>
-        <SectionTitle>電價設定</SectionTitle>
+        <SectionTitle>{t("priceSettings.title")}</SectionTitle>
         <PriceTable
           onPricesUpdate={handlePriceTableUpdate}
           triggerHandleSend={handlePriceTableUpdate}

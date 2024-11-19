@@ -6,6 +6,8 @@ import * as echarts from "echarts";
 import styled from "styled-components";
 import { debounce } from "lodash";
 import { CompanyContext } from "../contexts/CompanyContext";
+import { useTranslation } from "../hooks/useTranslation";
+
 const formatDate = (date) => {
   const year = date.getFullYear();
   const month = `0${date.getMonth() + 1}`.slice(-2);
@@ -425,7 +427,7 @@ const HomePage = () => {
   const combinedEnergyChartRef = useRef(null);
   const dailyPeakDemandChartRef = useRef(null);
   const pieChartRef = useRef(null);
-
+  const { t, locale } = useTranslation(); // Get both translation function and current locale
   const updatePieChart = () => {
     console.log("Updating Pie Chart");
     console.log("settingsGroupedData:", settingsGroupedData);
@@ -460,7 +462,10 @@ const HomePage = () => {
           ([groupName, monthlyData]) => {
             const currentMonthData = monthlyData[currentMonth];
             return {
-              name: groupName === "Ungrouped" ? "未分組" : groupName,
+              name:
+                groupName === "未分組"
+                  ? t("dashboard.groups.ungrouped")
+                  : groupName,
               value: currentMonthData
                 ? Number(currentMonthData.totalEnergy.toFixed(2))
                 : 0,
@@ -494,8 +499,10 @@ const HomePage = () => {
         title: {
           text:
             selectedGroup === "all"
-              ? "用電估比 (全部)"
-              : `用電估比 (${selectedGroup})`,
+              ? t("dashboard.charts.usageDistributionAll")
+              : t("dashboard.charts.usageDistributionGroup", {
+                  group: selectedGroup,
+                }),
           left: "center",
           textStyle: {
             color: "#3ba272",
@@ -509,7 +516,7 @@ const HomePage = () => {
         },
         series: [
           {
-            name: "用電估比",
+            name: t("dashboard.charts.usageDistribution"),
             type: "pie",
             radius: "50%",
             data: pieData,
@@ -597,7 +604,7 @@ const HomePage = () => {
 
       const combinedEnergyOptions = {
         title: {
-          text: "總能耗與平均功率趨勢",
+          text: t("dashboard.charts.energyAndPowerTrend"),
           left: "center",
           top: 10,
           textStyle: {
@@ -615,12 +622,12 @@ const HomePage = () => {
             const totalEnergyParam = params[0];
             const averagePowerParam = params[1];
             return `${totalEnergyParam.axisValue}<br/>
-                    ${
-                      totalEnergyParam.marker
-                    }總能耗: ${totalEnergyParam.data.toFixed(2)} kWh<br/>
-                    ${
-                      averagePowerParam.marker
-                    }平均功率: ${averagePowerParam.data.toFixed(2)} kW`;
+            ${totalEnergyParam.marker}${t(
+              "dashboard.charts.totalEnergy"
+            )}: ${totalEnergyParam.data.toFixed(2)} kWh<br/>
+            ${averagePowerParam.marker}${t(
+              "dashboard.charts.averagePower"
+            )}: ${averagePowerParam.data.toFixed(2)} kW`;
           },
         },
         xAxis: {
@@ -639,14 +646,14 @@ const HomePage = () => {
         ],
         series: [
           {
-            name: "總能耗",
+            name: t("dashboard.charts.totalEnergy"),
             type: "bar",
             stack: "total",
             itemStyle: { color: "#3ba272" }, // Main color
             data: totalEnergyConsumptionData,
           },
           {
-            name: "平均功率",
+            name: t("dashboard.charts.averagePower"),
             type: "bar",
             stack: "total",
             itemStyle: { color: "#264653" }, // Darker shade for contrast
@@ -705,7 +712,7 @@ const HomePage = () => {
       const markLineValue = contractCapacity;
       const dailyPeakDemandOptions = {
         title: {
-          text: "每日最高十五分鐘需量",
+          text: t("dashboard.charts.dailyPeakDemand"),
           left: "center",
           top: 10,
           textStyle: {
@@ -721,9 +728,9 @@ const HomePage = () => {
           },
           formatter: (params) => {
             const param = params[0];
-            return `${param.axisValue}<br/>${param.marker}最高需量: ${
-              param.data !== undefined ? param.data.toFixed(2) : "N/A"
-            } kW`;
+            return `${param.axisValue}<br/>${param.marker}${t(
+              "dashboard.charts.peakDemand"
+            )}: ${param.data !== undefined ? param.data.toFixed(2) : "N/A"} kW`;
           },
         },
         xAxis: {
@@ -755,7 +762,7 @@ const HomePage = () => {
               },
               label: {
                 position: "insideEndTop",
-                formatter: "契約容量: {c}kW",
+                formatter: `${t("dashboard.charts.contractCapacity")}: {c}kW`,
                 fontSize: 12,
                 padding: [0, 0, 0, 10],
               },
@@ -880,6 +887,8 @@ const HomePage = () => {
     co2,
     settingsGroupedData,
     selectedGroup,
+    locale, // Add locale to dependencies
+    t, // Add translation function to dependencies
   ]);
   const fetchAllData = async () => {
     if (selectedOptions.length === 0) {
@@ -1173,28 +1182,56 @@ const HomePage = () => {
             <div className="col-lg-8 d-flex flex-column">
               <div className="row flex-grow-1">
                 <InfoCard
-                  title="能耗量"
-                  value={`${totalEnergyConsumption} kWh`}
-                  monthlyValue={`當月 ${currentMonthEnergyConsumption} kWh`}
+                  title={t("dashboard.metrics.energyConsumption.title")}
+                  value={`${totalEnergyConsumption} ${t(
+                    "dashboard.metrics.energyConsumption.unit"
+                  )}`}
+                  monthlyValue={`${t(
+                    "dashboard.metrics.energyConsumption.monthly"
+                  )} ${currentMonthEnergyConsumption} ${t(
+                    "dashboard.metrics.energyConsumption.unit"
+                  )}`}
                   isLoading={isLoading}
                   isSwitchingGroup={isSwitchingGroup}
                   quarter={currentQuarter}
+                  quarterLabel={t(
+                    "dashboard.metrics.energyConsumption.quarter",
+                    { quarter: currentQuarter }
+                  )}
                 />
                 <InfoCard
-                  title="參考電費"
-                  value={`NT$${totalPrice}`}
-                  monthlyValue={`當月 NT$${currentMonthPrice}`}
+                  title={t("dashboard.metrics.estimatedCost.title")}
+                  value={`${t(
+                    "dashboard.metrics.estimatedCost.currency"
+                  )}${totalPrice}`}
+                  monthlyValue={`${t(
+                    "dashboard.metrics.estimatedCost.monthly"
+                  )} ${t(
+                    "dashboard.metrics.estimatedCost.currency"
+                  )}${currentMonthPrice}`}
                   isLoading={isLoading}
                   isSwitchingGroup={isSwitchingGroup}
                   quarter={currentQuarter}
+                  quarterLabel={t("dashboard.metrics.estimatedCost.quarter", {
+                    quarter: currentQuarter,
+                  })}
                 />
                 <InfoCard
-                  title="碳排放量"
-                  value={`${totalCO2Emission} kg`}
-                  monthlyValue={`當月 ${currentMonthCO2Emission} kg`}
+                  title={t("dashboard.metrics.co2Emission.title")}
+                  value={`${totalCO2Emission} ${t(
+                    "dashboard.metrics.co2Emission.unit"
+                  )}`}
+                  monthlyValue={`${t(
+                    "dashboard.metrics.co2Emission.monthly"
+                  )} ${currentMonthCO2Emission} ${t(
+                    "dashboard.metrics.co2Emission.unit"
+                  )}`}
                   isLoading={isLoading}
                   isSwitchingGroup={isSwitchingGroup}
                   quarter={currentQuarter}
+                  quarterLabel={t("dashboard.metrics.co2Emission.quarter", {
+                    quarter: currentQuarter,
+                  })}
                 />
               </div>
             </div>
@@ -1250,6 +1287,7 @@ const InfoCard = ({
   isLoading,
   isSwitchingGroup,
   quarter,
+  quarterLabel,
 }) => (
   <div className="col-lg-4 col-md-6 col-12 mb-4">
     <div className="card text-center shadow-sm h-100">
@@ -1264,7 +1302,7 @@ const InfoCard = ({
         ) : (
           <>
             <CardValue>
-              本季(Q{quarter}) <span>{value}</span>
+              {quarterLabel} <span>{value}</span>
             </CardValue>
             <MonthlyValue>{monthlyValue}</MonthlyValue>
           </>
@@ -1350,8 +1388,9 @@ const customStyles = {
 };
 
 const GroupSelector = ({ groups, selectedGroup, onGroupChange }) => {
+  const { t } = useTranslation();
   const options = [
-    { value: "all", label: "全部設備" },
+    { value: "all", label: t("dashboard.groups.allDevices") },
     ...groups.map((group) => ({ value: group.name, label: group.name })),
   ];
 
@@ -1367,7 +1406,7 @@ const GroupSelector = ({ groups, selectedGroup, onGroupChange }) => {
         options={options}
         styles={customStyles}
         isSearchable={false}
-        placeholder="選擇設備組"
+        placeholder={t("dashboard.groups.selectGroup")}
       />
     </SelectWrapper>
   );

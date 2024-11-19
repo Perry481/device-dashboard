@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-
+import { useTranslation } from "../hooks/useTranslation";
 const TableWrapper = styled.div`
   width: 100%;
   overflow-x: auto;
@@ -143,11 +143,11 @@ const PriceTable = ({
   const [selectedStandard, setSelectedStandard] = useState("");
   const [tempTimeRanges, setTempTimeRanges] = useState({});
   const [activePricingStandard, setActivePricingStandard] = useState("");
-
+  const { t, locale } = useTranslation();
   useEffect(() => {
     setIsClient(true);
     fetchSettings();
-  }, [companyName]);
+  }, [companyName, locale]);
 
   useEffect(() => {
     if (selectedPricingStandard) {
@@ -249,7 +249,7 @@ const PriceTable = ({
   const renderHeader = () => {
     return (
       <HeaderContainer>
-        <Title>電價一覽表</Title>
+        <Title>{t("priceTable.title")}</Title>
         <SelectWrapper>
           <Select
             value={selectedStandard}
@@ -265,7 +265,9 @@ const PriceTable = ({
           </Select>
           {!disableEdit && (
             <Button onClick={handleEditMode}>
-              {editMode ? "保存電價" : "更改電價"}
+              {editMode
+                ? t("priceTable.actions.save")
+                : t("priceTable.actions.edit")}
             </Button>
           )}
         </SelectWrapper>
@@ -285,10 +287,10 @@ const PriceTable = ({
       <div>
         <strong>
           {dayType === "weekdays"
-            ? "平日"
+            ? t("priceTable.dayTypes.weekday")
             : dayType === "saturday"
-            ? "週六"
-            : "週日"}
+            ? t("priceTable.dayTypes.saturday")
+            : t("priceTable.dayTypes.sunday")}
           :
         </strong>
         {ranges.map((range, index) => (
@@ -367,19 +369,28 @@ const PriceTable = ({
     const sundayString = formatTimeRange(sundayRanges);
 
     const labels = {
-      peak: "尖峰",
-      halfPeak: "半尖峰",
-      offPeak: "離峰",
+      peak: t("priceTable.peakStates.peak"),
+      halfPeak: t("priceTable.peakStates.halfPeak"),
+      offPeak: t("priceTable.peakStates.offPeak"),
     };
-
     return (
       <>
         <PeakStateLabel>{labels[timeType]}</PeakStateLabel>
-        {weekdayString && <TimeRangeText>平日: {weekdayString}</TimeRangeText>}
-        {saturdayString && (
-          <TimeRangeText>週六: {saturdayString}</TimeRangeText>
+        {weekdayString && (
+          <TimeRangeText>
+            {t("priceTable.dayTypes.weekday")}: {weekdayString}
+          </TimeRangeText>
         )}
-        {sundayString && <TimeRangeText>週日: {sundayString}</TimeRangeText>}
+        {saturdayString && (
+          <TimeRangeText>
+            {t("priceTable.dayTypes.saturday")}: {saturdayString}
+          </TimeRangeText>
+        )}
+        {sundayString && (
+          <TimeRangeText>
+            {t("priceTable.dayTypes.sunday")}: {sundayString}
+          </TimeRangeText>
+        )}
       </>
     );
   };
@@ -395,12 +406,12 @@ const PriceTable = ({
 
     const data = [
       {
-        period: "06/01 - 09/30 夏月",
+        period: t("priceTable.periods.summer"),
         type: "夏月",
         times: ["peak", "halfPeak", "offPeak"],
       },
       {
-        period: "10/01 - 05/31 非夏月",
+        period: t("priceTable.periods.nonSummer"),
         type: "非夏月",
         times: ["peak", "halfPeak", "offPeak"],
       },
@@ -422,12 +433,20 @@ const PriceTable = ({
       <Table>
         <TableHead>
           <TableRow>
-            <TableHeader>項目名稱</TableHeader>
-            <TableHeader>時段</TableHeader>
-            {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+            <TableHeader>{t("priceTable.headers.itemName")}</TableHeader>
+            <TableHeader>{t("priceTable.headers.timeRange")}</TableHeader>
+            {[
+              t("priceTable.days.sun"),
+              t("priceTable.days.mon"),
+              t("priceTable.days.tue"),
+              t("priceTable.days.wed"),
+              t("priceTable.days.thu"),
+              t("priceTable.days.fri"),
+              t("priceTable.days.sat"),
+            ].map((day) => (
               <TableHeader key={day}>{day}</TableHeader>
             ))}
-            <TableHeader>電價NT$/kWh</TableHeader>
+            <TableHeader>{t("priceTable.headers.price")}</TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -449,30 +468,32 @@ const PriceTable = ({
                         ? renderTimeRange(period.type, timeType)
                         : renderTimeRanges(period.type, timeType)}
                     </TimeRangeCell>
-                    {["日", "一", "二", "三", "四", "五", "六"].map(
-                      (day, dayIndex) => (
-                        <HighlightedCell
-                          key={`${period.period}-${timeType}-${day}`}
-                          color={
-                            (dayIndex === 0 &&
-                              isTimeActive(period.type, timeType, "sunday")) ||
-                            (dayIndex === 6 &&
-                              isTimeActive(
-                                period.type,
-                                timeType,
-                                "saturday"
-                              )) ||
-                            (dayIndex > 0 &&
-                              dayIndex < 6 &&
-                              isTimeActive(period.type, timeType, "weekdays"))
-                              ? colors[timeType]
-                              : "transparent"
-                          }
-                        >
-                          {day}
-                        </HighlightedCell>
-                      )
-                    )}
+                    {[
+                      t("priceTable.days.sun"),
+                      t("priceTable.days.mon"),
+                      t("priceTable.days.tue"),
+                      t("priceTable.days.wed"),
+                      t("priceTable.days.thu"),
+                      t("priceTable.days.fri"),
+                      t("priceTable.days.sat"),
+                    ].map((day, dayIndex) => (
+                      <HighlightedCell
+                        key={`${period.period}-${timeType}-${day}`}
+                        color={
+                          (dayIndex === 0 &&
+                            isTimeActive(period.type, timeType, "sunday")) ||
+                          (dayIndex === 6 &&
+                            isTimeActive(period.type, timeType, "saturday")) ||
+                          (dayIndex > 0 &&
+                            dayIndex < 6 &&
+                            isTimeActive(period.type, timeType, "weekdays"))
+                            ? colors[timeType]
+                            : "transparent"
+                        }
+                      >
+                        {day}
+                      </HighlightedCell>
+                    ))}
                     <TableCell>
                       {editMode ? (
                         <Input

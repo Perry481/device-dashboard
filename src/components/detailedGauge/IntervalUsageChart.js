@@ -5,7 +5,9 @@ import React, {
   useCallback,
   useContext,
 } from "react";
-import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
+import { CompanyContext } from "../../contexts/CompanyContext";
+import { useTranslation } from "../../hooks/useTranslation";
+import { useRouter } from "next/router";
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -57,6 +59,9 @@ const formatDate = (date) => {
 };
 
 const IntervalUsageChart = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { locale } = router;
   const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const [dateRange, setDateRange] = useState({
@@ -67,6 +72,7 @@ const IntervalUsageChart = () => {
   const [chartData, setChartData] = useState({});
   const [options, setOptions] = useState([]);
   const [machineGroups, setMachineGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const fetchTriggerRef = useRef({ date: null, option: null });
@@ -74,8 +80,14 @@ const IntervalUsageChart = () => {
   const fetchData = useCallback(async () => {
     if (!selectedOption) return;
 
+    setIsLoading(true);
     if (chartInstanceRef.current) {
-      chartInstanceRef.current.showLoading();
+      chartInstanceRef.current.showLoading({
+        text: t("loading"),
+        maskColor: "rgba(255, 255, 255, 1)",
+        textColor: "#000",
+        zlevel: 10,
+      });
     }
 
     const formattedStartDate = formatDate(dateRange.startDate);
@@ -114,13 +126,14 @@ const IntervalUsageChart = () => {
       setChartData(processedData);
     } catch (error) {
       console.error("Error fetching data:", error);
-      setChartData({}); // Set empty object in case of error
+      setChartData({});
     } finally {
+      setIsLoading(false);
       if (chartInstanceRef.current) {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOption, dateRange, machineGroups, options, companyName]);
+  }, [selectedOption, dateRange, machineGroups, options, companyName, t]);
 
   const processData = (data) => {
     const processedData = {};
@@ -146,6 +159,7 @@ const IntervalUsageChart = () => {
 
   useEffect(() => {
     const fetchOptions = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(
           `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
@@ -163,12 +177,14 @@ const IntervalUsageChart = () => {
         }
       } catch (error) {
         console.error("Error fetching options:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const fetchMachineGroups = async () => {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`/api/settings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch settings");
         const data = await response.json();
         setMachineGroups(data.machineGroups || []);
@@ -181,17 +197,7 @@ const IntervalUsageChart = () => {
     fetchMachineGroups();
   }, [companyName]);
 
-  useEffect(() => {
-    const shouldFetch =
-      fetchTriggerRef.current.date || fetchTriggerRef.current.option;
-
-    if (shouldFetch && selectedOption) {
-      fetchData();
-      fetchTriggerRef.current = { date: null, option: null };
-    }
-  }, [selectedOption, dateRange, fetchData]);
-
-  useEffect(() => {
+  const renderChart = useCallback(() => {
     if (chartRef.current && Object.keys(chartData).length > 0) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.dispose();
@@ -199,6 +205,18 @@ const IntervalUsageChart = () => {
 
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
+
+      if (isLoading) {
+        chart.showLoading({
+          text: t("loading"),
+          maskColor: "rgba(255, 255, 255, 1)",
+          textColor: "#000",
+          zlevel: 10,
+        });
+        return chart;
+      }
+
+      chart.hideLoading();
 
       const series = Object.entries(chartData)
         .flatMap(([meter, { name, data }]) => {
@@ -220,11 +238,25 @@ const IntervalUsageChart = () => {
 
       const option = {
         title: {
-          text: "區間用電圖",
+          text: t("charts.intervalUsageChart.title"),
           left: "center",
         },
         tooltip: {
           trigger: "axis",
+          formatter: function (params) {
+            return `${t("charts.intervalUsageChart.tooltip.time")}: ${
+              params[0].axisValue
+            }<br/>${params
+              .map(
+                (param) =>
+                  `${param.marker} ${
+                    param.seriesName
+                  }: ${param.value[1].toFixed(2)} ${t(
+                    "charts.intervalUsageChart.yAxisLabel"
+                  )}`
+              )
+              .join("<br/>")}`;
+          },
         },
         legend: {
           type: "scroll",
@@ -239,12 +271,12 @@ const IntervalUsageChart = () => {
         },
         xAxis: {
           type: "category",
-          name: "時間",
+          name: t("charts.intervalUsageChart.time"),
           data: allTimes,
         },
         yAxis: {
           type: "value",
-          name: "kWh",
+          name: t("charts.intervalUsageChart.yAxisLabel"),
         },
         series: series,
       };
@@ -262,7 +294,21 @@ const IntervalUsageChart = () => {
         chart.dispose();
       };
     }
-  }, [chartData]);
+  }, [chartData, isLoading, t, locale]);
+
+  useEffect(() => {
+    renderChart();
+  }, [renderChart]);
+
+  useEffect(() => {
+    const shouldFetch =
+      fetchTriggerRef.current.date || fetchTriggerRef.current.option;
+
+    if (shouldFetch && selectedOption) {
+      fetchData();
+      fetchTriggerRef.current = { date: null, option: null };
+    }
+  }, [selectedOption, dateRange, fetchData]);
 
   return (
     <div className="container-fluid">

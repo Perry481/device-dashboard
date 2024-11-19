@@ -1,0 +1,346 @@
+{
+  "navigation": {
+    "title": "Device-Dashboard",
+    "dashboard": "Dashboard",
+    "realTimeMonitoring": "Real-time Monitoring",
+    "energyMonitoring": "Energy Monitoring",
+    "electricityAnalysis": "Electricity Prcie Analysis",
+    "settings": "Settings",
+    "meterDetails": {
+      "title": "Meter Details",
+      "fifteenMinuteDemand": "15-Minute Demand",
+      "dailyUsage": "Daily Usage",
+      "intervalUsage": "Interval Usage",
+      "energyTrend": "Energy Trend",
+      "cumulativeEnergy": "Cumulative Energy",
+      "powerHeatmap": "Power Heatmap"
+    }
+  },
+  "electricMeterDetails": {
+    "selectView": "Please select a view from the meter details menu",
+    "invalidView": "Invalid view selected"
+  },
+  "datePicker": {
+    "title": "Select Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "ranges": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    }
+  },
+  "selectionAndSend": {
+    "meterSelection": {
+      "title": "Select Meters",
+      "titleWithPricing": "Select Meters and Pricing Standard",
+      "selectMeters": "Select meters...",
+      "selectPricing": "Select pricing standard...",
+      "send": "Send"
+    }
+  },
+  "search": {
+    "placeholder": "Search meters...",
+    "noResults": "No results found"
+  },
+  "groups": {
+    "selectGroup": "Select Group",
+    "allDevices": "All Devices",
+    "ungrouped": "Ungrouped"
+  },
+  "updates": {
+    "nextUpdate": "Next update: {{seconds}}s"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "dashboard": {
+    "groups": {
+      "selectGroup": "Select Group",
+      "allDevices": "All Devices",
+      "ungrouped": "Ungrouped"
+    },
+    "charts": {
+      "energyAndPowerTrend": "Energy Consumption and Average Power Trend",
+      "dailyPeakDemand": "Daily Peak 15-Minute Demand",
+      "usageDistribution": "Energy Usage Distribution",
+      "usageDistributionAll": "Energy Usage Distribution (All)",
+      "usageDistributionGroup": "Energy Usage Distribution ({{group}})",
+      "totalEnergy": "Total Energy",
+      "averagePower": "Average Power",
+      "yAxisLabel": "kWh / kW",
+      "peakDemand": "Peak Demand",
+      "contractCapacity": "Contract Capacity"
+    },
+    "metrics": {
+      "energyConsumption": {
+        "title": "Energy Consumption",
+        "quarter": "Quarter (Q{{quarter}})",
+        "monthly": "Monthly",
+        "unit": "kWh"
+      },
+      "estimatedCost": {
+        "title": "Estimated Cost",
+        "quarter": "Quarter (Q{{quarter}})",
+        "monthly": "Monthly",
+        "currency": "NT$"
+      },
+      "co2Emission": {
+        "title": "CO2 Emission",
+        "quarter": "Quarter (Q{{quarter}})",
+        "monthly": "Monthly",
+        "unit": "kg"
+      }
+    },
+    "other": {
+      "loading": "Loading...",
+      "contractCapacity": "Contract Capacity",
+      "nextUpdate": "Next update: {{seconds}}s"
+    }
+  },
+  "rtMonitoring": {
+    "title": "Real-time Monitoring",
+    "nextUpdate": "Next update: {{seconds}}s",
+    "search": {
+      "placeholder": "Search meters...",
+      "noResults": "No results found"
+    },
+    "groups": {
+      "selectGroup": "Select Group",
+      "allDevices": "All Devices",
+      "ungrouped": "Ungrouped"
+    },
+    "gaugeSettings": {
+      "title": "Gauge Settings",
+      "save": "Save",
+      "addItem": "Add Item",
+      "summaryTexts": "Summary Texts"
+    },
+    "meterDetails": {
+      "labels": {
+        "Brand": "Brand",
+        "Model": "Model",
+        "ID": "ID",
+        "Machine": "Machine",
+        "總累計電耗": "Total Energy Consumption",
+        "總有功功率": "Total Active Power",
+        "總無功功率": "Total Reactive Power",
+        "總視在功率": "Total Apparent Power",
+        "總功率因數": "Power Factor",
+        "機器名稱": "Device Name",
+        "線電壓A": "Phase Voltage A",
+        "線電壓B": "Phase Voltage B",
+        "線電壓C": "Phase Voltage C",
+        "電流A": "Current A",
+        "電流B": "Current B",
+        "電流C": "Current C",
+        "頻率A": "Frequency A",
+        "頻率B": "Frequency B",
+        "頻率C": "Frequency C"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "reorderMachines": "Reorder Machines",
+      "saveOrder": "Save",
+      "close": "Close"
+    },
+    "actions": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "summaryTexts": {
+      "totalEnergy": "Total Energy Consumption",
+      "totalActivePower": "Total Active Power",
+      "totalReactivePower": "Total Reactive Power",
+      "totalApparentPower": "Total Apparent Power",
+      "powerFactor": "Total Power Factor"
+    }
+  },
+  "energyCostAnalysis": {
+    "charts": {
+      "peakAnalysis": {
+        "title": "Peak Energy Consumption Analysis",
+        "yAxisLabel": "kWh",
+        "peakTypes": {
+          "peak": "Peak",
+          "halfPeak": "Half-Peak",
+          "offPeak": "Off-Peak"
+        }
+      },
+      "distribution": {
+        "title": "Energy Distribution by Peak State",
+        "series": "Energy Distribution"
+      }
+    }
+  },
+  "energyPriceAnalysis": {
+    "charts": {
+      "peakAnalysis": {
+        "title": "Peak Cost Analysis",
+        "yAxisLabel": "NT$",
+        "peakTypes": {
+          "peak": "Peak",
+          "halfPeak": "Half-Peak",
+          "offPeak": "Off-Peak"
+        }
+      },
+      "distribution": {
+        "title": "Cost Distribution by Time Period",
+        "series": "Cost Distribution"
+      }
+    }
+  },
+  "priceTable": {
+    "title": "Electricity Price Table",
+    "actions": {
+      "save": "Save Price",
+      "edit": "Edit Price"
+    },
+    "headers": {
+      "itemName": "Item Name",
+      "timeRange": "Time Range",
+      "price": "Price NT$/kWh"
+    },
+    "periods": {
+      "summer": "06/01 - 09/30 Summer",
+      "nonSummer": "10/01 - 05/31 Non-Summer"
+    },
+    "peakStates": {
+      "peak": "Peak",
+      "halfPeak": "Half-Peak",
+      "offPeak": "Off-Peak"
+    },
+    "dayTypes": {
+      "weekday": "Weekday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "days": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    }
+  },
+  "common": {
+    "currency": "NT$",
+    "units": {
+      "kwh": "kWh"
+    }
+  },
+  "detailCard": {
+    "headers": {
+      "energyDistribution": "Energy Distribution Details",
+      "priceDistribution": "Price Distribution Details"
+    },
+    "peakTypes": {
+      "peak": "Peak",
+      "halfPeak": "Half-Peak",
+      "offPeak": "Off-Peak"
+    },
+    "total": "Total"
+  },
+  "dataTable": {
+    "headers": {
+      "energyTable": "Energy Consumption Table",
+      "priceTable": "Price Distribution Table"
+    },
+    "peakTypes": {
+      "peak": "Peak",
+      "halfPeak": "Half-Peak",
+      "offPeak": "Off-Peak",
+      "total": "Total"
+    },
+    "noData": "No data available"
+  },
+  "basicSettings": {
+    "title": "Basic Settings",
+    "co2Factor": "CO2 Emission Factor:",
+    "contractCapacity": "Contract Capacity (kW):",
+    "defaultPricing": "Global Default Pricing Standard:",
+    "saveButton": "Save Basic Settings"
+  },
+  "groupSettings": {
+    "title": "Meter Group Settings",
+    "ungroupedMachines": "Ungrouped Machines",
+    "meterGroups": "Meter Groups",
+    "noUngroupedMachines": "No ungrouped machines",
+    "emptyGroup": "This group is empty",
+    "machineCount": "{{count}} units",
+    "addGroup": "Add Group",
+    "deleteGroup": "Delete",
+    "saveButton": "Save Group Settings",
+    "newGroupPrompt": "Enter new group name:",
+    "loadingText": "Loading...",
+    "errorText": "Failed to load data. Please try again later.",
+    "noSettingsFound": "No settings found for this company.",
+    "updateSuccess": "Settings updated successfully",
+    "updateError": "Failed to update settings. Please try again."
+  },
+  "priceSettings": {
+    "title": "Price Settings"
+  },
+  "charts": {
+    "fifteenMinuteDemand": {
+      "title": "15-Minute Demand",
+      "demand": "Demand",
+      "yAxisLabel": "Demand (kW)"
+    },
+    "cumulativeEnergyChart": {
+      "title": "Cumulative Energy Consumption",
+      "dateTime": "Date Time",
+      "yAxisLabel": "Cumulative kWh",
+      "tooltipUnit": "kWh"
+    },
+    "dailyUsageChart": {
+      "title": "Daily Energy Usage",
+      "yAxisLabel": "Energy Usage (kWh)",
+      "tooltip": {
+        "usage": "Usage"
+      },
+      "hourly": {
+        "hour": "hr"
+      }
+    },
+    "energyTrendChart": {
+      "title": "Energy Usage Trend",
+      "dateTime": "Date Time",
+      "yAxisLabel": "kWh",
+      "tooltip": {
+        "usage": "Usage"
+      }
+    },
+    "intervalUsageChart": {
+      "title": "Interval Energy Usage",
+      "time": "Time",
+      "yAxisLabel": "kWh",
+      "tooltip": {
+        "usage": "Usage",
+        "time": "Time"
+      }
+    },
+    "powerHeatmap": {
+      "title": "Power Consumption Heatmap",
+      "time": "Hour",
+      "date": "Date",
+      "consumption": "Consumption",
+      "tooltip": {
+        "time": "Time",
+        "date": "Date",
+        "power": "Power"
+      },
+      "unit": "kWh"
+    }
+  },
+  "loading": "Loading..."
+}

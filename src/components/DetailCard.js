@@ -1,6 +1,6 @@
-// src/components/DetailCard.js
 import React from "react";
 import styled from "styled-components";
+import { useTranslation } from "../hooks/useTranslation";
 
 const Card = styled.div`
   border: 1px solid #ddd;
@@ -61,6 +61,7 @@ const DetailCard = ({
   energyPrice,
   prices,
 }) => {
+  const { t } = useTranslation();
   const totalPeak = Object.values(aggregatedData).reduce(
     (acc, curr) => acc + parseFloat(curr.peak),
     0
@@ -102,7 +103,9 @@ const DetailCard = ({
   return (
     <Card>
       <CardHeader>
-        {energyConsumption ? "能耗分布細項" : "電價分布細項"}
+        {energyConsumption
+          ? t("detailCard.headers.energyDistribution")
+          : t("detailCard.headers.priceDistribution")}
       </CardHeader>
       <CardBody>
         {energyConsumption && (
@@ -110,30 +113,30 @@ const DetailCard = ({
             <DetailItem>
               <div>
                 <ColorBlock color="#ee6666" />
-                <span>尖峰</span>
+                <span>{t("detailCard.peakTypes.peak")}</span>
               </div>
               <span>
-                {totalPeak.toFixed(1)} kWh (
+                {totalPeak.toFixed(1)} {t("common.units.kwh")} (
                 {((totalPeak / total) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
             <DetailItem>
               <div>
                 <ColorBlock color="#fac858" />
-                <span>半尖峰</span>
+                <span>{t("detailCard.peakTypes.halfPeak")}</span>
               </div>
               <span>
-                {totalHalfpeak.toFixed(1)} kWh (
+                {totalHalfpeak.toFixed(1)} {t("common.units.kwh")} (
                 {((totalHalfpeak / total) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
             <DetailItem>
               <div>
                 <ColorBlock color="#91CC75" />
-                <span>離峰</span>
+                <span>{t("detailCard.peakTypes.offPeak")}</span>
               </div>
               <span>
-                {totalOffpeak.toFixed(1)} kWh (
+                {totalOffpeak.toFixed(1)} {t("common.units.kwh")} (
                 {((totalOffpeak / total) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
@@ -144,46 +147,48 @@ const DetailCard = ({
             <DetailItem>
               <div>
                 <ColorBlock color="#ee6666" />
-                <span>尖峰</span>
+                <span>{t("detailCard.peakTypes.peak")}</span>
               </div>
               <span>
-                {totalCostPeak.toFixed(1)} NT$ (
+                {t("common.currency")}
+                {totalCostPeak.toFixed(1)} (
                 {((totalCostPeak / totalCost) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
             <DetailItem>
               <div>
                 <ColorBlock color="#fac858" />
-                <span>半尖峰</span>
+                <span>{t("detailCard.peakTypes.halfPeak")}</span>
               </div>
               <span>
-                {totalCostHalfpeak.toFixed(1)} NT$ (
+                {t("common.currency")}
+                {totalCostHalfpeak.toFixed(1)} (
                 {((totalCostHalfpeak / totalCost) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
             <DetailItem>
               <div>
                 <ColorBlock color="#91CC75" />
-                <span>離峰</span>
+                <span>{t("detailCard.peakTypes.offPeak")}</span>
               </div>
               <span>
-                {totalCostOffpeak.toFixed(1)} NT$ (
+                {t("common.currency")}
+                {totalCostOffpeak.toFixed(1)} (
                 {((totalCostOffpeak / totalCost) * 100).toFixed(1)}%)
               </span>
             </DetailItem>
           </>
         )}
         <DetailItem>
-          <span>總合</span>
+          <span>{t("detailCard.total")}</span>
           <span>
             {energyConsumption
-              ? total.toFixed(1) + " kWh"
-              : totalCost.toFixed(1) + " NT$"}
+              ? `${total.toFixed(1)} ${t("common.units.kwh")}`
+              : `${t("common.currency")}${totalCost.toFixed(1)}`}
           </span>
         </DetailItem>
       </CardBody>
     </Card>
   );
 };
-
 export default DetailCard;

@@ -3,7 +3,7 @@ import styled from "styled-components";
 import Select from "react-select";
 import CustomValueContainer from "./CustomValueContainer";
 import { CompanyContext } from "../contexts/CompanyContext";
-
+import { useTranslation } from "../hooks/useTranslation";
 const Card = styled.div`
   border: 1px solid #484848;
   border-radius: 4px;
@@ -101,6 +101,7 @@ const SelectionAndSend = ({
   activePricingStandard = "",
   machineGroups = [],
 }) => {
+  const { t } = useTranslation();
   const [options, setOptions] = useState([]);
   const [selectedOptions, setSelectedOptions] = useState(
     singleSelection ? null : []
@@ -191,11 +192,12 @@ const SelectionAndSend = ({
       onSend(selectedSn);
     }
   };
-
   return (
     <Card $showPricingStandard={showPricingStandard}>
       <CardHeader>
-        {showPricingStandard ? "選擇電錶和電價標準" : "選擇電錶"}
+        {showPricingStandard
+          ? t("selectionAndSend.meterSelection.titleWithPricing")
+          : t("selectionAndSend.meterSelection.title")}
       </CardHeader>
       <Container $showPricingStandard={showPricingStandard}>
         <SelectWrapper $showPricingStandard={showPricingStandard}>
@@ -210,6 +212,7 @@ const SelectionAndSend = ({
               singleSelection ? {} : { ValueContainer: CustomValueContainer }
             }
             showPricingStandard={showPricingStandard}
+            placeholder={t("selectionAndSend.meterSelection.selectMeters")}
           />
         </SelectWrapper>
         {showPricingStandard && (
@@ -219,7 +222,7 @@ const SelectionAndSend = ({
               value={selectedStandard}
               onChange={handleStandardChange}
               styles={customStyles}
-              placeholder="選擇電價標準..."
+              placeholder={t("selectionAndSend.meterSelection.selectPricing")}
               showPricingStandard={showPricingStandard}
             />
           </SelectWrapper>
@@ -228,7 +231,7 @@ const SelectionAndSend = ({
           $showPricingStandard={showPricingStandard}
           onClick={handleSend}
         >
-          Send
+          {t("selectionAndSend.meterSelection.send")}
         </SendButton>
       </Container>
     </Card>

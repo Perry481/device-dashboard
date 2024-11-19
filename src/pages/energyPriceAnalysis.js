@@ -17,6 +17,7 @@ import styled from "styled-components";
 import { debounce } from "lodash";
 import isEqual from "lodash/isEqual";
 import { CompanyContext } from "../contexts/CompanyContext";
+import { useTranslation } from "../hooks/useTranslation";
 const SelectionAndSend = dynamic(
   () => import("../components/SelectionAndSend"),
   { ssr: false }
@@ -187,6 +188,7 @@ const aggregateDataByPeakState = (groupedData) => {
 };
 
 const EnergyPriceAnalysis = () => {
+  const { t, locale } = useTranslation();
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -422,12 +424,11 @@ const EnergyPriceAnalysis = () => {
       if (echarts.getInstanceByDom(barChartRef.current)) {
         echarts.getInstanceByDom(barChartRef.current).dispose();
       }
-
       const barChart = echarts.init(barChartRef.current);
       const barChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
         title: {
-          text: "尖離峰費用分析",
+          text: t("energyPriceAnalysis.charts.peakAnalysis.title"),
           left: "center",
           top: 0,
           textStyle: {
@@ -458,22 +459,29 @@ const EnergyPriceAnalysis = () => {
             fontSize: 10,
           },
         },
-        yAxis: { type: "value", name: "NT$" },
+        yAxis: {
+          type: "value",
+          name: t("energyPriceAnalysis.charts.peakAnalysis.yAxisLabel"),
+        },
         series: [
           {
-            name: "尖峰",
+            name: t("energyPriceAnalysis.charts.peakAnalysis.peakTypes.peak"),
             type: "bar",
             stack: "total",
             data: newBarChartData.peak,
           },
           {
-            name: "半尖峰",
+            name: t(
+              "energyPriceAnalysis.charts.peakAnalysis.peakTypes.halfPeak"
+            ),
             type: "bar",
             stack: "total",
             data: newBarChartData.halfpeak,
           },
           {
-            name: "離峰",
+            name: t(
+              "energyPriceAnalysis.charts.peakAnalysis.peakTypes.offPeak"
+            ),
             type: "bar",
             stack: "total",
             data: newBarChartData.offpeak,
@@ -560,15 +568,28 @@ const EnergyPriceAnalysis = () => {
       if (echarts.getInstanceByDom(pieChartRef.current)) {
         echarts.getInstanceByDom(pieChartRef.current).dispose();
       }
-
       const pieChart = echarts.init(pieChartRef.current);
+
       const pieChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
-        title: { text: "尖離峰費用分佈", left: "center" },
-        tooltip: { trigger: "item", formatter: "{a} <br/>{b}: NT${c} ({d}%)" },
+        title: {
+          text: t("energyPriceAnalysis.charts.distribution.title"),
+          left: "center",
+        },
+        tooltip: {
+          trigger: "item",
+          formatter: function (params) {
+            const value = parseFloat(params.value);
+            return `${t(
+              "energyPriceAnalysis.charts.distribution.series"
+            )} <br/>${params.name}: NT$${value.toFixed(
+              2
+            )} (${params.percent.toFixed(2)}%)`;
+          },
+        },
         series: [
           {
-            name: "費用分佈",
+            name: t("energyPriceAnalysis.charts.distribution.series"),
             type: "pie",
             radius: ["50%", "70%"],
             avoidLabelOverlap: false,
@@ -578,14 +599,30 @@ const EnergyPriceAnalysis = () => {
             },
             labelLine: { show: false },
             data: [
-              { value: newPieChartData.totalPeak, name: "尖峰" },
-              { value: newPieChartData.totalHalfpeak, name: "半尖峰" },
-              { value: newPieChartData.totalOffpeak, name: "離峰" },
+              {
+                value: newPieChartData.totalPeak,
+                name: t(
+                  "energyPriceAnalysis.charts.peakAnalysis.peakTypes.peak"
+                ),
+              },
+              {
+                value: newPieChartData.totalHalfpeak,
+                name: t(
+                  "energyPriceAnalysis.charts.peakAnalysis.peakTypes.halfPeak"
+                ),
+              },
+              {
+                value: newPieChartData.totalOffpeak,
+                name: t(
+                  "energyPriceAnalysis.charts.peakAnalysis.peakTypes.offPeak"
+                ),
+              },
             ],
           },
         ],
       };
       pieChart.setOption(pieChartOptions);
+
       const handleResize = () => {
         pieChart.resize();
       };
@@ -607,7 +644,7 @@ const EnergyPriceAnalysis = () => {
       renderBarChart();
       renderPieChart();
     }
-  }, [dataReady, aggregatedData]);
+  }, [dataReady, aggregatedData, locale]);
   return (
     <div className="container-fluid">
       <RowContainer>

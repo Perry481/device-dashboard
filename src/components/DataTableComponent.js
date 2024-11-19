@@ -1,10 +1,6 @@
 import React, { useEffect } from "react";
-import $ from "jquery";
-import "datatables.net-dt/css/dataTables.dataTables.css";
-import "datatables.net-dt";
 import styled from "styled-components";
-
-// Styled componentsimport styled from "styled-components";
+import { useTranslation } from "../hooks/useTranslation";
 
 const TableWrapper = styled.div`
   width: 100%;
@@ -15,7 +11,7 @@ const TableWrapper = styled.div`
 const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 600px; // Ensure the table doesn't shrink too much
+  min-width: 600px;
 
   th,
   td {
@@ -55,19 +51,16 @@ const CardTitle = styled.h3`
 const CardBody = styled.div`
   padding: 15px;
 `;
+
+const peakTypes = ["peak", "halfPeak", "offPeak", "total"];
+
 const DataTableComponent = ({
   aggregatedData,
   energyConsumption,
   energyPrice,
   prices,
 }) => {
-  useEffect(() => {
-    if (!aggregatedData || Object.keys(aggregatedData).length === 0) {
-      console.log("No aggregated data available");
-      return;
-    }
-    console.log("Aggregated Data:", aggregatedData);
-  }, [aggregatedData, energyConsumption, energyPrice, prices]);
+  const { t } = useTranslation();
 
   const splitData = (data, chunkSize) => {
     const dates = Object.keys(data);
@@ -81,105 +74,72 @@ const DataTableComponent = ({
   };
 
   const transformData = (data, dateChunk) => {
-    const peakStates = ["尖峰", "半尖峰", "離峰", "總合"];
-    const transformed = peakStates.map((state) => {
-      const row = { Type: state };
+    const transformed = peakTypes.map((type) => {
+      const row = { Type: t(`dataTable.peakTypes.${type}`) };
       dateChunk.forEach((date) => {
         let value = "0";
-        let unit = "kWh";
+        let unit = t("common.units.kwh");
 
         if (energyConsumption) {
-          switch (state) {
-            case "尖峰":
-              value =
-                data[date] && data[date].peak !== undefined
-                  ? data[date].peak
-                  : "0";
+          switch (type) {
+            case "peak":
+              value = data[date]?.peak || "0";
               break;
-            case "半尖峰":
-              value =
-                data[date] && data[date].halfpeak !== undefined
-                  ? data[date].halfpeak
-                  : "0";
+            case "halfPeak":
+              value = data[date]?.halfpeak || "0";
               break;
-            case "離峰":
-              value =
-                data[date] && data[date].offpeak !== undefined
-                  ? data[date].offpeak
-                  : "0";
+            case "offPeak":
+              value = data[date]?.offpeak || "0";
               break;
-            case "總合":
+            case "total":
               if (data[date]) {
                 value = (
-                  (data[date].peak !== undefined
-                    ? parseFloat(data[date].peak)
-                    : 0) +
-                  (data[date].halfpeak !== undefined
-                    ? parseFloat(data[date].halfpeak)
-                    : 0) +
-                  (data[date].offpeak !== undefined
-                    ? parseFloat(data[date].offpeak)
-                    : 0)
+                  parseFloat(data[date].peak || 0) +
+                  parseFloat(data[date].halfpeak || 0) +
+                  parseFloat(data[date].offpeak || 0)
                 ).toFixed(2);
-              } else {
-                value = "0";
               }
               break;
-            default:
-              value = "0";
           }
         } else if (energyPrice && prices) {
           const period = data[date].isSummer ? "夏月" : "非夏月";
-          const peakPrice =
-            parseFloat(prices.peakPrices?.[period]?.replace("NT$", "")) || 0;
-          const halfpeakPrice =
-            parseFloat(prices.halfPeakPrices?.[period]?.replace("NT$", "")) ||
-            0;
-          const offpeakPrice =
-            parseFloat(prices.offPeakPrices?.[period]?.replace("NT$", "")) || 0;
+          const peakPrice = parseFloat(
+            prices.peakPrices?.[period]?.replace("NT$", "") || "0"
+          );
+          const halfpeakPrice = parseFloat(
+            prices.halfPeakPrices?.[period]?.replace("NT$", "") || "0"
+          );
+          const offpeakPrice = parseFloat(
+            prices.offPeakPrices?.[period]?.replace("NT$", "") || "0"
+          );
 
-          switch (state) {
-            case "尖峰":
-              value =
-                data[date] && data[date].peak !== undefined
-                  ? (parseFloat(data[date].peak) * peakPrice).toFixed(2)
-                  : "0";
+          switch (type) {
+            case "peak":
+              value = data[date]?.peak
+                ? (parseFloat(data[date].peak) * peakPrice).toFixed(2)
+                : "0";
               break;
-            case "半尖峰":
-              value =
-                data[date] && data[date].halfpeak !== undefined
-                  ? (parseFloat(data[date].halfpeak) * halfpeakPrice).toFixed(2)
-                  : "0";
+            case "halfPeak":
+              value = data[date]?.halfpeak
+                ? (parseFloat(data[date].halfpeak) * halfpeakPrice).toFixed(2)
+                : "0";
               break;
-            case "離峰":
-              value =
-                data[date] && data[date].offpeak !== undefined
-                  ? (parseFloat(data[date].offpeak) * offpeakPrice).toFixed(2)
-                  : "0";
+            case "offPeak":
+              value = data[date]?.offpeak
+                ? (parseFloat(data[date].offpeak) * offpeakPrice).toFixed(2)
+                : "0";
               break;
-            case "總合":
-              if (data[date]) {
-                value = (
-                  (data[date].peak !== undefined
-                    ? parseFloat(data[date].peak) * peakPrice
-                    : 0) +
-                  (data[date].halfpeak !== undefined
-                    ? parseFloat(data[date].halfpeak) * halfpeakPrice
-                    : 0) +
-                  (data[date].offpeak !== undefined
-                    ? parseFloat(data[date].offpeak) * offpeakPrice
-                    : 0)
-                ).toFixed(2);
-              } else {
-                value = "0";
-              }
+            case "total":
+              value = (
+                parseFloat(data[date]?.peak || 0) * peakPrice +
+                parseFloat(data[date]?.halfpeak || 0) * halfpeakPrice +
+                parseFloat(data[date]?.offpeak || 0) * offpeakPrice
+              ).toFixed(2);
               break;
-            default:
-              value = "0";
           }
-          unit = "NT$";
+          unit = t("common.currency");
         }
-        row[date] = value !== undefined ? `${value} ${unit}` : "0";
+        row[date] = `${value} ${unit}`;
       });
       return row;
     });
@@ -188,7 +148,7 @@ const DataTableComponent = ({
   };
 
   if (!aggregatedData || Object.keys(aggregatedData).length === 0) {
-    return <p>No data available</p>;
+    return <p>{t("dataTable.noData")}</p>;
   }
 
   const transformedDataSets = splitData(aggregatedData, 7);
@@ -197,7 +157,11 @@ const DataTableComponent = ({
     <div>
       <Card>
         <CardHeader>
-          <CardTitle>{energyConsumption ? "能耗總表" : "電價總表"}</CardTitle>
+          <CardTitle>
+            {energyConsumption
+              ? t("dataTable.headers.energyTable")
+              : t("dataTable.headers.priceTable")}
+          </CardTitle>
         </CardHeader>
       </Card>
       {transformedDataSets.map((transformedData, index) => {

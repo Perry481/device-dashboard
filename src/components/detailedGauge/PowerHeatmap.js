@@ -6,6 +6,8 @@ import React, {
   useContext,
 } from "react";
 import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
+import { useTranslation } from "../../hooks/useTranslation";
+import { useRouter } from "next/router";
 import * as echarts from "echarts";
 import styled from "styled-components";
 import DateRangePicker from "../DateRangePicker";
@@ -62,6 +64,9 @@ const formatDateWithoutYear = (dateString) => {
 };
 
 const PowerHeatmap = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { locale } = router;
   const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -77,6 +82,7 @@ const PowerHeatmap = () => {
   });
   const [options, setOptions] = useState([]);
   const [machineGroups, setMachineGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const fetchTriggerRef = useRef({ date: null, options: null });
@@ -84,8 +90,14 @@ const PowerHeatmap = () => {
   const fetchData = useCallback(async () => {
     if (selectedOptions.length === 0) return;
 
+    setIsLoading(true);
     if (chartInstanceRef.current) {
-      chartInstanceRef.current.showLoading();
+      chartInstanceRef.current.showLoading({
+        text: t("loading"),
+        maskColor: "rgba(255, 255, 255, 1)",
+        textColor: "#000",
+        zlevel: 10,
+      });
     }
 
     const formattedStartDate = formatDate(dateRange.startDate);
@@ -119,11 +131,12 @@ const PowerHeatmap = () => {
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
+      setIsLoading(false);
       if (chartInstanceRef.current) {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups, options, companyName]);
+  }, [selectedOptions, dateRange, machineGroups, options, companyName, t]);
 
   const processData = (dataArray) => {
     const combinedData = {};
@@ -170,6 +183,7 @@ const PowerHeatmap = () => {
 
   useEffect(() => {
     const fetchOptions = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(
           `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
@@ -187,12 +201,14 @@ const PowerHeatmap = () => {
         }
       } catch (error) {
         console.error("Error fetching options:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const fetchMachineGroups = async () => {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`/api/settings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch settings");
         const data = await response.json();
         setMachineGroups(data.machineGroups || []);
@@ -215,7 +231,7 @@ const PowerHeatmap = () => {
     }
   }, [selectedOptions, dateRange, fetchData]);
 
-  useEffect(() => {
+  const renderChart = useCallback(() => {
     if (chartRef.current && chartData.data.length > 0) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.dispose();
@@ -223,6 +239,18 @@ const PowerHeatmap = () => {
 
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
+
+      if (isLoading) {
+        chart.showLoading({
+          text: t("loading"),
+          maskColor: "rgba(255, 255, 255, 1)",
+          textColor: "#000",
+          zlevel: 10,
+        });
+        return chart;
+      }
+
+      chart.hideLoading();
 
       const dates = [...new Set(chartData.data.map((item) => item[1]))]
         .sort()
@@ -249,7 +277,7 @@ const PowerHeatmap = () => {
 
       const option = {
         title: {
-          text: "電力熱點圖",
+          text: t("charts.powerHeatmap.title"),
           left: "center",
           textStyle: {
             fontSize: 14,
@@ -259,9 +287,20 @@ const PowerHeatmap = () => {
         tooltip: {
           position: "top",
           formatter: function (params) {
-            return `時間: ${params.value[0]}:00<br/>日期: ${
-              params.value[1]
-            }<br/>耗電: ${params.value[2].toFixed(2)} 千瓦/時`;
+            // Check if params and params.value exist before accessing
+            if (!params || !params.value) {
+              return "";
+            }
+
+            const [hour, date, value] = params.value;
+
+            return (
+              `${t("charts.powerHeatmap.tooltip.time")}: ${hour}:00<br/>` +
+              `${t("charts.powerHeatmap.tooltip.date")}: ${date}<br/>` +
+              `${t("charts.powerHeatmap.tooltip.power")}: ${value.toFixed(
+                2
+              )} ${t("charts.powerHeatmap.unit")}`
+            );
           },
         },
         visualMap: {
@@ -294,7 +333,7 @@ const PowerHeatmap = () => {
         xAxis: {
           type: "category",
           data: Array.from({ length: 24 }, (_, i) => i),
-          name: "時",
+          name: t("charts.powerHeatmap.time"),
           nameLocation: "middle",
           nameGap: 30,
           splitArea: {
@@ -304,7 +343,7 @@ const PowerHeatmap = () => {
         yAxis: {
           type: "category",
           data: dates.map(formatDateWithoutYear),
-          name: "日期",
+          name: t("charts.powerHeatmap.date"),
           nameLocation: "start",
           nameGap: 55,
           nameTextStyle: {
@@ -318,7 +357,7 @@ const PowerHeatmap = () => {
         },
         series: [
           {
-            name: "Power Consumption",
+            name: t("charts.powerHeatmap.consumption"),
             type: "heatmap",
             data: chartData.data.map((item) => [
               item[0],
@@ -364,7 +403,11 @@ const PowerHeatmap = () => {
         chart.dispose();
       };
     }
-  }, [chartData]);
+  }, [chartData, isLoading, t, locale]);
+
+  useEffect(() => {
+    renderChart();
+  }, [renderChart]);
 
   return (
     <div className="container-fluid">

@@ -6,6 +6,8 @@ import React, {
   useContext,
 } from "react";
 import { CompanyContext } from "../../contexts/CompanyContext"; // Adjust the path as needed
+import { useTranslation } from "../../hooks/useTranslation";
+import { useRouter } from "next/router";
 import DateRangePicker from "../DateRangePicker";
 import SelectionAndSend from "../SelectionAndSend";
 import styled from "styled-components";
@@ -57,6 +59,9 @@ const formatDate = (date) => {
 };
 
 const DailyUsageChart = () => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { locale } = router;
   const { companyName } = useContext(CompanyContext);
   const today = new Date();
   const chartRef = useRef(null);
@@ -70,9 +75,11 @@ const DailyUsageChart = () => {
   const [options, setOptions] = useState([]);
   const [machineGroups, setMachineGroups] = useState([]);
   const [hourlyData, setHourlyData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchOptions = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(
           `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
@@ -89,12 +96,14 @@ const DailyUsageChart = () => {
         }
       } catch (error) {
         console.error("Error fetching options:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const fetchMachineGroups = async () => {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(`/api/settings/${companyName}`);
         if (!response.ok) throw new Error("Failed to fetch settings");
         const data = await response.json();
         setMachineGroups(data.machineGroups || []);
@@ -115,8 +124,14 @@ const DailyUsageChart = () => {
   const fetchHourlyData = useCallback(async () => {
     if (selectedOptions.length === 0) return;
 
+    setIsLoading(true);
     if (chartInstanceRef.current) {
-      chartInstanceRef.current.showLoading();
+      chartInstanceRef.current.showLoading({
+        text: t("loading"),
+        maskColor: "rgba(255, 255, 255, 1)",
+        textColor: "#000",
+        zlevel: 10,
+      });
     }
 
     const formattedStartDate = formatDate(dateRange.startDate);
@@ -154,11 +169,12 @@ const DailyUsageChart = () => {
     } catch (error) {
       console.error("Error fetching hourly data:", error);
     } finally {
+      setIsLoading(false);
       if (chartInstanceRef.current) {
         chartInstanceRef.current.hideLoading();
       }
     }
-  }, [selectedOptions, dateRange, machineGroups, companyName]);
+  }, [selectedOptions, dateRange, machineGroups, companyName, t]);
 
   const renderChart = useCallback(() => {
     if (chartRef.current && hourlyData.length > 0) {
@@ -169,18 +185,30 @@ const DailyUsageChart = () => {
       const chart = echarts.init(chartRef.current);
       chartInstanceRef.current = chart;
 
+      if (isLoading) {
+        chart.showLoading({
+          text: t("loading"),
+          maskColor: "rgba(255, 255, 255, 1)",
+          textColor: "#000",
+          zlevel: 10,
+        });
+        return chart;
+      }
+
+      chart.hideLoading();
+
       const option = {
         title: {
-          text: "每日用電圖",
+          text: t("charts.dailyUsageChart.title"),
           left: "center",
         },
         tooltip: {
           trigger: "axis",
           formatter: function (params) {
             const [date, hour] = params[0].name.split(" ");
-            return `${date} ${hour}:00<br />用電量: ${params[0].value.toFixed(
-              2
-            )} kWh`;
+            return `${date} ${hour}:00<br />${t(
+              "charts.dailyUsageChart.tooltip.usage"
+            )}: ${params[0].value.toFixed(2)} kWh`;
           },
         },
         xAxis: {
@@ -205,7 +233,7 @@ const DailyUsageChart = () => {
         },
         yAxis: {
           type: "value",
-          name: "用電量 (kWh)",
+          name: t("charts.dailyUsageChart.yAxisLabel"),
         },
         series: [
           {
@@ -250,7 +278,7 @@ const DailyUsageChart = () => {
         window.removeEventListener("resize", handleResize);
       };
     }
-  }, [hourlyData]);
+  }, [hourlyData, isLoading, t, locale]);
 
   useEffect(() => {
     renderChart();

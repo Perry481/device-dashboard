@@ -1,0 +1,346 @@
+{
+  "navigation": {
+    "title": "設備儀錶板",
+    "dashboard": "主控台",
+    "realTimeMonitoring": "即時監控",
+    "energyMonitoring": "能耗監控",
+    "electricityAnalysis": "電費分析",
+    "settings": "設定",
+    "meterDetails": {
+      "title": "電表詳細資訊",
+      "fifteenMinuteDemand": "每十五分鐘需量",
+      "dailyUsage": "每日用電圖",
+      "intervalUsage": "區間用電圖",
+      "energyTrend": "能耗趨勢圖",
+      "cumulativeEnergy": "累積能耗圖",
+      "powerHeatmap": "電力熱點圖"
+    }
+  },
+  "electricMeterDetails": {
+    "selectView": "請從電表詳細資訊選單中選擇一個視圖",
+    "invalidView": "選擇的視圖無效"
+  },
+  "datePicker": {
+    "title": "選擇日期範圍",
+    "startDate": "開始日期",
+    "endDate": "結束日期",
+    "ranges": {
+      "day": "日",
+      "week": "週",
+      "month": "月",
+      "year": "年"
+    }
+  },
+  "selectionAndSend": {
+    "meterSelection": {
+      "title": "選擇電錶",
+      "titleWithPricing": "選擇電錶和電價標準",
+      "selectMeters": "選擇電錶...",
+      "selectPricing": "選擇電價標準...",
+      "send": "送出"
+    }
+  },
+  "search": {
+    "placeholder": "搜尋電錶...",
+    "noResults": "沒有找到結果"
+  },
+  "groups": {
+    "selectGroup": "選擇分組",
+    "allDevices": "全部設備",
+    "ungrouped": "未分組"
+  },
+  "updates": {
+    "nextUpdate": "下次更新: {{seconds}}s"
+  },
+  "actions": {
+    "save": "儲存",
+    "cancel": "取消",
+    "edit": "編輯",
+    "delete": "刪除",
+    "previous": "上一頁",
+    "next": "下一頁"
+  },
+  "dashboard": {
+    "groups": {
+      "selectGroup": "選擇設備組",
+      "allDevices": "全部設備",
+      "ungrouped": "未分組"
+    },
+    "charts": {
+      "energyAndPowerTrend": "總能耗與平均功率趨勢",
+      "dailyPeakDemand": "每日最高十五分鐘需量",
+      "usageDistribution": "用電估比",
+      "usageDistributionAll": "用電估比 (全部)",
+      "usageDistributionGroup": "用電估比 ({{group}})",
+      "totalEnergy": "總能耗",
+      "averagePower": "平均功率",
+      "yAxisLabel": "千瓦時 / 千瓦",
+      "peakDemand": "最高需量",
+      "contractCapacity": "契約容量"
+    },
+    "metrics": {
+      "energyConsumption": {
+        "title": "能耗量",
+        "quarter": "本季(Q{{quarter}})",
+        "monthly": "當月",
+        "unit": "kWh"
+      },
+      "estimatedCost": {
+        "title": "參考電費",
+        "quarter": "本季(Q{{quarter}})",
+        "monthly": "當月",
+        "currency": "NT$"
+      },
+      "co2Emission": {
+        "title": "碳排放量",
+        "quarter": "本季(Q{{quarter}})",
+        "monthly": "當月",
+        "unit": "kg"
+      }
+    },
+    "other": {
+      "loading": "載入中...",
+      "contractCapacity": "契約容量",
+      "nextUpdate": "下次更新: {{seconds}}s"
+    }
+  },
+  "rtMonitoring": {
+    "title": "即時監控",
+    "nextUpdate": "下次更新: {{seconds}}s",
+    "search": {
+      "placeholder": "搜尋電錶...",
+      "noResults": "沒有找到結果"
+    },
+    "groups": {
+      "selectGroup": "選擇分組",
+      "allDevices": "全部設備",
+      "ungrouped": "未分組"
+    },
+    "gaugeSettings": {
+      "title": "電錶設定",
+      "save": "儲存",
+      "addItem": "新增項目",
+      "summaryTexts": "顯示項目"
+    },
+    "meterDetails": {
+      "labels": {
+        "Brand": "品牌",
+        "Model": "型號",
+        "ID": "編號",
+        "Machine": "機器",
+        "總累計電耗": "總累計電耗",
+        "總有功功率": "總有功功率",
+        "總無功功率": "總無功功率",
+        "總視在功率": "總視在功率",
+        "總功率因數": "總功率因數",
+        "機器名稱": "機器名稱",
+        "線電壓A": "線電壓A",
+        "線電壓B": "線電壓B",
+        "線電壓C": "線電壓C",
+        "電流A": "電流A",
+        "電流B": "電流B",
+        "電流C": "電流C",
+        "頻率A": "頻率A",
+        "頻率B": "頻率B",
+        "頻率C": "頻率C"
+      }
+    },
+    "settings": {
+      "title": "設定",
+      "reorderMachines": "機器排序",
+      "saveOrder": "儲存",
+      "close": "關閉"
+    },
+    "actions": {
+      "previous": "上一頁",
+      "next": "下一頁"
+    },
+    "summaryTexts": {
+      "totalEnergy": "總累計電耗",
+      "totalActivePower": "總有功功率",
+      "totalReactivePower": "總無功功率",
+      "totalApparentPower": "總視在功率",
+      "powerFactor": "總功率因數"
+    }
+  },
+  "energyCostAnalysis": {
+    "charts": {
+      "peakAnalysis": {
+        "title": "能耗尖離峰分析",
+        "yAxisLabel": "千瓦時",
+        "peakTypes": {
+          "peak": "尖峰",
+          "halfPeak": "半尖峰",
+          "offPeak": "離峰"
+        }
+      },
+      "distribution": {
+        "title": "尖離峰能耗分布",
+        "series": "能耗分布"
+      }
+    }
+  },
+  "energyPriceAnalysis": {
+    "charts": {
+      "peakAnalysis": {
+        "title": "尖離峰費用分析",
+        "yAxisLabel": "NT$",
+        "peakTypes": {
+          "peak": "尖峰",
+          "halfPeak": "半尖峰",
+          "offPeak": "離峰"
+        }
+      },
+      "distribution": {
+        "title": "尖離峰費用分布",
+        "series": "費用分布"
+      }
+    }
+  },
+  "priceTable": {
+    "title": "電價一覽表",
+    "actions": {
+      "save": "保存電價",
+      "edit": "更改電價"
+    },
+    "headers": {
+      "itemName": "項目名稱",
+      "timeRange": "時段",
+      "price": "電價NT$/kWh"
+    },
+    "periods": {
+      "summer": "06/01 - 09/30 夏月",
+      "nonSummer": "10/01 - 05/31 非夏月"
+    },
+    "peakStates": {
+      "peak": "尖峰",
+      "halfPeak": "半尖峰",
+      "offPeak": "離峰"
+    },
+    "dayTypes": {
+      "weekday": "平日",
+      "saturday": "週六",
+      "sunday": "週日"
+    },
+    "days": {
+      "sun": "日",
+      "mon": "一",
+      "tue": "二",
+      "wed": "三",
+      "thu": "四",
+      "fri": "五",
+      "sat": "六"
+    }
+  },
+  "common": {
+    "currency": "NT$",
+    "units": {
+      "kwh": "kWh"
+    }
+  },
+  "detailCard": {
+    "headers": {
+      "energyDistribution": "能耗分布細項",
+      "priceDistribution": "電價分布細項"
+    },
+    "peakTypes": {
+      "peak": "尖峰",
+      "halfPeak": "半尖峰",
+      "offPeak": "離峰"
+    },
+    "total": "總合"
+  },
+  "dataTable": {
+    "headers": {
+      "energyTable": "能耗總表",
+      "priceTable": "電價總表"
+    },
+    "peakTypes": {
+      "peak": "尖峰",
+      "halfPeak": "半尖峰",
+      "offPeak": "離峰",
+      "total": "總合"
+    },
+    "noData": "沒有可用的數據"
+  },
+  "basicSettings": {
+    "title": "基本設定",
+    "co2Factor": "碳排係數:",
+    "contractCapacity": "契約容量 (kW):",
+    "defaultPricing": "全局預設電價標準:",
+    "saveButton": "保存基本設定"
+  },
+  "groupSettings": {
+    "title": "電表組設定",
+    "ungroupedMachines": "未分組機器",
+    "meterGroups": "電表組",
+    "noUngroupedMachines": "沒有未分組的機器",
+    "emptyGroup": "此分組為空",
+    "machineCount": "{{count}} 台",
+    "addGroup": "新增分組",
+    "deleteGroup": "刪除",
+    "saveButton": "儲存分組設定",
+    "newGroupPrompt": "輸入新分組名:",
+    "loadingText": "載入中...",
+    "errorText": "載入資料失敗，請稍後再試。",
+    "noSettingsFound": "找不到此公司的設定。",
+    "updateSuccess": "設定更新成功",
+    "updateError": "設定更新失敗，請重試"
+  },
+  "priceSettings": {
+    "title": "電價設定"
+  },
+  "charts": {
+    "fifteenMinuteDemand": {
+      "title": "每十五分鐘需量",
+      "demand": "需量",
+      "yAxisLabel": "需量 (kW)"
+    },
+    "cumulativeEnergyChart": {
+      "title": "累積能耗圖",
+      "dateTime": "日期時間",
+      "yAxisLabel": "累積 kWh",
+      "tooltipUnit": "kWh"
+    },
+    "dailyUsageChart": {
+      "title": "每日用電圖",
+      "yAxisLabel": "用電量 (kWh)",
+      "tooltip": {
+        "usage": "用電量"
+      },
+      "hourly": {
+        "hour": "時"
+      }
+    },
+    "energyTrendChart": {
+      "title": "能耗趨勢圖",
+      "dateTime": "日期時間",
+      "yAxisLabel": "kWh",
+      "tooltip": {
+        "usage": "用電量"
+      }
+    },
+    "intervalUsageChart": {
+      "title": "區間用電圖",
+      "time": "時間",
+      "yAxisLabel": "kWh",
+      "tooltip": {
+        "usage": "用電量",
+        "time": "時間"
+      }
+    },
+    "powerHeatmap": {
+      "title": "電力熱點圖",
+      "time": "時",
+      "date": "日期",
+      "consumption": "耗電",
+      "tooltip": {
+        "time": "時間",
+        "date": "日期",
+        "power": "耗電"
+      },
+      "unit": "千瓦/時"
+    }
+  },
+  "loading": "載入中..."
+}
