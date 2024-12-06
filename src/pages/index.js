@@ -855,7 +855,7 @@ const HomePage = () => {
   const fetchOptions = async () => {
     try {
       const response = await fetch(
-        `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+        `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_list`
       );
       if (!response.ok) throw new Error("Failed to fetch options");
       const data = await response.json();
@@ -972,7 +972,7 @@ const HomePage = () => {
   const fetchQuarterData = async (sn, startDate, endDate) => {
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
+    const url = `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=quarter`;
 
     try {
       const response = await fetch(url);

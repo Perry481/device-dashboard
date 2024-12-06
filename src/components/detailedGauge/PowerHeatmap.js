@@ -119,7 +119,7 @@ const PowerHeatmap = () => {
     try {
       const promises = expandedOptions.map(({ id }) =>
         fetch(
-          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
+          `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_statistics?sn=${id}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`
         ).then((response) => {
           if (!response.ok)
             throw new Error(`Failed to fetch data for meter ${id}`);
@@ -187,7 +187,7 @@ const PowerHeatmap = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+          `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_list`
         );
         if (!response.ok) throw new Error("Failed to fetch options");
         const data = await response.json();

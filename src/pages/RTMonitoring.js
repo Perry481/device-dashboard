@@ -153,7 +153,7 @@ const MonitorPage = () => {
     try {
       // Fetch meter data
       const meterResponse = await fetch(
-        `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+        `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_list`
       );
       const meterData = await meterResponse.json();
 

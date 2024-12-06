@@ -224,7 +224,7 @@ const EnergyCostAnalysis = () => {
       const [settingsResponse, optionsResponse] = await Promise.all([
         fetch(`/api/settings/${companyName}`),
         fetch(
-          `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_list`
+          `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_list`
         ),
       ]);
 
@@ -318,7 +318,7 @@ const EnergyCostAnalysis = () => {
     console.log("fetchData called");
     const formattedStartDate = formatDate(new Date(startDate));
     const formattedEndDate = formatDate(new Date(endDate));
-    const url = `https://iot.jtmes.net/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
+    const url = `http://61.216.62.8:8081/${companyName}/api/equipment/powermeter_statistics?sn=${sn}&start_date=${formattedStartDate}&end_date=${formattedEndDate}&summary_type=hour`;
 
     try {
       const response = await fetch(url);
