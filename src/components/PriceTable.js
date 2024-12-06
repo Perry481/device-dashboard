@@ -1,84 +1,147 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "../hooks/useTranslation";
+
+const TableBody = styled.tbody``;
+
 const TableWrapper = styled.div`
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 `;
 
 const Table = styled.table`
   width: 100%;
   min-width: 600px;
-  border-collapse: collapse;
-  margin: 20px 0;
-  font-size: 14px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.95rem;
 `;
 
 const TableHead = styled.thead`
-  background-color: #e9ecef;
+  background-color: #f8fafc;
 `;
 
 const TableHeader = styled.th`
-  padding: 12px;
-  border: 1px solid #dee2e6;
+  padding: 16px;
   text-align: center;
-  font-weight: bold;
-  color: #495057;
+  font-weight: 600;
+  color: #1a202c;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
-const TableBody = styled.tbody``;
-
 const TableRow = styled.tr`
-  &:nth-child(even) {
-    background-color: #f8f9fa;
+  &:hover td:not([rowspan]) {
+    // Only apply hover effect to cells that aren't rowspan
+    background-color: #f8fafc;
   }
 `;
 
 const TableCell = styled.td`
-  padding: 12px;
-  border: 1px solid #dee2e6;
+  padding: 16px;
   text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0; // Add right border for cell separation
+  color: #4a5568;
+  transition: background-color 0.2s;
+
+  &:last-child {
+    border-right: none; // Remove right border for last cell
+  }
+
+  // Special styling for period cells (with rowspan)
+  ${(props) =>
+    props.rowSpan &&
+    `
+    background-color: #f8fafc;
+    font-weight: 500;
+    color: #2d3748;
+    border-right: 2px solid #e2e8f0;  // Stronger border for period separation
+    &:hover {
+      background-color: #f8fafc;  // Keep the same background on hover
+    }
+  `}
 `;
 
 const HighlightedCell = styled(TableCell)`
-  background-color: ${(props) => props.color || "transparent"};
-  color: ${(props) => (props.color ? "#000" : "#495057")};
+  background-color: ${(props) =>
+    props.color === "#ee6666"
+      ? "rgba(238, 102, 102, 0.1)"
+      : props.color === "#fac858"
+      ? "rgba(250, 200, 88, 0.1)"
+      : props.color === "#91CC75"
+      ? "rgba(145, 204, 117, 0.1)"
+      : "transparent"};
+  color: ${(props) =>
+    props.color === "#ee6666"
+      ? "#e53e3e"
+      : props.color === "#fac858"
+      ? "#d97706"
+      : props.color === "#91CC75"
+      ? "#3ba272"
+      : "#4a5568"};
+  font-weight: ${(props) => (props.color ? "500" : "normal")};
+  border-right: 1px solid #e2e8f0; // Consistent with TableCell
+
+  &:last-child {
+    border-right: none;
+  }
 `;
 
 const TimeRangeCell = styled(TableCell)`
   text-align: left;
   vertical-align: top;
-  padding: 8px;
+  padding: 16px;
+  min-width: 180px;
+  border-right: 2px solid #e2e8f0; // Stronger border for better separation
 `;
 
 const PeakStateLabel = styled.div`
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 8px;
 `;
 
 const TimeRangeText = styled.div`
-  font-size: 12px;
-  margin-bottom: 2px;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+  color: #4a5568;
+  line-height: 1.5;
 `;
 
 const Button = styled.button`
-  padding: 10px 20px;
-  background-color: #007bff;
+  padding: 8px 16px;
+  background-color: #3ba272;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: #0056b3;
+    background-color: #2d8659;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #3ba272;
   }
 `;
 
@@ -86,48 +149,82 @@ const HeaderContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const Title = styled.h2`
   margin: 0;
   font-size: 1.5rem;
-  color: #333;
+  color: #2d3748;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 1em;
+    background-color: #3ba272;
+    border-radius: 2px;
+  }
 `;
 
 const SelectWrapper = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 `;
 
 const Select = styled.select`
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #2d3748;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3ba272;
+    box-shadow: 0 0 0 1px #3ba272;
+  }
+
+  &:disabled {
+    background-color: #f8fafc;
+    cursor: not-allowed;
+  }
 `;
 
-const TimeSelect = styled.select`
-  padding: 5px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+const TimeSelect = styled(Select)`
+  padding: 6px 10px;
+  font-size: 0.9rem;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 5px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3ba272;
+    box-shadow: 0 0 0 1px #3ba272;
+  }
 `;
 
 const StandardDisplay = styled.div`
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2d3748;
 `;
 const PriceTable = ({
   onPricesUpdate,

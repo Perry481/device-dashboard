@@ -6,7 +6,7 @@ import { CompanyContext } from "../contexts/CompanyContext";
 import { useTranslation } from "../hooks/useTranslation";
 const Card = styled.div`
   border: 1px solid #484848;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 20px;
   margin: 20px 0;
   width: 100%;
@@ -18,9 +18,24 @@ const Card = styled.div`
 `;
 
 const CardHeader = styled.div`
-  font-weight: bold;
+  position: relative;
+  padding-bottom: 10px;
   margin-bottom: 10px;
+  font-weight: bold;
+  color: #2d3748;
   text-align: center;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: #3ba272;
+    border-radius: 2px;
+  }
 `;
 
 const Container = styled.div`
@@ -54,11 +69,15 @@ const SendButton = styled.button`
     background-color: #3a3a3a;
   }
 `;
-
 const customStyles = {
-  control: (provided) => ({
+  control: (provided, state) => ({
     ...provided,
     maxHeight: "100px",
+    borderColor: state.isFocused ? "#3ba272" : "#e2e8f0",
+    boxShadow: state.isFocused ? "0 0 0 1px #3ba272" : null,
+    "&:hover": {
+      borderColor: "#3ba272",
+    },
   }),
   valueContainer: (provided, state) => ({
     ...provided,
@@ -91,8 +110,33 @@ const customStyles = {
       color: "#F4F6F9",
     },
   }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? "#3ba272"
+      : state.isFocused
+      ? "rgba(59, 162, 114, 0.1)"
+      : "white",
+    color: state.isSelected ? "white" : "#484848",
+    "&:active": {
+      backgroundColor: "#3ba272",
+    },
+  }),
+  menu: (provided) => ({
+    ...provided,
+    zIndex: 2,
+  }),
+  indicatorSeparator: () => ({
+    display: "none",
+  }),
+  dropdownIndicator: (provided, state) => ({
+    ...provided,
+    color: state.isFocused ? "#3ba272" : "#718096",
+    "&:hover": {
+      color: "#3ba272",
+    },
+  }),
 };
-
 const SelectionAndSend = ({
   onSend,
   singleSelection = false,

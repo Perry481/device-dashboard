@@ -3,11 +3,25 @@ import styled from "styled-components";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { FaChevronRight, FaPlus, FaTimes, FaBars } from "react-icons/fa";
 import { useTranslation } from "../hooks/useTranslation";
+const colors = {
+  primary: {
+    main: "#3ba272",
+    light: "rgba(59, 162, 114, 0.1)",
+    border: "#e2e8f0",
+    text: "#2d3748",
+  },
+  danger: {
+    main: "#ee6666",
+    hover: "#e74c4c",
+  },
+};
+
 const SplitContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 600px;
   overflow: hidden;
+  gap: 20px;
 `;
 
 const ColumnsContainer = styled.div`
@@ -20,13 +34,14 @@ const LeftColumn = styled.div`
   flex: 0 0 auto;
   width: 300px;
   margin: 0 10px;
-  padding: 10px;
+  padding: 16px;
   background-color: #fff;
-  border-radius: 4px;
-  border: 1px solid #ddd;
+  border-radius: 8px;
+  border: 1px solid ${colors.primary.border};
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   @media (max-width: 768px) {
     width: 100px;
@@ -35,19 +50,18 @@ const LeftColumn = styled.div`
     width: 80px;
   }
 `;
-
 const RightColumn = styled.div`
   flex: 1;
   margin: 0 10px;
-  padding: 10px;
+  padding: 16px;
   background-color: #fff;
-  border-radius: 4px;
-  border: 1px solid #ddd;
+  border-radius: 8px;
+  border: 1px solid ${colors.primary.border};
   display: flex;
   flex-direction: column;
   overflow-x: auto;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 const DraggableContent = styled.div`
@@ -80,13 +94,25 @@ const Column = styled.div`
 `;
 
 const ColumnHeader = styled.h3`
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ddd;
+  position: relative;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   font-size: 1.2rem;
+  color: ${colors.primary.text};
+  font-weight: 600;
 
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background-color: ${colors.primary.main};
+    border-radius: 2px;
+  }
   @media (max-width: 768px) {
-    font-size: 1rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -117,32 +143,39 @@ const EmptyState = styled.div`
 const MachineItem = styled.div`
   padding: 10px;
   margin-bottom: 8px;
-  background-color: ${(props) => (props.isDragging ? "#e0e0e0" : "#f8f9fa")};
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  background-color: ${(props) =>
+    props.isDragging ? colors.primary.light : "#fff"};
+  border: 1px solid ${colors.primary.border};
+  border-radius: 6px;
   user-select: none;
-
+  &:hover {
+    background-color: ${colors.primary.light};
+    transform: translateY(-1px);
+  }
   @media (max-width: 768px) {
     padding: 8px;
     font-size: 12px;
   }
 `;
-
 const GroupContainer = styled.div`
-  margin-bottom: 20px;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
+  margin-bottom: 16px;
+  border: 1px solid ${colors.primary.border};
+  border-radius: 8px;
   overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
 `;
 
 const GroupHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-
+  padding: 12px 16px;
+  background-color: ${colors.primary.light};
+  border-bottom: 1px solid ${colors.primary.border};
   @media (max-width: 768px) {
     padding: 8px 10px;
   }
@@ -162,11 +195,11 @@ const GroupNameWrapper = styled.div`
 
 const GroupName = styled.input`
   padding: 5px 10px;
-  border: 1px solid #ced4da;
+  border: 1px solid ${colors.primary.border};
   border-radius: 4px;
-  background-color: #f1f3f5;
-  font-size: 16px;
-  font-weight: bold;
+  background-color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -174,9 +207,8 @@ const GroupName = styled.input`
   text-overflow: ellipsis;
   &:focus {
     outline: none;
-    background-color: #fff;
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: ${colors.primary.main};
+    box-shadow: 0 0 0 2px ${colors.primary.light};
   }
 
   @media (max-width: 768px) {
@@ -206,37 +238,36 @@ const MachineCount = styled.span`
 `;
 
 const DeleteButton = styled.button`
-  background-color: #dc3545;
+  background-color: ${colors.danger.main};
   color: white;
   border: none;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  white-space: nowrap;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
 
   &:hover {
-    background-color: #c82333;
+    background-color: ${colors.danger.hover};
+    transform: translateY(-1px);
   }
 
   @media (max-width: 768px) {
-    padding: 4px;
-    width: 24px;
-    height: 24px;
-    border-radius: 12px;
-    font-size: 12px;
+    padding: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    justify-content: center;
   }
 `;
-
 const ToggleIcon = styled.span`
-  margin-right: 15px;
-  font-size: 20px;
-  color: #007bff;
+  margin-right: 12px;
+  font-size: 16px;
+  color: ${colors.primary.main};
   transition: transform 0.2s;
   transform: ${(props) => (props.isExpanded ? "rotate(90deg)" : "rotate(0)")};
-  flex-shrink: 0;
 
   @media (max-width: 768px) {
     margin-right: 8px;
@@ -260,13 +291,14 @@ const GroupContent = styled.div`
 
 const AddGroupButton = styled.button`
   padding: 10px 20px;
-  background-color: #007bff;
+  background-color: ${colors.primary.main};
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
   margin-top: 10px;
   align-self: center;
   display: flex;
@@ -274,7 +306,8 @@ const AddGroupButton = styled.button`
   gap: 8px;
 
   &:hover {
-    background-color: #0056b3;
+    background-color: #2d8659;
+    transform: translateY(-1px);
   }
 
   @media (max-width: 768px) {
@@ -292,19 +325,24 @@ const AddGroupButton = styled.button`
 `;
 
 const SaveButton = styled.button`
-  padding: 10px 20px;
-  background-color: #28a745;
+  padding: 10px 24px;
+  background-color: ${colors.primary.main};
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
-  margin-top: 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
   align-self: flex-end;
 
   &:hover {
-    background-color: #218838;
+    background-color: #2d8659;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 
   @media (max-width: 768px) {

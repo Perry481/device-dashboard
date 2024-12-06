@@ -5,7 +5,15 @@ import { FaQuestionCircle, FaGlobe } from "react-icons/fa";
 import InstructionModal from "./InstructionModal";
 import { useTranslation } from "../hooks/useTranslation";
 import { useRouter } from "next/router";
-
+const colors = {
+  primary: {
+    main: "#3ba272",
+    light: "rgba(59, 162, 114, 0.1)",
+    hover: "#2d8659",
+    text: "#2d3748",
+    border: "#e2e8f0",
+  },
+};
 const Nav = styled.nav`
   background-color: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -41,10 +49,10 @@ const NavContainer = styled.div`
 
 const NavbarBrand = styled.a`
   font-weight: bold;
-  color: #333;
+  color: ${colors.primary.text};
   padding: 10px 0;
   &:hover {
-    color: #007bff;
+    color: ${colors.primary.main};
     text-decoration: none;
   }
 `;
@@ -62,25 +70,8 @@ const NavbarNav = styled.ul`
     width: 100%;
   }
 `;
-
-const NavItem = styled.li`
-  margin: 5px;
-  width: auto;
-  display: flex;
-  align-items: stretch;
-
-  @media (max-width: 1200px) {
-    width: 100%;
-    margin: 2px 0;
-  }
-
-  &.dropdown {
-    position: relative;
-  }
-`;
-
 const NavLink = styled.a`
-  color: #333;
+  color: ${colors.primary.text};
   padding: 10px 15px;
   border-radius: 4px;
   transition: all 0.3s ease;
@@ -92,26 +83,26 @@ const NavLink = styled.a`
   min-height: 48px;
   line-height: 1.2;
   width: 100%;
+  cursor: pointer; // Add cursor pointer
+
+  &:hover {
+    background-color: ${colors.primary.light};
+    color: ${colors.primary.main};
+  }
+
+  &.active {
+    color: ${colors.primary.main};
+  }
 
   @media (max-width: 1200px) {
     justify-content: flex-start;
     padding: 12px 15px;
   }
-
-  &:hover {
-    background-color: #f8f9fa;
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  &.active {
-    color: #007bff;
-  }
 `;
 
 const DropdownToggle = styled(NavLink)`
   &.active {
-    color: #007bff;
+    color: ${colors.primary.main};
   }
   min-width: 120px;
 
@@ -127,13 +118,17 @@ const DropdownMenu = styled.ul`
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 0.5rem 0;
-  min-width: 200px;
   list-style: none;
+  min-width: 200px;
+  position: absolute; /* Ensure dropdown is positioned relative to parent */
+  top: 100%; /* Place it directly below the toggle */
+  left: 0; /* Align to the left of the parent container */
+  z-index: 1050; /* Ensure it's above other elements */
 
   @media (max-width: 1200px) {
-    position: static;
-    box-shadow: none;
-    padding-left: 20px;
+    position: absolute; /* Maintain positioning for small screens */
+    top: 100%; /* Still directly below */
+    left: 0;
   }
 
   li {
@@ -141,8 +136,24 @@ const DropdownMenu = styled.ul`
   }
 `;
 
+const NavItem = styled.li`
+  margin: 5px;
+  width: auto;
+  display: flex;
+  align-items: stretch;
+  position: relative; /* Required to position the dropdown relative to this item */
+
+  @media (max-width: 1200px) {
+    width: auto;
+  }
+
+  &.dropdown {
+    position: relative; /* Necessary for dropdown positioning */
+  }
+`;
+
 const DropdownItem = styled.a`
-  color: #333;
+  color: ${colors.primary.text};
   padding: 0.75rem 1rem;
   display: block;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -152,8 +163,8 @@ const DropdownItem = styled.a`
   text-align: left;
 
   &:hover {
-    background-color: #f8f9fa;
-    color: #333;
+    background-color: ${colors.primary.light};
+    color: ${colors.primary.text};
     text-decoration: none;
   }
 `;
@@ -172,7 +183,7 @@ const ActionButtons = styled.div`
 const QuestionButton = styled.button`
   background: none;
   border: none;
-  color: #007bff;
+  color: ${colors.primary.main};
   font-size: 1.2rem;
   cursor: pointer;
   padding: 5px;
@@ -181,7 +192,7 @@ const QuestionButton = styled.button`
   justify-content: center;
 
   &:hover {
-    color: #0056b3;
+    color: ${colors.primary.hover};
   }
 `;
 
@@ -194,8 +205,8 @@ const LanguageButton = styled(QuestionButton)`
 const HamburgerButton = styled.button`
   display: none;
   padding: 10px;
-  background: #f1f1f1; /* Light contrasting background */
-  border: 1px solid #ccc;
+  background: ${colors.primary.light};
+  border: 1px solid ${colors.primary.border};
   border-radius: 4px;
   cursor: pointer;
   margin-left: 10px;
@@ -207,10 +218,9 @@ const HamburgerButton = styled.button`
   }
 
   &:hover {
-    background-color: #e0e0e0; /* Slightly darker hover effect */
-    border-color: #bbb;
+    background-color: ${colors.primary.light};
+    border-color: ${colors.primary.main};
   }
-
   .navbar-toggler-icon {
     display: inline-block;
     width: 1.5em;
@@ -246,11 +256,17 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
 
   const toggleLanguage = () => {
     const newLocale = locale === "en" ? "zh-TW" : "en";
-    router.push(router.pathname, router.asPath, { locale: newLocale });
+
+    // Preserve query parameters when switching languages
+    const { pathname, query, asPath } = router;
+    router.push({ pathname, query }, asPath, { locale: newLocale });
   };
 
   const handleLinkClick = (page) => {
     onPageChange(page);
+    setIsNavOpen(false);
+  };
+  const handleDropdownItemClick = () => {
     setIsNavOpen(false);
   };
 
@@ -340,7 +356,10 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                     href="/electricMeterDetails?view=fifteenMinuteDemand"
                     legacyBehavior
                   >
-                    <DropdownItem className="dropdown-item">
+                    <DropdownItem
+                      className="dropdown-item"
+                      onClick={handleDropdownItemClick}
+                    >
                       {t("navigation.meterDetails.fifteenMinuteDemand")}
                     </DropdownItem>
                   </Link>
@@ -350,7 +369,10 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                     href="/electricMeterDetails?view=dailyUsage"
                     legacyBehavior
                   >
-                    <DropdownItem className="dropdown-item">
+                    <DropdownItem
+                      className="dropdown-item"
+                      onClick={handleDropdownItemClick}
+                    >
                       {t("navigation.meterDetails.dailyUsage")}
                     </DropdownItem>
                   </Link>
@@ -360,7 +382,10 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                     href="/electricMeterDetails?view=intervalUsage"
                     legacyBehavior
                   >
-                    <DropdownItem className="dropdown-item">
+                    <DropdownItem
+                      className="dropdown-item"
+                      onClick={handleDropdownItemClick}
+                    >
                       {t("navigation.meterDetails.intervalUsage")}
                     </DropdownItem>
                   </Link>
@@ -370,7 +395,10 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                     href="/electricMeterDetails?view=energyTrend"
                     legacyBehavior
                   >
-                    <DropdownItem className="dropdown-item">
+                    <DropdownItem
+                      className="dropdown-item"
+                      onClick={handleDropdownItemClick}
+                    >
                       {t("navigation.meterDetails.energyTrend")}
                     </DropdownItem>
                   </Link>
@@ -380,7 +408,10 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                     href="/electricMeterDetails?view=cumulativeEnergy"
                     legacyBehavior
                   >
-                    <DropdownItem className="dropdown-item">
+                    <DropdownItem
+                      className="dropdown-item"
+                      onClick={handleDropdownItemClick}
+                    >
                       {t("navigation.meterDetails.cumulativeEnergy")}
                     </DropdownItem>
                   </Link>
@@ -390,7 +421,10 @@ const TopNavigation = ({ onPageChange, selectedPage }) => {
                     href="/electricMeterDetails?view=powerHeatmap"
                     legacyBehavior
                   >
-                    <DropdownItem className="dropdown-item">
+                    <DropdownItem
+                      className="dropdown-item"
+                      onClick={handleDropdownItemClick}
+                    >
                       {t("navigation.meterDetails.powerHeatmap")}
                     </DropdownItem>
                   </Link>

@@ -2,57 +2,141 @@ import React, { useEffect } from "react";
 import styled from "styled-components";
 import { useTranslation } from "../hooks/useTranslation";
 
+const peakTypes = ["peak", "halfPeak", "offPeak", "total"];
+
 const TableWrapper = styled.div`
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
 `;
 
 const StyledTable = styled.table`
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 600px;
 
   th,
   td {
-    border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px 16px;
     text-align: center;
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.95rem;
   }
 
   th {
-    background-color: #f2f2f2;
-    font-weight: bold;
+    background-color: #f8fafc;
+    color: #1a202c;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+
+    &:first-child {
+      border-top-left-radius: 8px;
+    }
+
+    &:last-child {
+      border-top-right-radius: 8px;
+    }
   }
 
-  tr:nth-child(even) {
-    background-color: #f9f9f9;
+  tr {
+    transition: all 0.2s ease;
+
+    &:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    &:hover {
+      background-color: #f1f5f9;
+    }
+
+    // Style for peak rows
+    &:nth-child(1) td {
+      color: #e53e3e; // Red for peak
+    }
+
+    // Style for half-peak rows
+    &:nth-child(2) td {
+      color: #d97706; // Orange for half-peak
+    }
+
+    // Style for off-peak rows
+    &:nth-child(3) td {
+      color: #3ba272; // Theme green for off-peak
+    }
+
+    // Style for total rows
+    &:nth-child(4) td {
+      color: #1a202c;
+      font-weight: 600;
+      border-top: 2px solid #e2e8f0;
+    }
+  }
+
+  td {
+    color: #4a5568;
   }
 `;
 
 const Card = styled.div`
   margin: 20px 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  background: white;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
 `;
 
 const CardHeader = styled.div`
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(to right, #ffffff, #f8f9fa);
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const CardTitle = styled.h3`
   margin: 0;
-  color: #333;
+  color: #2d3748;
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 1em;
+    background-color: #3ba272;
+    border-radius: 2px;
+  }
 `;
 
 const CardBody = styled.div`
-  padding: 15px;
+  padding: 20px;
+  background-color: white;
 `;
 
-const peakTypes = ["peak", "halfPeak", "offPeak", "total"];
+// Optional: Add loading state styles
+const LoadingState = styled.div`
+  padding: 2rem;
+  text-align: center;
+  color: #718096;
+`;
 
 const DataTableComponent = ({
   aggregatedData,

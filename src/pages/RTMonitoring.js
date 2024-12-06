@@ -12,6 +12,7 @@ import {
   FaBars,
   FaList,
   FaInfoCircle,
+  FaSearch,
 } from "react-icons/fa";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useTranslation } from "../hooks/useTranslation";
@@ -524,13 +525,16 @@ const MonitorPage = () => {
         <RTMTopNavigation>
           <RTMTopNavigationContent>
             <RTMSearchContainer className="search-container">
-              <RTMSearchInput
-                type="text"
-                placeholder={t("rtMonitoring.search.placeholder")}
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-              />
+              <RTMSearchInputWrapper>
+                <SearchIcon />
+                <RTMSearchInput
+                  type="text"
+                  placeholder={t("rtMonitoring.search.placeholder")}
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </RTMSearchInputWrapper>
               {searchResults.length > 0 && (
                 <RTMSearchResults>
                   {searchResults.map((result, index) => (
@@ -585,15 +589,10 @@ const MonitorPage = () => {
         </div>
         <RTMPaginationContainer>
           <RTMPaginationContent>
-            <RTMPaginationButton
-              className="btn btn-primary"
-              onClick={handlePrevPage}
-              disabled={page === 1}
-            >
+            <RTMPaginationButton onClick={handlePrevPage} disabled={page === 1}>
               Previous
             </RTMPaginationButton>
             <RTMPaginationButton
-              className="btn btn-primary"
               onClick={handleNextPage}
               disabled={
                 page === Math.ceil(filteredMeters.length / metersPerPage)
@@ -682,181 +681,256 @@ const MonitorPage = () => {
 };
 
 export default MonitorPage;
+
 const ComponentGlobalStyle = createGlobalStyle`
   html {
     scroll-behavior: smooth;
   }
 
   .highlighted-card {
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.1) !important;
-    border: 1px solid red !important;
-    background-color: #fff5f5 !important;
-    transform: scale(1.02);
-    transition: all 0.3s ease-in-out;
+    box-shadow: 0 8px 16px rgba(59, 162, 114, 0.1) !important;
+    border: 2px solid #3ba272 !important;
+    background-color: white !important;
+    transform: translateY(-2px) scale(1.01);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 5;
   }
-;
-
 `;
 
 const RTMTopNavigation = styled.div`
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  padding: 10px 0;
+  background: linear-gradient(to right, #ffffff, #f8f9fa);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 1rem 0;
+  box-shadow: 0 4px 12px -5px rgba(0, 0, 0, 0.05); // Softer shadow
+  margin-bottom: 1.5rem; // Add space between header and content
 `;
 
 const RTMTopNavigationContent = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 2rem;
+  gap: 1.5rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    align-items: stretch;
+    padding: 0 1rem;
+    gap: 1rem;
   }
 `;
 
 const RTMSearchContainer = styled.div`
   position: relative;
-  width: 300px;
   flex: 1;
-  min-width: 200px;
+  min-width: 280px;
+  max-width: 400px;
+  height: 38px; // Match Select's height
 
   @media (max-width: 768px) {
     width: 100%;
-    margin-bottom: 10px;
+    max-width: none;
+  }
+`;
+
+const RTMSearchInputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  height: 38px;
+`;
+const SearchIcon = styled(FaSearch)`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  font-size: 14px;
+  pointer-events: none;
+`;
+
+const RTMSearchInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 0.5rem 0.75rem 2.75rem; // Increased left padding to accommodate icon
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background-color: white;
+  height: 38px;
+
+  &:focus {
+    outline: none;
+    border-color: #3ba272;
+    box-shadow: 0 0 0 1px #3ba272;
+  }
+
+  &::placeholder {
+    color: #a0aec0;
+  }
+`;
+
+const SearchIconWrapper = styled.div`
+  position: absolute;
+  left: 1rem;
+  color: #a0aec0;
+  pointer-events: none;
+`;
+
+const RTMSearchResults = styled.ul`
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem;
+  margin: 0;
+  list-style: none;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+`;
+
+const RTMSearchResultItem = styled.li`
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f7fafc;
+    color: #3ba272;
   }
 `;
 
 const RTMGroupSelect = styled.div`
-  width: 200px;
+  width: 250px;
   margin-left: 20px;
-  flex: 1;
-  min-width: 200px;
 
   @media (max-width: 768px) {
     width: 100%;
     margin-left: 0;
-    margin-bottom: 10px;
   }
 `;
 
 const RTMControlsContainer = styled.div`
   display: flex;
   align-items: center;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: space-between;
-  }
+  gap: 1rem;
 `;
 
 const RTMCountdownText = styled.span`
-  margin-right: 10px;
+  color: #4a5568;
+  font-size: 0.95rem;
 `;
 
 const RTMSettingsButton = styled.button`
   background: none;
   border: none;
-  color: #007bff;
+  color: #3ba272;
   cursor: pointer;
-  margin-left: 10px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
   &:hover {
-    color: #0056b3;
+    background-color: rgba(59, 162, 114, 0.1);
+    transform: scale(1.1);
   }
 `;
 
-const customSelectStyles = {
-  control: (provided) => ({
-    ...provided,
-    minHeight: "38px",
-  }),
-  menu: (provided) => ({
-    ...provided,
-    zIndex: 9999,
-  }),
-};
-
+// Card Components
 const RTMCardContainer = styled.div`
   position: relative;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const RTMCard = styled.div`
-  position: relative;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+
+  &:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
 `;
 
 const RTMCardBody = styled.div`
-  position: relative;
+  padding: 1.5rem;
   display: flex;
   flex-direction: row;
-  height: 100%;
 `;
 
 const RTMInfoColumn = styled.div`
-  position: relative;
   width: 50%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  padding: 0 1rem;
 `;
 
 const RTMSummaryColumn = styled.div`
-  position: relative;
   width: 50%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-`;
-
-const RTMSummaryText = styled.p`
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-
-  /* Extra small devices (phones, less than 576px) */
-  font-size: 0.75rem;
-
-  /* Small devices (landscape phones, 576px and up) */
-  @media (min-width: 576px) {
-    font-size: 0.85rem;
-  }
-
-  /* Medium devices (tablets, 768px and up) */
-  @media (min-width: 768px) {
-    font-size: 0.9rem;
-  }
-
-  /* Large devices (desktops, 992px and up) */
-  @media (min-width: 992px) {
-    font-size: 1rem;
-  }
+  padding: 0 1rem;
+  border-left: 1px solid #e2e8f0;
 `;
 
 const RTMTitle = styled.h4`
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
   text-align: center;
 `;
 
 const RTMValue = styled.h2`
+  color: #3ba272;
+  font-size: 1.75rem;
+  font-weight: 700;
   margin-bottom: 0;
 `;
 
+const RTMSummaryText = styled.p`
+  margin: 0;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #4a5568;
+  border-bottom: 1px dashed #e2e8f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+// Details Components
 const RTMDetailsButton = styled.button`
   position: absolute;
-  bottom: 10px;
+  bottom: 1rem;
   left: 50%;
   transform: translateX(-50%);
   background: none;
   border: none;
-  color: #007bff;
+  color: #3ba272;
   cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+
   &:hover {
-    color: #0056b3;
+    background-color: rgba(59, 162, 114, 0.1);
+    transform: translateX(-50%) scale(1.1);
   }
 `;
 
@@ -864,81 +938,219 @@ const RTMOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
 `;
 
 const RTMDetailsPopup = styled.div`
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 400px;
-  max-width: 90%;
-  max-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  border-radius: 16px;
+  width: 95%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 `;
 
 const RTMDetailsHeader = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background-color: #f1f3f5;
-  border-bottom: 1px solid #dee2e6;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const RTMDetailsTitle = styled.h3`
   margin: 0;
-  font-size: 1.2rem;
+  color: #2d3748;
+  font-size: 1.25rem;
+  font-weight: 600;
 `;
 
 const RTMCloseButton = styled.button`
   background: none;
   border: none;
-  color: #6c757d;
+  color: #64748b;
   cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: #343a40;
+    background-color: #f1f5f9;
+    color: #334155;
   }
 `;
 
 const RTMDetailsContent = styled.div`
-  padding: 20px;
+  padding: 1.5rem;
   overflow-y: auto;
 `;
 
 const RTMDetailItem = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
 
   &:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
     border-bottom: none;
   }
 `;
 
 const RTMDetailLabel = styled.span`
-  font-weight: bold;
+  font-weight: 500;
+  color: #4a5568;
 `;
 
 const RTMDetailValue = styled.span`
-  text-align: right;
+  color: #2d3748;
 `;
 
+// Settings Popup Components
+const RTMPopupContainer = styled.div`
+  background: white;
+  border-radius: 16px;
+  width: 95%;
+  max-width: 500px;
+  height: 90vh;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+`;
+
+const RTMPanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const RTMHeaderTitle = styled.h3`
+  margin: 0;
+  color: #2d3748;
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const RTMSaveButton = styled.button`
+  background-color: #3ba272;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #2d8659;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+const RTMExitButton = styled.button`
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  margin-left: 1rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: #334155;
+  }
+`;
+
+const RTMContentArea = styled.div`
+  flex-grow: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+`;
+
+const RTMDroppableArea = styled.div`
+  min-height: 100px;
+`;
+
+const RTMDraggableItem = styled.div`
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f7fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const RTMDragHandle = styled.div`
+  cursor: grab;
+  margin-right: 1rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+`;
+
+const customSelectStyles = {
+  control: (provided, state) => ({
+    ...provided,
+    minHeight: "38px",
+    borderColor: state.isFocused ? "#3ba272" : "#e2e8f0",
+    boxShadow: state.isFocused ? "0 0 0 1px #3ba272" : "none", // Match input's focus outline
+    "&:hover": {
+      borderColor: "#3ba272",
+    },
+  }),
+  menu: (provided) => ({
+    ...provided,
+    zIndex: 9999,
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? "#3ba272"
+      : state.isFocused
+      ? "rgba(59, 162, 114, 0.1)"
+      : "white",
+    color: state.isSelected ? "white" : "#2d3748",
+    "&:hover": {
+      backgroundColor: state.isSelected ? "#3ba272" : "rgba(59, 162, 114, 0.1)",
+    },
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: "#2d3748",
+  }),
+};
 const RTMPaginationContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -954,6 +1166,49 @@ const RTMPaginationContent = styled.div`
 
 const RTMPaginationButton = styled.button`
   margin-right: 0.5rem;
+  background-color: #3ba272;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  /* Remove default browser focus styles */
+  &:focus {
+    outline: none;
+  }
+
+  /* Remove default active/visited state colors */
+  &:active,
+  &:visited {
+    background-color: #3ba272;
+    color: white;
+  }
+
+  &:hover {
+    background-color: #2d8659;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
+    background-color: #2d8659;
+  }
+
+  &:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+
+    &:hover,
+    &:active,
+    &:focus {
+      background-color: #a0aec0;
+      transform: none;
+    }
+  }
 `;
 
 const RTMPopupContent = styled.div`
@@ -993,37 +1248,6 @@ const RTMHeaderRow = styled.div`
   }
 `;
 
-const RTMSearchInput = styled.input`
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-`;
-
-const RTMSearchResults = styled.ul`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: white;
-  border: 1px solid #ced4da;
-  border-top: none;
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 1000;
-`;
-
-const RTMSearchResultItem = styled.li`
-  padding: 8px;
-  cursor: pointer;
-  &:hover {
-    background-color: #f1f3f5;
-  }
-`;
-
 const RTMPopupOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -1035,112 +1259,4 @@ const RTMPopupOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
-`;
-
-const RTMDroppableArea = styled.div`
-  min-height: 100px;
-`;
-
-const RTMDraggableItem = styled.div`
-  padding: 10px 15px;
-  margin-bottom: 8px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  transition: background-color 0.2s;
-  &:hover {
-    background-color: #e9ecef;
-  }
-`;
-
-const RTMDragHandle = styled.div`
-  cursor: grab;
-  margin-right: 15px;
-  color: #6c757d;
-`;
-
-const RTMPopupContainer = styled.div`
-  width: 400px;
-  height: 500px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-`;
-
-const RTMPanelHeader = styled.div`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  padding: 12px 16px; // Reduced padding
-  background-color: #f1f3f5;
-  border-bottom: 1px solid #dee2e6;
-`;
-
-const RTMHeaderTitle = styled.h3`
-  margin: 0;
-  font-size: 1rem; // Reduced font size
-  display: flex;
-  align-items: center;
-  gap: 8px; // Reduced gap
-  color: #495057; // Darker text color
-  font-weight: 400;
-  flex-grow: 1;
-  svg {
-    font-size: 0.9rem; // Smaller icon
-  }
-`;
-const RTMSaveButton = styled.button`
-  padding: 6px 12px; // Reduced padding
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.875rem; // Smaller font
-  font-weight: 500;
-  margin: 0 8px; // Added margin
-
-  &:hover {
-    background-color: #218838;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-`;
-
-const RTMExitButton = styled.button`
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: #343a40;
-    background-color: rgba(108, 117, 125, 0.1);
-  }
-
-  svg {
-    font-size: 0.9rem; // Smaller icon
-  }
-`;
-
-const RTMContentArea = styled.div`
-  flex-grow: 1;
-  padding: 20px;
-  overflow-y: auto;
 `;

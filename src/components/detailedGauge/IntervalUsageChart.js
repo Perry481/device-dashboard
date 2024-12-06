@@ -83,10 +83,11 @@ const IntervalUsageChart = () => {
     setIsLoading(true);
     if (chartInstanceRef.current) {
       chartInstanceRef.current.showLoading({
-        text: t("loading"),
-        maskColor: "rgba(255, 255, 255, 1)",
+        text: "Loading...",
+        color: "#3ba272",
         textColor: "#000",
-        zlevel: 10,
+        maskColor: "rgba(255, 255, 255)",
+        zlevel: 0,
       });
     }
 
@@ -208,10 +209,11 @@ const IntervalUsageChart = () => {
 
       if (isLoading) {
         chart.showLoading({
-          text: t("loading"),
-          maskColor: "rgba(255, 255, 255, 1)",
+          text: "Loading...",
+          color: "#3ba272",
           textColor: "#000",
-          zlevel: 10,
+          maskColor: "rgba(255, 255, 255)",
+          zlevel: 0,
         });
         return chart;
       }

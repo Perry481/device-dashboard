@@ -436,6 +436,12 @@ const HomePage = () => {
     console.log("machineGroups:", machineGroups);
 
     if (pieChartRef.current && Object.keys(settingsGroupedData).length > 0) {
+      // Clear any existing chart instance
+      const existingChart = echarts.getInstanceByDom(pieChartRef.current);
+      if (existingChart) {
+        existingChart.dispose();
+      }
+
       const pieChart = echarts.init(pieChartRef.current);
 
       if (isLoading || isSwitchingGroup) {
@@ -457,7 +463,6 @@ const HomePage = () => {
 
       let pieData;
       if (selectedGroup === "all") {
-        // For "all" selection, show data for each group
         pieData = Object.entries(settingsGroupedData).map(
           ([groupName, monthlyData]) => {
             const currentMonthData = monthlyData[currentMonth];
@@ -473,7 +478,6 @@ const HomePage = () => {
           }
         );
       } else {
-        // For a specific group, use the settingsGroupedData
         const groupData = settingsGroupedData[selectedGroup];
         if (groupData && groupData[currentMonth]) {
           const selectedGroupMachines =
@@ -507,7 +511,9 @@ const HomePage = () => {
           textStyle: {
             color: "#3ba272",
             fontSize: 18,
-            fontWeight: "300",
+            fontWeight: 600,
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
           },
         },
         tooltip: {
@@ -519,6 +525,7 @@ const HomePage = () => {
             name: t("dashboard.charts.usageDistribution"),
             type: "pie",
             radius: "50%",
+            center: ["50%", "55%"],
             data: pieData,
             emphasis: {
               itemStyle: {
@@ -532,6 +539,13 @@ const HomePage = () => {
       };
 
       pieChart.setOption(pieOptions);
+
+      // Add resize event listener
+      const handleResize = () => {
+        pieChart.resize();
+      };
+      window.addEventListener("resize", handleResize);
+
       return pieChart;
     } else {
       console.log("Conditions not met for updating pie chart");
@@ -610,7 +624,9 @@ const HomePage = () => {
           textStyle: {
             color: "#3ba272",
             fontSize: 18,
-            fontWeight: "300",
+            fontWeight: 600,
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
           },
         },
         tooltip: {
@@ -718,7 +734,9 @@ const HomePage = () => {
           textStyle: {
             color: "#3ba272",
             fontSize: 18,
-            fontWeight: "300",
+            fontWeight: 600,
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
           },
         },
         tooltip: {
@@ -1143,7 +1161,8 @@ const HomePage = () => {
           />
         </div>
       </div>
-      {/* Top 50% section (charts) */}
+
+      {/* Top charts section */}
       <div className="row flex-grow-1" style={{ minHeight: "50%" }}>
         <div className="col-12">
           <div className="row h-100">
@@ -1162,25 +1181,34 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-      <div className="row flex-grow-1" style={{ minHeight: "50%" }}>
+
+      {/* Bottom section with pie chart and info cards */}
+      <div className="row" style={{ marginTop: "1rem" }}>
         <div className="col-12">
           <div className="row h-100">
-            <div className="col-lg-4 col-12 mb-4 d-flex">
-              <div className="card text-center shadow-sm flex-fill">
-                <div className="card-body d-flex flex-column justify-content-center">
+            {/* Pie Chart Column */}
+            <div className="col-lg-4 col-12 mb-4">
+              <div className="card text-center shadow-sm h-100">
+                <div className="card-body d-flex flex-column justify-content-center p-4">
                   {isLoading || isSwitchingGroup ? (
                     <LoadingSpinner />
                   ) : (
                     <div
                       ref={pieChartRef}
-                      style={{ width: "100%", height: "250px" }}
-                    ></div>
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        minHeight: "250px",
+                      }}
+                    />
                   )}
                 </div>
               </div>
             </div>
-            <div className="col-lg-8 d-flex flex-column">
-              <div className="row flex-grow-1">
+
+            {/* Info Cards Column */}
+            <div className="col-lg-8 col-12">
+              <div className="row h-100">
                 <InfoCard
                   title={t("dashboard.metrics.energyConsumption.title")}
                   value={`${totalEnergyConsumption} ${t(
@@ -1196,7 +1224,9 @@ const HomePage = () => {
                   quarter={currentQuarter}
                   quarterLabel={t(
                     "dashboard.metrics.energyConsumption.quarter",
-                    { quarter: currentQuarter }
+                    {
+                      quarter: currentQuarter,
+                    }
                   )}
                 />
                 <InfoCard
@@ -1244,10 +1274,17 @@ const HomePage = () => {
 
 const CardTitle = styled.h5`
   color: #3ba272;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
 `;
 
 const CardValue = styled.h3`
   margin-bottom: 0.5rem;
+  color: #2d3748;
+  font-weight: 700;
 
   @media (min-width: 992px) {
     .col-lg-4 & {
@@ -1255,7 +1292,9 @@ const CardValue = styled.h3`
       flex-direction: column;
 
       span {
+        display: block;
         margin-top: 0.5rem;
+        color: #3ba272;
       }
     }
   }
@@ -1263,6 +1302,9 @@ const CardValue = styled.h3`
 
 const MonthlyValue = styled.p`
   margin-bottom: 0;
+  font-size: 1.1rem;
+  color: #718096;
+  font-weight: 500;
 `;
 const ChartCard = React.forwardRef(({ isLoading, isSwitchingGroup }, ref) => (
   <div className="col-lg-6 col-12 mb-4 d-flex">

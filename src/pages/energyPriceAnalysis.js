@@ -292,8 +292,22 @@ const EnergyPriceAnalysis = () => {
       // Show loading
       const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
       const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
-      if (barChartInstance) barChartInstance.showLoading();
-      if (pieChartInstance) pieChartInstance.showLoading();
+      if (barChartInstance)
+        barChartInstance.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255)",
+          zlevel: 0,
+        });
+      if (pieChartInstance)
+        pieChartInstance.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255)",
+          zlevel: 0,
+        });
 
       const { startDate, endDate } = dateRange;
       const fetchPromises = selectedOptions.map((sn) =>

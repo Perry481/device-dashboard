@@ -264,28 +264,49 @@ const EnergyCostAnalysis = () => {
     async (selectedOptions, dateRange, timeRanges) => {
       if (!timeRanges) return;
 
+      // Set loading state and show loading on charts
+      setIsLoading(true);
       const barChartInstance = echarts.getInstanceByDom(barChartRef.current);
       const pieChartInstance = echarts.getInstanceByDom(pieChartRef.current);
-      if (barChartInstance) barChartInstance.showLoading();
-      if (pieChartInstance) pieChartInstance.showLoading();
 
-      const { startDate, endDate } = dateRange;
-      const fetchPromises = selectedOptions.map((sn) =>
-        fetchData(sn, startDate, endDate)
-      );
+      if (barChartInstance) {
+        barChartInstance.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255, 0.9)",
+          zlevel: 0,
+        });
+      }
+      if (pieChartInstance) {
+        pieChartInstance.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255, 0.9)",
+          zlevel: 0,
+        });
+      }
 
       try {
+        const { startDate, endDate } = dateRange;
+        const fetchPromises = selectedOptions.map((sn) =>
+          fetchData(sn, startDate, endDate)
+        );
+
         const results = await Promise.all(fetchPromises);
         const aggregatedFetchedData = aggregateFetchedData(results);
         processAndSetData(aggregatedFetchedData, timeRanges);
       } catch (error) {
         console.error("Error during data fetch:", error);
       } finally {
+        // Hide loading from charts and reset loading state
         if (barChartInstance) barChartInstance.hideLoading();
         if (pieChartInstance) pieChartInstance.hideLoading();
+        setIsLoading(false);
       }
     },
-    []
+    [t]
   );
   useEffect(() => {
     if (!isLoading && timeRanges && selectedOptions.length > 0) {
@@ -359,8 +380,24 @@ const EnergyCostAnalysis = () => {
 
   useEffect(() => {
     if (barChartRef.current && Object.keys(aggregatedData).length > 0) {
+      let barChart = echarts.getInstanceByDom(barChartRef.current);
+      if (!barChart) {
+        barChart = echarts.init(barChartRef.current);
+      }
+
+      if (isLoading) {
+        barChart.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255, 0.9)",
+          zlevel: 0,
+        });
+        return;
+      }
+
+      barChart.hideLoading();
       const dates = Object.keys(aggregatedData);
-      const barChart = echarts.init(barChartRef.current);
       const barChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
         title: {
@@ -430,15 +467,15 @@ const EnergyCostAnalysis = () => {
             xAxisIndex: [0],
             start: 0,
             end: 100,
-            bottom: 0, // Position at the very bottom
-            handleSize: "110%", // Slightly larger handle for easier interaction
-            borderColor: "transparent", // Makes the border invisible
-            fillerColor: "rgba(59, 162, 114, 0.2)", // Light green fill
-            backgroundColor: "rgba(0, 0, 0, 0.05)", // Very light gray background
+            bottom: 0,
+            handleSize: "110%",
+            borderColor: "transparent",
+            fillerColor: "rgba(59, 162, 114, 0.2)",
+            backgroundColor: "rgba(0, 0, 0, 0.05)",
             textStyle: {
-              color: "#3ba272", // Matching text color
+              color: "#3ba272",
             },
-            moveHandleSize: 5, // Smaller move handle for a sleeker look
+            moveHandleSize: 5,
           },
           {
             type: "inside",
@@ -457,13 +494,33 @@ const EnergyCostAnalysis = () => {
       window.addEventListener("resize", handleResize);
 
       return () => {
-        barChart.dispose();
         window.removeEventListener("resize", handleResize);
+        if (barChart) {
+          barChart.dispose();
+        }
       };
     }
-  }, [aggregatedData, t]);
+  }, [aggregatedData, isLoading, t]);
+
   useEffect(() => {
     if (pieChartRef.current && Object.keys(aggregatedData).length > 0) {
+      let pieChart = echarts.getInstanceByDom(pieChartRef.current);
+      if (!pieChart) {
+        pieChart = echarts.init(pieChartRef.current);
+      }
+
+      if (isLoading) {
+        pieChart.showLoading({
+          text: "Loading...",
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255, 0.9)",
+          zlevel: 0,
+        });
+        return;
+      }
+
+      pieChart.hideLoading();
       const totalPeak = Object.values(aggregatedData).reduce(
         (acc, curr) => acc + parseFloat(curr.peak),
         0
@@ -477,7 +534,6 @@ const EnergyCostAnalysis = () => {
         0
       );
 
-      const pieChart = echarts.init(pieChartRef.current);
       const pieChartOptions = {
         color: ["#ee6666", "#fac858", "#91CC75"],
         title: {
@@ -544,11 +600,13 @@ const EnergyCostAnalysis = () => {
       window.addEventListener("resize", handleResize);
 
       return () => {
-        pieChart.dispose();
         window.removeEventListener("resize", handleResize);
+        if (pieChart) {
+          pieChart.dispose();
+        }
       };
     }
-  }, [aggregatedData, t]);
+  }, [aggregatedData, isLoading, t]);
   return (
     <div className="container-fluid">
       <RowContainer>

@@ -5,7 +5,7 @@ import styled from "styled-components";
 import { useTranslation } from "../hooks/useTranslation";
 const Card = styled.div`
   border: 1px solid #484848;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 20px;
   margin: 20px 0;
   width: 100%;
@@ -16,11 +16,25 @@ const Card = styled.div`
 `;
 
 const CardHeader = styled.div`
-  font-weight: bold;
+  position: relative;
+  padding-bottom: 10px;
   margin-bottom: 10px;
+  font-weight: bold;
+  color: #2d3748;
   text-align: center;
-`;
 
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: #3ba272;
+    border-radius: 2px;
+  }
+`;
 const CardBody = styled.div`
   display: flex;
   flex-direction: column;
@@ -44,9 +58,16 @@ const DatePickerWrapper = styled.div`
 const StyledDatePicker = styled(DatePicker)`
   width: 150px;
   padding: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid #e2e8f0;
   border-radius: 4px;
   text-align: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+
+  &:focus {
+    outline: none;
+    border-color: #3ba272;
+  }
 `;
 
 const Label = styled.label`
@@ -69,6 +90,88 @@ const CustomButton = styled.button`
   border: 1px solid #484848;
   border-radius: 4px;
   cursor: pointer;
+`;
+
+const datePickerStyles = `
+  .react-datepicker {
+    font-family: inherit;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .react-datepicker__header {
+    background-color: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    border-top-right-radius: 8px;
+    border-top-left-radius: 8px;
+    padding: 8px 0;
+  }
+
+  .react-datepicker__current-month {
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  .react-datepicker__day-name {
+    color: #718096;
+  }
+
+  .react-datepicker__day {
+    color: #2d3748;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: rgba(59, 162, 114, 0.1);
+    }
+  }
+
+  .react-datepicker__day--selected,
+  .react-datepicker__day--keyboard-selected {
+    background-color: #3ba272 !important;
+    color: white !important;
+    font-weight: 600;
+
+    &:hover {
+      background-color: #2d8659 !important;
+    }
+  }
+
+  .react-datepicker__day--in-range {
+    background-color: rgba(59, 162, 114, 0.1);
+  }
+
+  .react-datepicker__day--in-selecting-range {
+    background-color: rgba(59, 162, 114, 0.2);
+  }
+
+  .react-datepicker__navigation {
+    top: 8px;
+
+    &:hover {
+      .react-datepicker__navigation-icon::before {
+        border-color: #3ba272;
+      }
+    }
+  }
+
+  .react-datepicker__navigation-icon::before {
+    border-color: #718096;
+    transition: border-color 0.2s;
+  }
+
+  .react-datepicker__day--disabled {
+    color: #cbd5e0;
+  }
+
+  .react-datepicker__triangle {
+    display: none;
+  }
+`;
+
+const GlobalStyle = styled.div`
+  ${datePickerStyles}
 `;
 
 const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
@@ -193,30 +296,35 @@ const DateRangePicker = ({ onDateChange, useShortDateRange = false }) => {
     ));
   };
   return (
-    <Card>
-      <CardHeader>{t("datePicker.title")}</CardHeader>
-      <CardBody>
-        <DatePickersContainer>
-          <DatePickerWrapper>
-            <Label>{t("datePicker.startDate")}</Label>
-            <StyledDatePicker
-              selected={startDate}
-              onChange={handleStartDateChange}
-            />
-          </DatePickerWrapper>
-          <DatePickerWrapper>
-            <Label>{t("datePicker.endDate")}</Label>
-            <StyledDatePicker
-              selected={endDate}
-              onChange={handleEndDateChange}
-              disabled={!useCustomEndDate}
-              placeholderText={t("datePicker.endDate")}
-            />
-          </DatePickerWrapper>
-        </DatePickersContainer>
-        <ButtonGroup>{renderButtons()}</ButtonGroup>
-      </CardBody>
-    </Card>
+    <GlobalStyle>
+      <Card>
+        <CardHeader>{t("datePicker.title")}</CardHeader>
+        <CardBody>
+          <DatePickersContainer>
+            <DatePickerWrapper>
+              <Label>{t("datePicker.startDate")}</Label>
+              <StyledDatePicker
+                selected={startDate}
+                onChange={handleStartDateChange}
+                dateFormat="MM/dd/yyyy"
+              />
+            </DatePickerWrapper>
+            <DatePickerWrapper>
+              <Label>{t("datePicker.endDate")}</Label>
+              <StyledDatePicker
+                selected={endDate}
+                onChange={handleEndDateChange}
+                disabled={!useCustomEndDate}
+                placeholderText={t("datePicker.endDate")}
+                dateFormat="MM/dd/yyyy"
+                minDate={startDate}
+              />
+            </DatePickerWrapper>
+          </DatePickersContainer>
+          <ButtonGroup>{renderButtons()}</ButtonGroup>
+        </CardBody>
+      </Card>
+    </GlobalStyle>
   );
 };
 

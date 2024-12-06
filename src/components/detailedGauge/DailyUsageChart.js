@@ -127,10 +127,11 @@ const DailyUsageChart = () => {
     setIsLoading(true);
     if (chartInstanceRef.current) {
       chartInstanceRef.current.showLoading({
-        text: t("loading"),
-        maskColor: "rgba(255, 255, 255, 1)",
+        text: "Loading...",
+        color: "#3ba272",
         textColor: "#000",
-        zlevel: 10,
+        maskColor: "rgba(255, 255, 255)",
+        zlevel: 0,
       });
     }
 
@@ -187,10 +188,11 @@ const DailyUsageChart = () => {
 
       if (isLoading) {
         chart.showLoading({
-          text: t("loading"),
-          maskColor: "rgba(255, 255, 255, 1)",
+          text: "Loading...",
+          color: "#3ba272",
           textColor: "#000",
-          zlevel: 10,
+          maskColor: "rgba(255, 255, 255)",
+          zlevel: 0,
         });
         return chart;
       }

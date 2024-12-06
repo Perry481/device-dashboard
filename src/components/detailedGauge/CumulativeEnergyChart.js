@@ -209,9 +209,10 @@ const CumulativeEnergyChart = () => {
       if (isLoading) {
         chart.showLoading({
           text: "Loading...",
-          maskColor: "rgba(255, 255, 255, 1)", // Fully opaque white background
-          textColor: "#000", // Black text
-          zlevel: 10,
+          color: "#3ba272",
+          textColor: "#000",
+          maskColor: "rgba(255, 255, 255)",
+          zlevel: 0,
         });
         return chart;
       }

@@ -14,54 +14,6 @@ const SettingsContainer = styled.div`
   box-sizing: border-box;
 `;
 
-const Section = styled.div`
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  margin-bottom: 20px;
-  color: #333;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 20px;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #555;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
 const ErrorMessage = styled.div`
   color: #dc3545;
   margin-bottom: 20px;
@@ -79,28 +31,209 @@ const LoadingSpinner = styled.div`
   font-size: 24px;
 `;
 
+const colors = {
+  primary: {
+    main: "#3ba272",
+    light: "rgba(59, 162, 114, 0.1)",
+    border: "#e2e8f0",
+    text: "#2d3748",
+  },
+};
+
+const Section = styled.div`
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid ${colors.primary.border};
+
+  @media (max-width: 768px) {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+`;
+
+const SectionTitle = styled.h2`
+  position: relative;
+  font-size: 1.5rem;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  color: ${colors.primary.text};
+  font-weight: 600;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background-color: ${colors.primary.main};
+    border-radius: 2px;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 1.25rem;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    margin-bottom: 16px;
+  }
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: ${colors.primary.text};
+  font-size: 0.95rem;
+
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid ${colors.primary.border};
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${colors.primary.main};
+    box-shadow: 0 0 0 2px ${colors.primary.light};
+  }
+
+  &:hover {
+    border-color: ${colors.primary.main};
+  }
+
+  &:disabled {
+    background-color: #f7fafc;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+`;
+
+const Button = styled.button`
+  padding: 10px 24px;
+  background-color: ${colors.primary.main};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #2d8659;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+`;
+
+// Updated Select styles to match theme
 const customSelectStyles = {
-  control: (provided) => ({
+  control: (provided, state) => ({
     ...provided,
-    border: "1px solid #ddd",
-    borderRadius: "4px",
+    border: `1px solid ${
+      state.isFocused ? colors.primary.main : colors.primary.border
+    }`,
+    borderRadius: "6px",
     minHeight: "38px",
-    boxShadow: "none",
+    boxShadow: state.isFocused ? `0 0 0 2px ${colors.primary.light}` : "none",
     "&:hover": {
-      border: "1px solid #007bff",
+      border: `1px solid ${colors.primary.main}`,
+    },
+    "@media (max-width: 768px)": {
+      minHeight: "36px",
     },
   }),
   option: (provided, state) => ({
     ...provided,
-    backgroundColor: state.isSelected ? "#007bff" : "white",
-    color: state.isSelected ? "white" : "#333",
+    backgroundColor: state.isSelected
+      ? colors.primary.main
+      : state.isFocused
+      ? colors.primary.light
+      : "white",
+    color: state.isSelected ? "white" : colors.primary.text,
     "&:hover": {
-      backgroundColor: state.isSelected ? "#007bff" : "#f0f0f0",
+      backgroundColor: state.isSelected
+        ? colors.primary.main
+        : colors.primary.light,
     },
+    padding: "8px 12px",
+    fontSize: "0.95rem",
+    "@media (max-width: 768px)": {
+      padding: "6px 10px",
+      fontSize: "0.9rem",
+    },
+  }),
+  menu: (provided) => ({
+    ...provided,
+    borderRadius: "6px",
+    border: `1px solid ${colors.primary.border}`,
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
   }),
   singleValue: (provided) => ({
     ...provided,
-    color: "#333",
+    color: colors.primary.text,
+    fontSize: "0.95rem",
+    "@media (max-width: 768px)": {
+      fontSize: "0.9rem",
+    },
+  }),
+  input: (provided) => ({
+    ...provided,
+    fontSize: "0.95rem",
+    "@media (max-width: 768px)": {
+      fontSize: "0.9rem",
+    },
+  }),
+  placeholder: (provided) => ({
+    ...provided,
+    fontSize: "0.95rem",
+    "@media (max-width: 768px)": {
+      fontSize: "0.9rem",
+    },
+  }),
+  indicatorSeparator: () => ({
+    display: "none",
   }),
 };
 

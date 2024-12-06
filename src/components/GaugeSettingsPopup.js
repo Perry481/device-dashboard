@@ -486,7 +486,7 @@ const GSAddItemContainer = styled.div`
 const GSAddButton = styled.button`
   width: 100%;
   padding: 10px;
-  background-color: #007bff;
+  background-color: #3ba272;
   color: white;
   border: none;
   border-radius: 4px;
@@ -497,7 +497,7 @@ const GSAddButton = styled.button`
   gap: 5px;
   transition: background-color 0.2s;
   &:hover {
-    background-color: #0056b3;
+    background-color: #2d8659;
   }
 
   @media (max-width: 480px) {
