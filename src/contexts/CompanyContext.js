@@ -99,6 +99,7 @@ export const CompanyProvider = ({ children }) => {
           const allowedOrigins = [
             "https://iot.jtmes.net",
             "http://localhost:8000",
+            "https://localhost:8443",
           ];
 
           if (allowedOrigins.includes(event.origin) && event.data.companyName) {
